@@ -42,12 +42,31 @@ export default function TaggingInterface() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: posts = [], isLoading } = useQuery({
+  const { data: allPosts = [], isLoading } = useQuery({
     queryKey: ["/api/posts"],
   });
 
   const { data: tags = [] } = useQuery({
     queryKey: ["/api/tags"],
+  });
+
+  // Filter posts based on selected campaign
+  const posts = allPosts.filter((post: any) => {
+    // For now, we'll use a simple mapping of campaigns to posts
+    // In a real app, posts would have campaign metadata
+    const campaignPostMapping: { [key: string]: number[] } = {
+      "Summer 2024": [1, 2],
+      "Fall 2024": [3, 4],
+      "Winter 2024": [1, 3],
+      "Spring 2025": [2, 4],
+      "Holiday Campaign": [1, 2, 3, 4],
+      "Back to School": [2, 3],
+      "Black Friday": [1, 4],
+      "New Year Promotion": [1, 2, 3]
+    };
+    
+    const allowedPostIds = campaignPostMapping[campaignFilter] || [];
+    return allowedPostIds.includes(post.id);
   });
 
   const productTags = tags.filter((tag: any) => tag.pillar === "product");
@@ -211,6 +230,8 @@ export default function TaggingInterface() {
                               onSelect={(currentValue) => {
                                 setCampaignFilter(currentValue);
                                 setCampaignOpen(false);
+                                // Clear selected post when switching campaigns
+                                setSelectedPost(null);
                               }}
                             >
                               <Check
