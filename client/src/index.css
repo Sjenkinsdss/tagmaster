@@ -1,0 +1,172 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(22, 5%, 10%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(22, 5%, 10%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(22, 5%, 10%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(22, 5%, 10%);
+  --radius: 0.5rem;
+  
+  /* Carbon Design System colors */
+  --carbon-blue: hsl(207, 90%, 54%);
+  --carbon-gray-10: hsl(0, 0%, 95.7%);
+  --carbon-gray-20: hsl(0, 0%, 87.8%);
+  --carbon-gray-30: hsl(0, 0%, 77.6%);
+  --carbon-gray-50: hsl(0, 0%, 55.3%);
+  --carbon-gray-70: hsl(0, 0%, 32.2%);
+  --carbon-gray-80: hsl(0, 0%, 22.4%);
+  --carbon-gray-90: hsl(0, 0%, 14.9%);
+  --carbon-gray-100: hsl(0, 0%, 8.6%);
+  --carbon-green: hsl(134, 61%, 41%);
+  --carbon-yellow: hsl(49, 88%, 52%);
+  --carbon-red: hsl(3, 79%, 49%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-family: 'IBM Plex Sans', sans-serif;
+  }
+}
+
+@layer utilities {
+  .carbon-blue {
+    color: var(--carbon-blue);
+  }
+  
+  .bg-carbon-blue {
+    background-color: var(--carbon-blue);
+  }
+  
+  .carbon-gray-10 {
+    color: var(--carbon-gray-10);
+  }
+  
+  .bg-carbon-gray-10 {
+    background-color: var(--carbon-gray-10);
+  }
+  
+  .carbon-gray-20 {
+    color: var(--carbon-gray-20);
+  }
+  
+  .bg-carbon-gray-20 {
+    background-color: var(--carbon-gray-20);
+  }
+  
+  .carbon-gray-30 {
+    color: var(--carbon-gray-30);
+  }
+  
+  .bg-carbon-gray-30 {
+    background-color: var(--carbon-gray-30);
+  }
+  
+  .carbon-gray-50 {
+    color: var(--carbon-gray-50);
+  }
+  
+  .bg-carbon-gray-50 {
+    background-color: var(--carbon-gray-50);
+  }
+  
+  .carbon-gray-70 {
+    color: var(--carbon-gray-70);
+  }
+  
+  .bg-carbon-gray-70 {
+    background-color: var(--carbon-gray-70);
+  }
+  
+  .carbon-gray-80 {
+    color: var(--carbon-gray-80);
+  }
+  
+  .bg-carbon-gray-80 {
+    background-color: var(--carbon-gray-80);
+  }
+  
+  .carbon-gray-90 {
+    color: var(--carbon-gray-90);
+  }
+  
+  .bg-carbon-gray-90 {
+    background-color: var(--carbon-gray-90);
+  }
+  
+  .carbon-gray-100 {
+    color: var(--carbon-gray-100);
+  }
+  
+  .bg-carbon-gray-100 {
+    background-color: var(--carbon-gray-100);
+  }
+  
+  .carbon-green {
+    color: var(--carbon-green);
+  }
+  
+  .bg-carbon-green {
+    background-color: var(--carbon-green);
+  }
+  
+  .carbon-yellow {
+    color: var(--carbon-yellow);
+  }
+  
+  .bg-carbon-yellow {
+    background-color: var(--carbon-yellow);
+  }
+  
+  .carbon-red {
+    color: var(--carbon-red);
+  }
+  
+  .bg-carbon-red {
+    background-color: var(--carbon-red);
+  }
+}
