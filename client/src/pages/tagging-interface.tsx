@@ -251,8 +251,6 @@ export default function TaggingInterface() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <span>•</span>
-              <span>{posts.length} posts</span>
             </div>
           </div>
         </div>
