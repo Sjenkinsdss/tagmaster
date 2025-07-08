@@ -14,6 +14,8 @@ if (!databaseUrl) {
   );
 }
 
+console.log("Using database URL:", databaseUrl.replace(/:[^:@]+@/, ':***@')); // Log URL with password masked
+
 let pool: NodePool;
 let db: ReturnType<typeof drizzleNode>;
 
