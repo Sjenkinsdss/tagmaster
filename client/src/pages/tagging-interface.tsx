@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tags, Users, ShoppingBag, Edit } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
@@ -23,6 +25,20 @@ export default function TaggingInterface() {
     platform: "",
     thumbnailUrl: "",
   });
+  const [campaignFilter, setCampaignFilter] = useState("Summer 2024");
+  const [campaignOpen, setCampaignOpen] = useState(false);
+  
+  // Sample campaign options - in real app this would come from API
+  const campaignOptions = [
+    "Summer 2024",
+    "Fall 2024",
+    "Winter 2024",
+    "Spring 2025",
+    "Holiday Campaign",
+    "Back to School",
+    "Black Friday",
+    "New Year Promotion"
+  ];
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -162,7 +178,65 @@ export default function TaggingInterface() {
               <h1 className="text-xl font-semibold text-carbon-gray-100">Tagging Interface</h1>
             </div>
             <div className="flex items-center space-x-4 text-sm text-carbon-gray-70">
-              <span>Campaign: Summer 2024</span>
+              <div className="flex items-center space-x-2">
+                <span>Campaign:</span>
+                <Popover open={campaignOpen} onOpenChange={setCampaignOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={campaignOpen}
+                      className="w-48 justify-between text-sm h-8"
+                    >
+                      {campaignFilter}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48 p-0">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search campaigns..." 
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            const inputValue = (e.target as HTMLInputElement).value;
+                            if (inputValue && inputValue.trim()) {
+                              setCampaignFilter(inputValue.trim());
+                              setCampaignOpen(false);
+                            }
+                          }
+                        }}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          <div className="p-2 text-sm text-carbon-gray-70">
+                            Type and press Enter to create new campaign
+                          </div>
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {campaignOptions.map((campaign) => (
+                            <CommandItem
+                              key={campaign}
+                              value={campaign}
+                              onSelect={(currentValue) => {
+                                setCampaignFilter(currentValue);
+                                setCampaignOpen(false);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  campaignFilter === campaign ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {campaign}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <span>•</span>
               <span>{posts.length} posts</span>
             </div>
