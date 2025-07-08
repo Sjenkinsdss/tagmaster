@@ -196,21 +196,11 @@ export default function TaggingInterface() {
                     <Command>
                       <CommandInput 
                         placeholder="Search campaigns..." 
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            const inputValue = (e.target as HTMLInputElement).value;
-                            if (inputValue && inputValue.trim()) {
-                              setCampaignFilter(inputValue.trim());
-                              setCampaignOpen(false);
-                            }
-                          }
-                        }}
                       />
                       <CommandList>
                         <CommandEmpty>
                           <div className="p-2 text-sm text-carbon-gray-70">
-                            Type and press Enter to create new campaign
+                            No campaigns found
                           </div>
                         </CommandEmpty>
                         <CommandGroup>
