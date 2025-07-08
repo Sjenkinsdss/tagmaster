@@ -20,6 +20,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test posts query directly
+  app.get("/api/test-posts", async (req, res) => {
+    try {
+      const postsResult = await db.execute(sql`
+        SELECT 
+          id,
+          COALESCE(title, content, 'Untitled Post') as display_title,
+          platform_name as platform
+        FROM debra_posts 
+        LIMIT 5
+      `);
+      
+      res.json({ success: true, posts: postsResult.rows });
+    } catch (error) {
+      console.error("Posts test error:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   // Get table structure
   app.get("/api/table-structure/:tableName", async (req, res) => {
     try {

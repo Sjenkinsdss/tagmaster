@@ -13,6 +13,8 @@ import {
   type InsertAdTag, 
   type PostWithTags 
 } from "@shared/schema";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -65,62 +67,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPosts(): Promise<PostWithTags[]> {
-    return [
-      {
-        id: 1,
-        title: "Summer Fashion Post",
-        platform: "instagram",
-        embedUrl: "https://www.instagram.com/p/sample1",
-        thumbnailUrl: "https://via.placeholder.com/300x400",
-        campaignName: "Summer 2024",
+    try {
+      console.log('Starting to fetch posts from production database...');
+      
+      // Get posts from production database - very simple query to start
+      const postsResult = await db.execute(sql`
+        SELECT 
+          id,
+          COALESCE(title, content, 'Untitled Post') as display_title,
+          url as embed_url,
+          platform_name as platform,
+          post_image as thumbnail_url
+        FROM debra_posts 
+        WHERE id IS NOT NULL 
+        AND post_image IS NOT NULL
+        ORDER BY id DESC 
+        LIMIT 5
+      `);
+
+      console.log(`Found ${postsResult.rows.length} posts`);
+
+      const posts = postsResult.rows.map((row: any) => ({
+        id: row.id,
+        title: row.display_title || `Post ${row.id}`,
+        platform: row.platform || 'unknown',
+        embedUrl: row.embed_url || '',
+        thumbnailUrl: row.thumbnail_url,
+        campaignName: 'Production Content',
         createdAt: new Date(),
-        metadata: { likes: 1250, comments: 45 },
-        postTags: [
-          {
-            id: 1,
-            postId: 1,
-            tagId: 1,
-            tag: {
-              id: 1,
-              name: "Summer Collection",
-              code: "product_summer_collection_0001",
-              pillar: "product",
-              isAiGenerated: true,
-              createdAt: new Date(),
-            },
-          },
-        ],
-        paidAds: [
-          {
-            id: 1,
-            title: "Summer Ad",
-            status: "active",
-            platform: "instagram",
-            thumbnailUrl: null,
-            postId: 1,
-            isLinked: true,
-            performance: { clicks: 150, impressions: 5000 },
-            createdAt: new Date(),
-            adTags: [
-              {
-                id: 1,
-                adId: 1,
-                tagId: 1,
-                isInherited: true,
-                tag: {
-                  id: 1,
-                  name: "Summer Collection",
-                  code: "product_summer_collection_0001",
-                  pillar: "product",
-                  isAiGenerated: true,
-                  createdAt: new Date(),
-                },
-              },
-            ],
-          },
-        ],
-      },
-    ];
+        metadata: {},
+        postTags: [] as any[],
+        paidAds: [] as any[]
+      })) as PostWithTags[];
+
+      console.log('Successfully fetched posts');
+      return posts;
+    } catch (error) {
+      console.error('Error fetching posts from production DB:', error);
+      return [];
+    }
   }
 
   async getPost(id: number): Promise<PostWithTags | undefined> {
@@ -142,16 +127,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTags(): Promise<Tag[]> {
-    return [
-      {
-        id: 1,
-        name: "Summer Collection",
-        code: "product_summer_collection_0001",
-        pillar: "product",
+    try {
+      const tagsResult = await db.execute(sql`
+        SELECT 
+          id,
+          name,
+          tag_type_id
+        FROM debra_influencertag 
+        ORDER BY name 
+        LIMIT 100
+      `);
+
+      return tagsResult.rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        code: `tag_${row.name.toLowerCase().replace(/\s+/g, '_')}_${String(row.id).padStart(4, '0')}`,
+        pillar: row.tag_type_id === 1 ? 'product' : 'content',
         isAiGenerated: true,
         createdAt: new Date(),
-      },
-    ];
+      }));
+    } catch (error) {
+      console.error('Error fetching tags from production DB:', error);
+      return [];
+    }
   }
 
   async getTagsByPillar(pillar: string): Promise<Tag[]> {
