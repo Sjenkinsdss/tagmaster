@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Edit, X, Bot, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import TagInput from "./TagInput";
@@ -14,9 +15,21 @@ interface TagSectionProps {
   pillar: string;
   post: PostWithTags;
   allTags: Tag[];
+  bulkEditMode?: boolean;
+  selectedTags?: Set<number>;
+  onTagSelection?: (tagId: number, isSelected: boolean) => void;
 }
 
-export default function TagSection({ title, icon, pillar, post, allTags }: TagSectionProps) {
+export default function TagSection({ 
+  title, 
+  icon, 
+  pillar, 
+  post, 
+  allTags, 
+  bulkEditMode = false,
+  selectedTags = new Set(),
+  onTagSelection
+}: TagSectionProps) {
   const [editingTag, setEditingTag] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const { toast } = useToast();
@@ -114,6 +127,15 @@ export default function TagSection({ title, icon, pillar, post, allTags }: TagSe
           <div className="flex flex-wrap gap-2">
             {aiTags.map((tag) => (
               <div key={tag.id} className="inline-flex items-center">
+                {bulkEditMode && (
+                  <Checkbox
+                    checked={selectedTags.has(tag.id)}
+                    onCheckedChange={(checked) => {
+                      onTagSelection?.(tag.id, checked as boolean);
+                    }}
+                    className="mr-2"
+                  />
+                )}
                 {editingTag === tag.id ? (
                   <div className="flex items-center space-x-1">
                     <input
@@ -145,23 +167,27 @@ export default function TagSection({ title, icon, pillar, post, allTags }: TagSe
                     className="bg-purple-50 text-purple-700 border-purple-200 pl-3 pr-1"
                   >
                     {tag.name}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="ml-1 h-4 w-4 p-0 hover:text-purple-900"
-                      onClick={() => handleEditTag(tag)}
-                    >
-                      <Edit className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="ml-1 h-4 w-4 p-0 hover:text-purple-900"
-                      onClick={() => handleRemoveTag(tag.id)}
-                      disabled={removeTagMutation.isPending}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                    {!bulkEditMode && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-1 h-4 w-4 p-0 hover:text-purple-900"
+                          onClick={() => handleEditTag(tag)}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-1 h-4 w-4 p-0 hover:text-purple-900"
+                          onClick={() => handleRemoveTag(tag.id)}
+                          disabled={removeTagMutation.isPending}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
                   </Badge>
                 )}
               </div>
@@ -180,6 +206,15 @@ export default function TagSection({ title, icon, pillar, post, allTags }: TagSe
           <div className="flex flex-wrap gap-2">
             {userTags.map((tag) => (
               <div key={tag.id} className="inline-flex items-center">
+                {bulkEditMode && (
+                  <Checkbox
+                    checked={selectedTags.has(tag.id)}
+                    onCheckedChange={(checked) => {
+                      onTagSelection?.(tag.id, checked as boolean);
+                    }}
+                    className="mr-2"
+                  />
+                )}
                 {editingTag === tag.id ? (
                   <div className="flex items-center space-x-1">
                     <input
@@ -211,23 +246,27 @@ export default function TagSection({ title, icon, pillar, post, allTags }: TagSe
                     className="bg-blue-50 text-blue-700 border-blue-200 pl-3 pr-1"
                   >
                     {tag.name}
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="ml-1 h-4 w-4 p-0 hover:text-blue-900"
-                      onClick={() => handleEditTag(tag)}
-                    >
-                      <Edit className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="ml-1 h-4 w-4 p-0 hover:text-blue-900"
-                      onClick={() => handleRemoveTag(tag.id)}
-                      disabled={removeTagMutation.isPending}
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
+                    {!bulkEditMode && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-1 h-4 w-4 p-0 hover:text-blue-900"
+                          onClick={() => handleEditTag(tag)}
+                        >
+                          <Edit className="w-3 h-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="ml-1 h-4 w-4 p-0 hover:text-blue-900"
+                          onClick={() => handleRemoveTag(tag.id)}
+                          disabled={removeTagMutation.isPending}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </>
+                    )}
                   </Badge>
                 )}
               </div>

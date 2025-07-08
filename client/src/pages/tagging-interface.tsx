@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tags, Users, ShoppingBag, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
 import TagSection from "@/components/TagSection";
 import PaidAdItem from "@/components/PaidAdItem";
@@ -11,6 +13,10 @@ import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
   const [selectedPost, setSelectedPost] = useState<PostWithTags | null>(null);
+  const [bulkEditMode, setBulkEditMode] = useState(false);
+  const [selectedTags, setSelectedTags] = useState<Set<number>>(new Set());
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: posts = [], isLoading } = useQuery({
     queryKey: ["/api/posts"],
@@ -22,6 +28,55 @@ export default function TaggingInterface() {
 
   const productTags = tags.filter((tag: any) => tag.pillar === "product");
   const influencerTags = tags.filter((tag: any) => tag.pillar === "influencer");
+
+  const handleBulkEdit = () => {
+    setBulkEditMode(!bulkEditMode);
+    setSelectedTags(new Set());
+  };
+
+  const handleTagSelection = (tagId: number, isSelected: boolean) => {
+    const newSelection = new Set(selectedTags);
+    if (isSelected) {
+      newSelection.add(tagId);
+    } else {
+      newSelection.delete(tagId);
+    }
+    setSelectedTags(newSelection);
+  };
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (tagIds: number[]) => {
+      if (!selectedPost) return;
+      
+      // Remove tags from the current post
+      for (const tagId of tagIds) {
+        await apiRequest("DELETE", `/api/posts/${selectedPost.id}/tags/${tagId}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+      setSelectedTags(new Set());
+      setBulkEditMode(false);
+      toast({
+        title: "Tags removed",
+        description: `${selectedTags.size} tags have been removed from this post.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to remove selected tags.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleBulkDelete = () => {
+    if (selectedTags.size > 0) {
+      bulkDeleteMutation.mutate(Array.from(selectedTags));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -80,10 +135,33 @@ export default function TaggingInterface() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-carbon-gray-100">Tags</h2>
-              <Button variant="ghost" size="sm" className="text-carbon-blue">
-                <Edit className="w-4 h-4 mr-1" />
-                Bulk Edit
-              </Button>
+              <div className="flex items-center space-x-2">
+                {bulkEditMode && selectedTags.size > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="text-carbon-blue">
+                      {selectedTags.size} selected
+                    </Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-red-600 hover:text-red-700"
+                      onClick={handleBulkDelete}
+                      disabled={bulkDeleteMutation.isPending}
+                    >
+                      Delete Selected
+                    </Button>
+                  </div>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={bulkEditMode ? "text-red-600" : "text-carbon-blue"}
+                  onClick={handleBulkEdit}
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  {bulkEditMode ? "Cancel" : "Bulk Edit"}
+                </Button>
+              </div>
             </div>
 
             {selectedPost ? (
@@ -94,6 +172,9 @@ export default function TaggingInterface() {
                   pillar="product"
                   post={selectedPost}
                   allTags={productTags}
+                  bulkEditMode={bulkEditMode}
+                  selectedTags={selectedTags}
+                  onTagSelection={handleTagSelection}
                 />
                 
                 <TagSection
@@ -102,6 +183,9 @@ export default function TaggingInterface() {
                   pillar="influencer"
                   post={selectedPost}
                   allTags={influencerTags}
+                  bulkEditMode={bulkEditMode}
+                  selectedTags={selectedTags}
+                  onTagSelection={handleTagSelection}
                 />
               </div>
             ) : (
