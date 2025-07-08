@@ -52,17 +52,20 @@ export default function TaggingInterface() {
 
   // Filter posts based on selected campaign
   const posts = allPosts.filter((post: any) => {
-    // For now, we'll use a simple mapping of campaigns to posts
-    // In a real app, posts would have campaign metadata
+    // Campaign mapping based on actual post content:
+    // 1: Summer Collection Launch (Instagram)
+    // 2: Beach Day Vibes (TikTok)
+    // 3: Sunset Workout (YouTube)
+    // 4: New Product Review (Instagram)
     const campaignPostMapping: { [key: string]: number[] } = {
-      "Summer 2024": [1, 2],
-      "Fall 2024": [3, 4],
-      "Winter 2024": [1, 3],
-      "Spring 2025": [2, 4],
-      "Holiday Campaign": [1, 2, 3, 4],
-      "Back to School": [2, 3],
-      "Black Friday": [1, 4],
-      "New Year Promotion": [1, 2, 3]
+      "Summer 2024": [1, 2], // Summer Collection + Beach Day
+      "Fall 2024": [3, 4], // Workout + Product Review
+      "Winter 2024": [1, 4], // Collection Launch + Product Review
+      "Spring 2025": [2, 3], // Beach Day + Workout
+      "Holiday Campaign": [1, 2, 3, 4], // All posts
+      "Back to School": [3, 4], // Workout + Product Review
+      "Black Friday": [1, 4], // Collection Launch + Product Review
+      "New Year Promotion": [2, 3] // Beach Day + Workout
     };
     
     const allowedPostIds = campaignPostMapping[campaignFilter] || [];
