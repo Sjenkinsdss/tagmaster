@@ -1,0 +1,66 @@
+🏷️ Tagging Interface MVP — Specification
+🎯 Goal
+Build a Tagging Interface that serves as the foundation for a future analytics hub. This MVP should prioritize usability and clarity, allowing users to tag content inline, quickly, and accurately.
+
+✅ Core Features
+📺 1. Content Column (Embedded Media)
+* Display a list of social media posts (Instagram, TikTok, YouTube, etc.).
+* Embed media so videos are playable inline — no external navigation.
+* Users must be able to watch and tag simultaneously.
+* Show post metadata:
+    * Title
+    * Timestamp
+    * Campaign Name
+
+🏷️ 2. Tagging Columns (Grouped by Pillar)
+* Show tags in columns grouped by pillar:
+    * Product Tags (category + tags)
+    * Influencer Tags (category + tags)
+* AI-generated tags should be pre-filled:
+    * Users can edit, remove, or correct them.
+* User-added tags must be:
+    * Freeform input (MVP)
+    * Automatically assigned a unique internal code in the format: pillar_tagname_####
+
+📢 3. Connected Paid Ads Column
+* Show paid ads linked to the post.
+* Each ad:
+    * Visually resembles original post (thumbnail, preview, etc.)
+    * Inherits post tags by default.
+    * Can be deselected/unlinked manually.
+* Once unlinked:
+    * Tag inheritance is broken — ad no longer syncs with post tags.
+
+🧠 Back-End Logic
+* All tags (AI or user-created) must have a stable internal code.
+* Tag codes are stored in an existing PostgreSQL database.
+* When a new tag is created:
+    * System generates and stores a unique tag code automatically.
+* When a paid ad is unlinked:
+    * It stops inheriting any new tags added to the original post.
+
+📌 Assumptions + Clarifications
+Data + Storage
+* PostgreSQL is the backend — no need to build new DB infra.
+* Internal-only app; no authentication required for MVP.
+Embeds & Metadata
+* Supported platforms must allow embeddable URLs.
+* Fallback UI is acceptable if native embedding fails.
+* Metadata shown with each post:
+    * Title, Timestamp, Campaign Name
+Tags
+* Tag categories (Product & Influencer) are fixed.
+* Freeform input for new tags during MVP.
+* Dropdowns/autocomplete will be introduced later where appropriate.
+* AI tag generation is handled by a separate tool — integration not required for MVP.
+Ads
+* Multiple paid ads can be connected to a single post.
+* Unlinking an ad disables all future tag inheritance.
+
+🔭 Future Features (Out of Scope for MVP)
+* Analytics hub: Select a tag + KPI and visualize results via charts.
+* User behavior tracking for training or analysis.
+* Tag suggestions based on correction history.
+* Audit trail to track tag edit history/versioning.
+
+
