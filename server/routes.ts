@@ -10,10 +10,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test route for direct database connection
   app.get("/api/test-db", async (req, res) => {
     try {
-      const result = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
-      res.json({ success: true, tables: result.rows });
+      const tablesResult = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
+      const tables = tablesResult.rows;
+      
+      res.json({ success: true, tables });
     } catch (error) {
       console.error("Database test error:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
+  // Get table structure
+  app.get("/api/table-structure/:tableName", async (req, res) => {
+    try {
+      const tableName = req.params.tableName;
+      const structureResult = await db.execute(sql`SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = ${tableName} ORDER BY ordinal_position`);
+      
+      // Sample data (with safe identifier)
+      const sampleResult = await db.execute(sql.raw(`SELECT * FROM ${tableName} LIMIT 5`));
+      
+      res.json({ success: true, structure: structureResult.rows, sampleData: sampleResult.rows });
+    } catch (error) {
+      console.error("Table structure error:", error);
       res.status(500).json({ success: false, error: String(error) });
     }
   });
