@@ -3,8 +3,82 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertPostSchema, insertTagSchema, insertPaidAdSchema, type InsertTag } from "@shared/schema";
 import { z } from "zod";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Test route for direct database connection
+  app.get("/api/test-db", async (req, res) => {
+    try {
+      const result = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
+      res.json({ success: true, tables: result.rows });
+    } catch (error) {
+      console.error("Database test error:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
+  // Create tables in production database
+  app.post("/api/create-tables", async (req, res) => {
+    try {
+      await db.execute(sql`CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await db.execute(sql`CREATE TABLE IF NOT EXISTS posts (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        platform TEXT NOT NULL,
+        embed_url TEXT,
+        thumbnail_url TEXT,
+        campaign_name TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        metadata JSONB
+      )`);
+
+      await db.execute(sql`CREATE TABLE IF NOT EXISTS tags (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        code TEXT NOT NULL UNIQUE,
+        pillar TEXT NOT NULL,
+        is_ai_generated BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await db.execute(sql`CREATE TABLE IF NOT EXISTS post_tags (
+        post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+        tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (post_id, tag_id)
+      )`);
+
+      await db.execute(sql`CREATE TABLE IF NOT EXISTS paid_ads (
+        id SERIAL PRIMARY KEY,
+        platform TEXT NOT NULL,
+        ad_url TEXT NOT NULL,
+        thumbnail_url TEXT,
+        campaign_name TEXT,
+        post_id INTEGER REFERENCES posts(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await db.execute(sql`CREATE TABLE IF NOT EXISTS ad_tags (
+        ad_id INTEGER REFERENCES paid_ads(id) ON DELETE CASCADE,
+        tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (ad_id, tag_id)
+      )`);
+
+      res.json({ success: true, message: "Tables created successfully" });
+    } catch (error) {
+      console.error("Database creation error:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   // Posts routes
   app.get("/api/posts", async (req, res) => {
     try {

@@ -77,27 +77,70 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPosts(): Promise<PostWithTags[]> {
-    const postsWithTags = await db.query.posts.findMany({
-      with: {
-        postTags: {
-          with: {
-            tag: true,
+    try {
+      const postsWithTags = await db.query.posts.findMany({
+        with: {
+          postTags: {
+            with: {
+              tag: true,
+            },
           },
-        },
-        paidAds: {
-          with: {
-            adTags: {
-              with: {
-                tag: true,
+          paidAds: {
+            with: {
+              adTags: {
+                with: {
+                  tag: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: [desc(posts.createdAt)],
-    });
-
-    return postsWithTags;
+        orderBy: [desc(posts.createdAt)],
+      });
+      return postsWithTags;
+    } catch (error) {
+      console.error("Error with relational query, trying simple query:", error);
+      // Fallback to simple query and manually build relations
+      const simplePosts = await db.select().from(posts).orderBy(desc(posts.createdAt));
+      const result: PostWithTags[] = [];
+      
+      for (const post of simplePosts) {
+        const postTagsData = await db.select().from(postTags).where(eq(postTags.postId, post.id));
+        const postTagsWithTag = [];
+        
+        for (const postTag of postTagsData) {
+          const [tag] = await db.select().from(tags).where(eq(tags.id, postTag.tagId));
+          if (tag) {
+            postTagsWithTag.push({ ...postTag, tag });
+          }
+        }
+        
+        const paidAdsData = await db.select().from(paidAds).where(eq(paidAds.postId, post.id));
+        const paidAdsWithTags = [];
+        
+        for (const paidAd of paidAdsData) {
+          const adTagsData = await db.select().from(adTags).where(eq(adTags.adId, paidAd.id));
+          const adTagsWithTag = [];
+          
+          for (const adTag of adTagsData) {
+            const [tag] = await db.select().from(tags).where(eq(tags.id, adTag.tagId));
+            if (tag) {
+              adTagsWithTag.push({ ...adTag, tag });
+            }
+          }
+          
+          paidAdsWithTags.push({ ...paidAd, adTags: adTagsWithTag });
+        }
+        
+        result.push({
+          ...post,
+          postTags: postTagsWithTag,
+          paidAds: paidAdsWithTags
+        });
+      }
+      
+      return result;
+    }
   }
 
   async getPost(id: number): Promise<PostWithTags | undefined> {
@@ -130,7 +173,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTags(): Promise<Tag[]> {
-    return await db.select().from(tags).orderBy(tags.pillar, tags.name);
+    try {
+      return await db.select().from(tags).orderBy(tags.pillar, tags.name);
+    } catch (error) {
+      console.error("Error fetching tags:", error);
+      throw error;
+    }
   }
 
   async getTagsByPillar(pillar: string): Promise<Tag[]> {
