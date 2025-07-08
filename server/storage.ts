@@ -37,8 +37,8 @@ export interface IStorage {
   // Tag methods
   getTags(): Promise<Tag[]>;
   getTagsByPillar(pillar: string): Promise<Tag[]>;
-  createTag(tag: InsertTag): Promise<Tag>;
-  updateTag(id: number, updates: Partial<InsertTag>): Promise<Tag>;
+  createTag(tag: InsertTag & { code: string }): Promise<Tag>;
+  updateTag(id: number, updates: Partial<InsertTag & { code: string }>): Promise<Tag>;
   deleteTag(id: number): Promise<void>;
   generateTagCode(pillar: string, name: string): Promise<string>;
 
@@ -137,12 +137,12 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(tags).where(eq(tags.pillar, pillar)).orderBy(tags.name);
   }
 
-  async createTag(insertTag: InsertTag): Promise<Tag> {
+  async createTag(insertTag: InsertTag & { code: string }): Promise<Tag> {
     const [tag] = await db.insert(tags).values(insertTag).returning();
     return tag;
   }
 
-  async updateTag(id: number, updates: Partial<InsertTag>): Promise<Tag> {
+  async updateTag(id: number, updates: Partial<InsertTag & { code: string }>): Promise<Tag> {
     const [tag] = await db.update(tags).set(updates).where(eq(tags.id, id)).returning();
     return tag;
   }

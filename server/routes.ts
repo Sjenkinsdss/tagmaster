@@ -81,11 +81,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updates = insertTagSchema.partial().parse(req.body);
       
       // If name is being updated, regenerate code
+      let updatesWithCode: Partial<InsertTag & { code: string }> = updates;
       if (updates.name && updates.pillar) {
-        updates.code = await storage.generateTagCode(updates.pillar, updates.name);
+        const code = await storage.generateTagCode(updates.pillar, updates.name);
+        updatesWithCode = { ...updates, code };
       }
       
-      const tag = await storage.updateTag(id, updates);
+      const tag = await storage.updateTag(id, updatesWithCode);
       res.json(tag);
     } catch (error) {
       if (error instanceof z.ZodError) {

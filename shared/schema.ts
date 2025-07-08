@@ -108,6 +108,7 @@ export const insertPostSchema = createInsertSchema(posts).omit({
 
 export const insertTagSchema = createInsertSchema(tags).omit({
   id: true,
+  code: true,
   createdAt: true,
 });
 
