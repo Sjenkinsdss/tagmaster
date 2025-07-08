@@ -28,16 +28,10 @@ export default function TaggingInterface() {
   const [campaignFilter, setCampaignFilter] = useState("Summer 2024");
   const [campaignOpen, setCampaignOpen] = useState(false);
   
-  // Sample campaign options - in real app this would come from API
+  // Use actual campaign names from production database
   const campaignOptions = [
     "Summer 2024",
-    "Fall 2024",
-    "Winter 2024",
-    "Spring 2025",
-    "Holiday Campaign",
-    "Back to School",
-    "Black Friday",
-    "New Year Promotion"
+    "Product Launch"
   ];
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -50,26 +44,9 @@ export default function TaggingInterface() {
     queryKey: ["/api/tags"],
   });
 
-  // Filter posts based on selected campaign
+  // Filter posts based on selected campaign using actual campaign data
   const posts = allPosts.filter((post: any) => {
-    // Campaign mapping based on actual post content:
-    // 1: Summer Collection Launch (Instagram)
-    // 2: Beach Day Vibes (TikTok)
-    // 3: Sunset Workout (YouTube)
-    // 4: New Product Review (Instagram)
-    const campaignPostMapping: { [key: string]: number[] } = {
-      "Summer 2024": [1, 2], // Summer Collection + Beach Day
-      "Fall 2024": [3, 4], // Workout + Product Review
-      "Winter 2024": [1, 4], // Collection Launch + Product Review
-      "Spring 2025": [2, 3], // Beach Day + Workout
-      "Holiday Campaign": [1, 2, 3, 4], // All posts
-      "Back to School": [3, 4], // Workout + Product Review
-      "Black Friday": [1, 4], // Collection Launch + Product Review
-      "New Year Promotion": [2, 3] // Beach Day + Workout
-    };
-    
-    const allowedPostIds = campaignPostMapping[campaignFilter] || [];
-    return allowedPostIds.includes(post.id);
+    return post.campaignName === campaignFilter;
   });
 
   const productTags = tags.filter((tag: any) => tag.pillar === "product");

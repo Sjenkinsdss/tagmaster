@@ -11,7 +11,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const posts = await storage.getPosts();
       res.json(posts);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch posts" });
+      console.error("Error fetching posts:", error);
+      res.status(500).json({ message: "Failed to fetch posts", error: String(error) });
     }
   });
 
@@ -50,7 +51,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         : await storage.getTags();
       res.json(tags);
     } catch (error) {
-      res.status(500).json({ message: "Failed to fetch tags" });
+      console.error("Error fetching tags:", error);
+      res.status(500).json({ message: "Failed to fetch tags", error: String(error) });
     }
   });
 
