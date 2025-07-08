@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tags, Users, ShoppingBag, Edit } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -15,6 +17,12 @@ export default function TaggingInterface() {
   const [selectedPost, setSelectedPost] = useState<PostWithTags | null>(null);
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [selectedTags, setSelectedTags] = useState<Set<number>>(new Set());
+  const [showCreateAdForm, setShowCreateAdForm] = useState(false);
+  const [newAdData, setNewAdData] = useState({
+    title: "",
+    platform: "",
+    thumbnailUrl: "",
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -76,6 +84,63 @@ export default function TaggingInterface() {
     if (selectedTags.size > 0) {
       bulkDeleteMutation.mutate(Array.from(selectedTags));
     }
+  };
+
+  const createAdMutation = useMutation({
+    mutationFn: async (adData: {
+      title: string;
+      platform: string;
+      thumbnailUrl?: string;
+      postId: number;
+      isLinked: boolean;
+      status: string;
+    }) => {
+      const response = await apiRequest("POST", "/api/paid-ads", adData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      setShowCreateAdForm(false);
+      toast({
+        title: "Paid ad created",
+        description: "New paid ad has been created and connected to this post.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create paid ad.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateAd = (adData: {
+    title: string;
+    platform: string;
+    thumbnailUrl?: string;
+  }) => {
+    if (!selectedPost) return;
+    
+    createAdMutation.mutate({
+      ...adData,
+      postId: selectedPost.id,
+      isLinked: true,
+      status: "active",
+    });
+  };
+
+  const handleSubmitNewAd = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newAdData.title && newAdData.platform) {
+      handleCreateAd(newAdData);
+      setNewAdData({ title: "", platform: "", thumbnailUrl: "" });
+    }
+  };
+
+  const handleCancelCreateAd = () => {
+    setShowCreateAdForm(false);
+    setNewAdData({ title: "", platform: "", thumbnailUrl: "" });
   };
 
   if (isLoading) {
@@ -234,11 +299,82 @@ export default function TaggingInterface() {
                 )}
                 
                 <Card className="mt-6 border-2 border-dashed border-carbon-gray-30">
-                  <CardContent className="p-4 text-center">
-                    <Button variant="ghost" className="text-carbon-blue">
-                      <ShoppingBag className="w-4 h-4 mr-2" />
-                      Connect New Paid Ad
-                    </Button>
+                  <CardContent className="p-4">
+                    {!showCreateAdForm ? (
+                      <div className="text-center">
+                        <Button 
+                          variant="ghost" 
+                          className="text-carbon-blue"
+                          onClick={() => setShowCreateAdForm(true)}
+                        >
+                          <ShoppingBag className="w-4 h-4 mr-2" />
+                          Connect New Paid Ad
+                        </Button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSubmitNewAd} className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-carbon-gray-90 mb-1">
+                            Ad Title
+                          </label>
+                          <Input
+                            type="text"
+                            value={newAdData.title}
+                            onChange={(e) => setNewAdData({ ...newAdData, title: e.target.value })}
+                            placeholder="Enter ad title"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-carbon-gray-90 mb-1">
+                            Platform
+                          </label>
+                          <Select
+                            value={newAdData.platform}
+                            onValueChange={(value) => setNewAdData({ ...newAdData, platform: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select platform" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="facebook">Facebook</SelectItem>
+                              <SelectItem value="instagram">Instagram</SelectItem>
+                              <SelectItem value="google">Google Ads</SelectItem>
+                              <SelectItem value="twitter">Twitter</SelectItem>
+                              <SelectItem value="linkedin">LinkedIn</SelectItem>
+                              <SelectItem value="youtube">YouTube</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-carbon-gray-90 mb-1">
+                            Thumbnail URL (Optional)
+                          </label>
+                          <Input
+                            type="url"
+                            value={newAdData.thumbnailUrl}
+                            onChange={(e) => setNewAdData({ ...newAdData, thumbnailUrl: e.target.value })}
+                            placeholder="https://example.com/thumbnail.jpg"
+                          />
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button 
+                            type="submit" 
+                            className="flex-1"
+                            disabled={createAdMutation.isPending}
+                          >
+                            {createAdMutation.isPending ? "Creating..." : "Create Ad"}
+                          </Button>
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            onClick={handleCancelCreateAd}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </form>
+                    )}
                   </CardContent>
                 </Card>
               </div>
