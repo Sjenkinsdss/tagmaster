@@ -87,7 +87,7 @@ export class DatabaseStorage implements IStorage {
             c."name" as name,
             'TIKTOK' as platform_name,
             aa.created_time as created_at,
-            '' as embed_url,
+            COALESCE(cpr.post_url, '') as embed_url,
             e."name" as Campaign_name,
             bjp.client_name,
             bjp.title as bjp_title
@@ -100,6 +100,8 @@ export class DatabaseStorage implements IStorage {
             ON d.campaign_id = e.tiktokbase_ptr_id
           LEFT JOIN debra_brandjobpost bjp
             ON e.campaign_id = bjp.id   
+          LEFT JOIN campaign_report_campaignpostreport cpr
+            ON aa.post_report_id = cpr.id
           WHERE bjp.title = '2025 Annual: Weekday'
             AND aa.id IS NOT NULL
             AND c."name" IS NOT NULL
