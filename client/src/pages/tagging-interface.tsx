@@ -55,6 +55,11 @@ export default function TaggingInterface() {
     // Post ID filter
     const postIdMatch = !postIdFilter || post.id.toString().includes(postIdFilter);
     
+    // Debug logging when post ID filter is active
+    if (postIdFilter && postIdFilter.length > 0) {
+      console.log(`Filtering post ID ${post.id} with filter "${postIdFilter}": ${postIdMatch ? 'MATCH' : 'NO MATCH'}`);
+    }
+    
     return campaignMatch && postIdMatch;
   });
 
