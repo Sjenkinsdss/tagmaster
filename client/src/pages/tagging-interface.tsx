@@ -27,6 +27,7 @@ export default function TaggingInterface() {
   });
   const [campaignFilter, setCampaignFilter] = useState("All Posts");
   const [campaignOpen, setCampaignOpen] = useState(false);
+  const [postIdFilter, setPostIdFilter] = useState("");
   
   // Use actual campaign names from production database
   const campaignOptions = [
@@ -46,10 +47,15 @@ export default function TaggingInterface() {
     queryKey: ["/api/tags"],
   });
 
-  // Filter posts based on selected campaign using actual campaign data
+  // Filter posts based on selected campaign and post ID
   const posts = allPosts.filter((post: any) => {
-    if (campaignFilter === "All Posts") return true;
-    return post.campaignName === campaignFilter;
+    // Campaign filter
+    const campaignMatch = campaignFilter === "All Posts" || post.campaignName === campaignFilter;
+    
+    // Post ID filter
+    const postIdMatch = !postIdFilter || post.id.toString().includes(postIdFilter);
+    
+    return campaignMatch && postIdMatch;
   });
 
   const productTags = tags.filter((tag: any) => tag.pillar === "product");
@@ -230,6 +236,32 @@ export default function TaggingInterface() {
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span>Post ID:</span>
+                <Input
+                  placeholder="1378685242..."
+                  value={postIdFilter}
+                  onChange={(e) => {
+                    setPostIdFilter(e.target.value);
+                    // Clear selected post when filtering
+                    setSelectedPost(null);
+                  }}
+                  className="w-32 h-8 text-sm"
+                />
+                {postIdFilter && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setPostIdFilter("");
+                      setSelectedPost(null);
+                    }}
+                    className="h-8 px-2 text-xs"
+                  >
+                    Clear
+                  </Button>
+                )}
               </div>
             </div>
           </div>
