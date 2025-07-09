@@ -71,23 +71,41 @@ export class DatabaseStorage implements IStorage {
       console.log('Fetching posts from debra_posts and campaign ads...');
       
       // First, get real posts from debra_posts table (especially for 2025 Annual: Weekday campaign)
+      // Include specific test post 1378685242 for connected ads testing
       const realPostsResult = await db.execute(sql`
-        SELECT 
-          dp.id,
-          dp.content as title,
-          dp.platform_name as platform,
-          dp.url as embed_url,
-          dp.post_image as thumbnail_url,
-          '2025 Annual: Weekday' as campaign_name,
-          dp.create_date as created_at,
-          dp.content as metadata_content
-        FROM debra_posts dp
-        WHERE dp.is_sponsored = true
-          AND dp.content IS NOT NULL
-          AND dp.content != ''
-          AND dp.url IS NOT NULL
-        ORDER BY dp.create_date DESC
-        LIMIT 20
+        (
+          SELECT 
+            dp.id,
+            dp.content as title,
+            dp.platform_name as platform,
+            dp.url as embed_url,
+            dp.post_image as thumbnail_url,
+            '2025 Annual: Weekday' as campaign_name,
+            dp.create_date as created_at,
+            dp.content as metadata_content
+          FROM debra_posts dp
+          WHERE dp.id = 1378685242
+        )
+        UNION
+        (
+          SELECT 
+            dp.id,
+            dp.content as title,
+            dp.platform_name as platform,
+            dp.url as embed_url,
+            dp.post_image as thumbnail_url,
+            '2025 Annual: Weekday' as campaign_name,
+            dp.create_date as created_at,
+            dp.content as metadata_content
+          FROM debra_posts dp
+          WHERE dp.is_sponsored = true
+            AND dp.content IS NOT NULL
+            AND dp.content != ''
+            AND dp.url IS NOT NULL
+            AND dp.id != 1378685242
+          ORDER BY dp.create_date DESC
+          LIMIT 49
+        )
       `);
       
       console.log(`Found ${realPostsResult.rows.length} real posts from debra_posts`);
@@ -122,7 +140,7 @@ export class DatabaseStorage implements IStorage {
         ORDER BY 
           CASE WHEN cpr.post_url IS NOT NULL AND cpr.post_url != '' THEN 0 ELSE 1 END,
           aa.created_time DESC
-        LIMIT 20
+        LIMIT 30
       `);
       
       console.log(`Found ${realAdsResult.rows.length} campaign ads through TikTok integration`);

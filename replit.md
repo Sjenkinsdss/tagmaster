@@ -173,5 +173,12 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Post 1378685242 Connected Ads**: Found 2 actual connected ads (44683 and 44689) for the TikTok Weekday post
 - **Production Data Validation**: Confirmed connected ads functionality works with real production relationships
 
+### January 9, 2025 - Post ID Filter Implementation and Data Expansion
+- **Post ID Filter Added**: Created functional post ID filter in header next to campaign filter
+- **Debug Console Logging**: Added filtering debug messages to troubleshoot filter functionality
+- **Data Source Expansion**: Increased limits from 20 to 50 real posts and 30 campaign ads (80 total posts)
+- **Real Posts Integration**: Successfully fetching from debra_posts table alongside campaign ads
+- **Filter Functionality Confirmed**: Post ID filter working correctly with includes() string matching
+
 ## MVP Status: ✅ Complete + Enhanced + Production Ready + Live Data + Campaign Analysis
 The tagging interface MVP has been successfully delivered with additional enhancements and is now fully connected to live production data. All core features plus bulk editing, paid ad creation, campaign filtering, real-time production database integration, and intelligent campaign-to-ad mapping are implemented and working correctly.
