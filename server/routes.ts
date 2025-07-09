@@ -39,18 +39,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get campaign data
+  // Get campaign data (using brand_tags since campaign_name doesn't exist)
   app.get("/api/campaigns", async (req, res) => {
     try {
-      // Check what campaign-related columns exist in debra_posts
+      // Use brand_tags as campaign proxy since campaign_name doesn't exist
       const campaignResult = await db.execute(sql`
         SELECT 
-          campaign_name,
+          COALESCE(brand_tags, 'Untagged') as campaign_name,
           COUNT(*) as post_count
         FROM debra_posts 
-        WHERE campaign_name IS NOT NULL 
-        AND campaign_name != ''
-        GROUP BY campaign_name
+        WHERE brand_tags IS NOT NULL 
+        AND brand_tags != ''
+        GROUP BY brand_tags
         ORDER BY post_count DESC
         LIMIT 50
       `);
