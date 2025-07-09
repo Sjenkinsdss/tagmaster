@@ -70,7 +70,7 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Starting to fetch posts from production database...');
       
-      // Get more posts from production database with proper content field
+      // Get posts for "2025 Annual: Weekday" campaign - using recent posts from 2025
       const postsResult = await db.execute(sql`
         SELECT 
           id,
@@ -86,6 +86,7 @@ export class DatabaseStorage implements IStorage {
         AND post_image IS NOT NULL
         AND content IS NOT NULL
         AND content != ''
+        AND create_date >= '2025-01-01'
         ORDER BY create_date DESC 
         LIMIT 50
       `);
@@ -98,7 +99,7 @@ export class DatabaseStorage implements IStorage {
         platform: row.platform || 'unknown',
         embedUrl: row.embed_url || '',
         thumbnailUrl: row.thumbnail_url,
-        campaignName: '2025 Annual: Weekday', // Default campaign name as requested
+        campaignName: row.brand_tags || '2025 Annual: Weekday', // Use actual brand_tags or default
         createdAt: new Date(row.created_at || Date.now()),
         metadata: { 
           brand_tags: row.brand_tags,
