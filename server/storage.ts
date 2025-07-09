@@ -338,26 +338,54 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Looking for ads connected to post ${postId}...`);
       
-      // Get actual ads connected to this specific post
+      // Get actual ads connected to this specific post using all connection methods
       const adsResult = await db.execute(sql`
-        SELECT 
-          id,
-          name,
-          platform_name,
-          created_time,
-          auto_connected_post_id,
-          auto_connected_post_report_id,
-          post_report_id,
-          auto_connected_post_confidence_score
-        FROM ads_ad 
-        WHERE (auto_connected_post_id = ${postId} 
-           OR auto_connected_post_report_id = ${postId} 
-           OR post_report_id = ${postId})
-        AND name IS NOT NULL 
-        AND name != ''
-        ORDER BY 
-          auto_connected_post_confidence_score DESC NULLS LAST,
-          created_time DESC
+        (
+          SELECT 
+            aa.id,
+            aa.name,
+            aa.platform_name,
+            aa.created_time,
+            aa.auto_connected_post_confidence_score as confidence_score,
+            'direct_post' as connection_method
+          FROM ads_ad aa
+          WHERE aa.auto_connected_post_id = ${postId}
+            AND aa.name IS NOT NULL 
+            AND aa.name != ''
+        )
+        UNION
+        (
+          SELECT 
+            aa.id,
+            aa.name,
+            aa.platform_name,
+            aa.created_time,
+            aa.post_report_confidence_score as confidence_score,
+            'post_report' as connection_method
+          FROM debra_posts dp
+          JOIN campaign_report_campaignpostreport cpr ON dp.id = cpr.post_id
+          JOIN ads_ad aa ON cpr.id = aa.post_report_id
+          WHERE dp.id = ${postId}
+            AND aa.name IS NOT NULL 
+            AND aa.name != ''
+        )
+        UNION
+        (
+          SELECT 
+            aa.id,
+            aa.name,
+            aa.platform_name,
+            aa.created_time,
+            aa.auto_connected_post_report_confidence_score as confidence_score,
+            'auto_post_report' as connection_method
+          FROM debra_posts dp
+          JOIN campaign_report_campaignpostreport cpr ON dp.id = cpr.post_id
+          JOIN ads_ad aa ON cpr.id = aa.auto_connected_post_report_id
+          WHERE dp.id = ${postId}
+            AND aa.name IS NOT NULL 
+            AND aa.name != ''
+        )
+        ORDER BY confidence_score DESC NULLS LAST, created_time DESC
         LIMIT 10
       `);
 
