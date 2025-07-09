@@ -70,11 +70,12 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Starting to fetch posts from production database...');
       
-      // Get more posts from production database without referencing campaign_name
+      // Get more posts from production database with proper content field
       const postsResult = await db.execute(sql`
         SELECT 
           id,
-          COALESCE(title, content, 'Untitled Post') as display_title,
+          content as display_title,
+          title as post_title,
           url as embed_url,
           platform_name as platform,
           post_image as thumbnail_url,
@@ -83,6 +84,8 @@ export class DatabaseStorage implements IStorage {
         FROM debra_posts 
         WHERE id IS NOT NULL 
         AND post_image IS NOT NULL
+        AND content IS NOT NULL
+        AND content != ''
         ORDER BY create_date DESC 
         LIMIT 50
       `);
@@ -91,13 +94,16 @@ export class DatabaseStorage implements IStorage {
 
       const posts = postsResult.rows.map((row: any) => ({
         id: row.id,
-        title: row.display_title || `Post ${row.id}`,
+        title: row.display_title || row.post_title || `Post ${row.id}`,
         platform: row.platform || 'unknown',
         embedUrl: row.embed_url || '',
         thumbnailUrl: row.thumbnail_url,
         campaignName: row.brand_tags || '2025 Annual: Weekday',
         createdAt: new Date(row.created_at || Date.now()),
-        metadata: { brand_tags: row.brand_tags },
+        metadata: { 
+          brand_tags: row.brand_tags,
+          original_title: row.post_title 
+        },
         postTags: [] as any[],
         paidAds: [] as any[]
       })) as PostWithTags[];
