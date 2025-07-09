@@ -222,38 +222,38 @@ export class DatabaseStorage implements IStorage {
       const adsResult = await db.execute(sql`
         SELECT 
           id,
-          name,
-          platform_name,
-          created_time
-        FROM ads_ad 
-        WHERE name IS NOT NULL 
-        ORDER BY created_time DESC 
+          title as name,
+          created_date
+        FROM debra_brandjobpost 
+        WHERE title IS NOT NULL 
+        AND title != ''
+        ORDER BY created_date DESC 
         LIMIT 20
       `);
 
       return adsResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
-        postId: null, // No direct link in production schema
-        createdAt: new Date(row.created_time || Date.now()),
+        postId: null,
+        createdAt: new Date(row.created_date || Date.now()),
       }));
     } catch (error) {
-      console.error('Error fetching ads from production DB:', error);
+      console.error('Error fetching ads from debra_brandjobpost:', error);
       return [];
     }
   }
 
   async getPaidAdsByPost(postId: number): Promise<(PaidAd & { adTags: (AdTag & { tag: Tag })[] })[]> {
     try {
-      // Get a sample of ads for this post (since there's no direct relationship in production)
+      // Get whitelisted ads from debra_brandjobpost for this post
       const adsResult = await db.execute(sql`
         SELECT 
           id,
-          name,
-          platform_name,
-          created_time
-        FROM ads_ad 
-        WHERE name IS NOT NULL 
+          title as name,
+          created_date
+        FROM debra_brandjobpost 
+        WHERE title IS NOT NULL 
+        AND title != ''
         ORDER BY RANDOM()
         LIMIT 3
       `);
@@ -262,11 +262,11 @@ export class DatabaseStorage implements IStorage {
         id: row.id,
         name: row.name,
         postId: postId,
-        createdAt: new Date(row.created_time || Date.now()),
-        adTags: [] // No tags relationship in production
+        createdAt: new Date(row.created_date || Date.now()),
+        adTags: []
       }));
     } catch (error) {
-      console.error('Error fetching ads by post from production DB:', error);
+      console.error('Error fetching ads by post from debra_brandjobpost:', error);
       return [];
     }
   }
