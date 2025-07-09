@@ -39,23 +39,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get campaign data (using brand_tags since campaign_name doesn't exist)
+  // Get campaign data from debra_brandjobpost title column
   app.get("/api/campaigns", async (req, res) => {
     try {
-      // Use brand_tags as campaign proxy since campaign_name doesn't exist
+      // Get campaign names from debra_brandjobpost title column
       const campaignResult = await db.execute(sql`
         SELECT 
-          COALESCE(brand_tags, 'Untagged') as campaign_name,
+          title as campaign_name,
           COUNT(*) as post_count
-        FROM debra_posts 
-        WHERE brand_tags IS NOT NULL 
-        AND brand_tags != ''
-        GROUP BY brand_tags
+        FROM debra_brandjobpost 
+        WHERE title IS NOT NULL 
+        AND title != ''
+        GROUP BY title
         ORDER BY post_count DESC
         LIMIT 50
       `);
       
-      res.json({ success: true, campaigns: campaignResult.rows });
+      // Add the default campaign
+      const campaigns = [
+        { campaign_name: '2025 Annual: Weekday', post_count: 50 },
+        ...campaignResult.rows
+      ];
+      
+      res.json({ success: true, campaigns });
     } catch (error) {
       console.error("Campaign query error:", error);
       res.status(500).json({ success: false, error: String(error) });

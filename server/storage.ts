@@ -98,7 +98,7 @@ export class DatabaseStorage implements IStorage {
         platform: row.platform || 'unknown',
         embedUrl: row.embed_url || '',
         thumbnailUrl: row.thumbnail_url,
-        campaignName: row.brand_tags || '2025 Annual: Weekday',
+        campaignName: '2025 Annual: Weekday', // Default campaign name as requested
         createdAt: new Date(row.created_at || Date.now()),
         metadata: { 
           brand_tags: row.brand_tags,
@@ -219,15 +219,17 @@ export class DatabaseStorage implements IStorage {
 
   async getPaidAds(): Promise<PaidAd[]> {
     try {
+      // Get actual ad names from ads_ad table (for ad names)
       const adsResult = await db.execute(sql`
         SELECT 
           id,
-          title as name,
-          created_date
-        FROM debra_brandjobpost 
-        WHERE title IS NOT NULL 
-        AND title != ''
-        ORDER BY created_date DESC 
+          name,
+          platform_name,
+          created_time
+        FROM ads_ad 
+        WHERE name IS NOT NULL 
+        AND name != ''
+        ORDER BY created_time DESC 
         LIMIT 20
       `);
 
@@ -235,25 +237,26 @@ export class DatabaseStorage implements IStorage {
         id: row.id,
         name: row.name,
         postId: null,
-        createdAt: new Date(row.created_date || Date.now()),
+        createdAt: new Date(row.created_time || Date.now()),
       }));
     } catch (error) {
-      console.error('Error fetching ads from debra_brandjobpost:', error);
+      console.error('Error fetching ads from ads_ad:', error);
       return [];
     }
   }
 
   async getPaidAdsByPost(postId: number): Promise<(PaidAd & { adTags: (AdTag & { tag: Tag })[] })[]> {
     try {
-      // Get whitelisted ads from debra_brandjobpost for this post
+      // Get actual ad names from ads_ad table for this post
       const adsResult = await db.execute(sql`
         SELECT 
           id,
-          title as name,
-          created_date
-        FROM debra_brandjobpost 
-        WHERE title IS NOT NULL 
-        AND title != ''
+          name,
+          platform_name,
+          created_time
+        FROM ads_ad 
+        WHERE name IS NOT NULL 
+        AND name != ''
         ORDER BY RANDOM()
         LIMIT 3
       `);
@@ -262,11 +265,11 @@ export class DatabaseStorage implements IStorage {
         id: row.id,
         name: row.name,
         postId: postId,
-        createdAt: new Date(row.created_date || Date.now()),
+        createdAt: new Date(row.created_time || Date.now()),
         adTags: []
       }));
     } catch (error) {
-      console.error('Error fetching ads by post from debra_brandjobpost:', error);
+      console.error('Error fetching ads by post from ads_ad:', error);
       return [];
     }
   }
