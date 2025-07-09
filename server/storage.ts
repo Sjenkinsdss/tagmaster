@@ -218,45 +218,57 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPaidAds(): Promise<PaidAd[]> {
-    return [
-      {
-        id: 1,
-        title: "Summer Ad",
-        status: "active",
-        platform: "instagram",
-        thumbnailUrl: null,
-        postId: 1,
-        isLinked: true,
-        performance: { clicks: 150, impressions: 5000 },
-        createdAt: new Date(),
-      },
-    ];
+    try {
+      const adsResult = await db.execute(sql`
+        SELECT 
+          id,
+          name,
+          platform_name,
+          created_time
+        FROM ads_ad 
+        WHERE name IS NOT NULL 
+        ORDER BY created_time DESC 
+        LIMIT 20
+      `);
+
+      return adsResult.rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        postId: null, // No direct link in production schema
+        createdAt: new Date(row.created_time || Date.now()),
+      }));
+    } catch (error) {
+      console.error('Error fetching ads from production DB:', error);
+      return [];
+    }
   }
 
   async getPaidAdsByPost(postId: number): Promise<(PaidAd & { adTags: (AdTag & { tag: Tag })[] })[]> {
-    const tags = await this.getTags();
-    return [
-      {
-        id: 1,
-        title: "Summer Ad",
-        status: "active",
-        platform: "instagram",
-        thumbnailUrl: null,
-        postId,
-        isLinked: true,
-        performance: { clicks: 150, impressions: 5000 },
-        createdAt: new Date(),
-        adTags: [
-          {
-            id: 1,
-            adId: 1,
-            tagId: 1,
-            isInherited: true,
-            tag: tags[0],
-          },
-        ],
-      },
-    ];
+    try {
+      // Get a sample of ads for this post (since there's no direct relationship in production)
+      const adsResult = await db.execute(sql`
+        SELECT 
+          id,
+          name,
+          platform_name,
+          created_time
+        FROM ads_ad 
+        WHERE name IS NOT NULL 
+        ORDER BY RANDOM()
+        LIMIT 3
+      `);
+
+      return adsResult.rows.map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        postId: postId,
+        createdAt: new Date(row.created_time || Date.now()),
+        adTags: [] // No tags relationship in production
+      }));
+    } catch (error) {
+      console.error('Error fetching ads by post from production DB:', error);
+      return [];
+    }
   }
 
   async createPaidAd(insertPaidAd: InsertPaidAd): Promise<PaidAd> {

@@ -137,5 +137,12 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Data Mapping**: Successfully mapped production schema to interface requirements
 - **User Confirmation**: Production data now visible and working correctly in the interface
 
+### January 9, 2025 - Data Source Investigation and Fixes
+- **Ad Data Source Identified**: Located ad names in production `ads_ad` table with `name` column
+- **Content Display Issue Resolved**: Fixed post content mapping to use actual post content instead of ad names
+- **Database Query Updates**: Modified queries to fetch from correct columns (content vs title)
+- **Production Schema Analysis**: Analyzed table structure to understand data relationships
+- **Data Integrity Improvements**: Enhanced filtering for posts with actual content
+
 ## MVP Status: ✅ Complete + Enhanced + Production Ready + Live Data
 The tagging interface MVP has been successfully delivered with additional enhancements and is now fully connected to live production data. All core features plus bulk editing, paid ad creation, campaign filtering, and real-time production database integration are implemented and working correctly.
