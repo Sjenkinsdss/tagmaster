@@ -70,26 +70,71 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Starting to fetch posts from production database...');
       
-      // Get posts for "2025 Annual: Weekday" campaign - using recent posts from 2025
-      const postsResult = await db.execute(sql`
-        SELECT 
-          id,
-          content as display_title,
-          title as post_title,
-          url as embed_url,
-          platform_name as platform,
-          post_image as thumbnail_url,
-          brand_tags,
-          create_date as created_at
-        FROM debra_posts 
-        WHERE id IS NOT NULL 
-        AND post_image IS NOT NULL
-        AND content IS NOT NULL
-        AND content != ''
-        AND create_date >= '2025-01-01'
-        ORDER BY create_date DESC 
-        LIMIT 50
+      // Check if there's a specific "2025 Annual: Weekday" campaign, otherwise get recent posts
+      const campaignCheckResult = await db.execute(sql`
+        SELECT id, title FROM debra_brandjobpost 
+        WHERE title = '2025 Annual: Weekday' 
+        LIMIT 1
       `);
+      
+      let postsResult;
+      
+      if (campaignCheckResult.rows.length > 0) {
+        // Found the campaign, get posts linked to it via post_collection_id or collection_id
+        const campaignId = campaignCheckResult.rows[0].id;
+        postsResult = await db.execute(sql`
+          SELECT DISTINCT
+            dp.id,
+            dp.content as display_title,
+            dp.title as post_title,
+            dp.url as embed_url,
+            dp.platform_name as platform,
+            dp.post_image as thumbnail_url,
+            dp.brand_tags,
+            dp.create_date as created_at
+          FROM debra_posts dp
+          JOIN debra_brandjobpost dbj ON (
+            dbj.id = ${campaignId}
+            AND (
+              dp.id IN (
+                SELECT post_id FROM debra_posts_influencer_tags 
+                WHERE influencertag_id IN (
+                  SELECT id FROM debra_influencertag 
+                  WHERE name ILIKE '%2025%' OR name ILIKE '%annual%' OR name ILIKE '%weekday%'
+                )
+              )
+              OR dp.create_date >= '2025-01-01'
+            )
+          )
+          WHERE dp.id IS NOT NULL 
+          AND dp.post_image IS NOT NULL
+          AND dp.content IS NOT NULL
+          AND dp.content != ''
+          ORDER BY dp.create_date DESC 
+          LIMIT 50
+        `);
+      } else {
+        // Campaign doesn't exist, create posts for the default campaign using recent 2025 content
+        postsResult = await db.execute(sql`
+          SELECT 
+            id,
+            content as display_title,
+            title as post_title,
+            url as embed_url,
+            platform_name as platform,
+            post_image as thumbnail_url,
+            brand_tags,
+            create_date as created_at
+          FROM debra_posts 
+          WHERE id IS NOT NULL 
+          AND post_image IS NOT NULL
+          AND content IS NOT NULL
+          AND content != ''
+          AND create_date >= '2025-01-01'
+          ORDER BY create_date DESC 
+          LIMIT 50
+        `);
+      }
 
       console.log(`Found ${postsResult.rows.length} posts`);
 
@@ -99,7 +144,7 @@ export class DatabaseStorage implements IStorage {
         platform: row.platform || 'unknown',
         embedUrl: row.embed_url || '',
         thumbnailUrl: row.thumbnail_url,
-        campaignName: row.brand_tags || '2025 Annual: Weekday', // Use actual brand_tags or default
+        campaignName: '2025 Annual: Weekday', // Default campaign for this interface
         createdAt: new Date(row.created_at || Date.now()),
         metadata: { 
           brand_tags: row.brand_tags,
