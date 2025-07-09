@@ -78,9 +78,31 @@ export class DatabaseStorage implements IStorage {
       const campaignReportId = campaignReportResult.rows[0].campaign_report_id;
       
       if (!campaignReportId) {
-        console.log('Campaign 3746 has no campaign_report_id, searching for ads by name patterns...');
+        console.log('Campaign 3746 has no campaign_report_id. Checking for H&M related ads...');
         
-        // Search for ads that might be related to "2025 Annual: Weekday" by name patterns
+        // First check if there are any H&M ads for this client
+        const hmAdsResult = await db.execute(sql`
+          SELECT DISTINCT
+            aa.id,
+            aa.name,
+            aa.platform_name,
+            aa.created_time as created_at,
+            '' as embed_url
+          FROM ads_ad aa
+          WHERE aa.name IS NOT NULL
+          AND aa.name != ''
+          AND (aa.name ILIKE '%H&M%' OR aa.name ILIKE '%HM%')
+          ORDER BY aa.created_time DESC
+          LIMIT 30
+        `);
+        
+        console.log(`Found ${hmAdsResult.rows.length} H&M related ads`);
+        
+        if (hmAdsResult.rows.length > 0) {
+          return this.convertAdsToPostFormat(hmAdsResult.rows);
+        }
+        
+        // Fallback: Search for ads that might be related to "2025 Annual: Weekday" by name patterns
         const adsResult = await db.execute(sql`
           SELECT DISTINCT
             aa.id,
