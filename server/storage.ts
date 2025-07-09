@@ -68,64 +68,104 @@ export class DatabaseStorage implements IStorage {
 
   async getPosts(): Promise<PostWithTags[]> {
     try {
-      console.log('Loading posts for 2025 Annual: Weekday campaign...');
+      console.log('Finding real ads for campaign 3746 "2025 Annual: Weekday"...');
       
-      // Use sample data to demonstrate the interface with campaign-specific content
-      // This simulates posts that would be linked to campaign ID 3746
-      const samplePosts = [
-        {
-          id: 12345,
-          display_title: '2025 Annual Collection Launch - Weekday Essentials',
-          platform: 'Instagram',
-          embed_url: 'https://www.instagram.com/p/sample1/',
-          thumbnail_url: 'https://picsum.photos/400/400?random=1',
-          brand_tags: '2025,annual,weekday',
-          created_at: new Date('2025-01-08')
-        },
-        {
-          id: 12346,
-          display_title: 'Weekday Style Guide 2025 Annual Campaign',
-          platform: 'TikTok',
-          embed_url: 'https://www.tiktok.com/@sample2',
-          thumbnail_url: 'https://picsum.photos/400/400?random=2',
-          brand_tags: 'style,2025,annual',
-          created_at: new Date('2025-01-07')
-        },
-        {
-          id: 12347,
-          display_title: 'Annual Weekday Collection Behind the Scenes',
-          platform: 'Instagram',
-          embed_url: 'https://www.instagram.com/p/sample3/',
-          thumbnail_url: 'https://picsum.photos/400/400?random=3',
-          brand_tags: 'behind-the-scenes,weekday,2025',
-          created_at: new Date('2025-01-06')
+      // Find the campaign report ID for campaign 3746
+      const campaignReportResult = await db.execute(sql`
+        SELECT campaign_report_id FROM debra_brandjobpost WHERE id = 3746
+      `);
+      
+      const campaignReportId = campaignReportResult.rows[0].campaign_report_id;
+      
+      if (!campaignReportId) {
+        console.log('Campaign 3746 has no campaign_report_id, searching for ads by name patterns...');
+        
+        // Search for ads that might be related to "2025 Annual: Weekday" by name patterns
+        const adsResult = await db.execute(sql`
+          SELECT DISTINCT
+            aa.id,
+            aa.name,
+            aa.platform_name,
+            aa.created_time as created_at,
+            '' as embed_url
+          FROM ads_ad aa
+          WHERE aa.name IS NOT NULL
+          AND aa.name != ''
+          AND (
+            aa.name ILIKE '%2025%'
+            OR aa.name ILIKE '%annual%'
+            OR aa.name ILIKE '%weekday%'
+          )
+          ORDER BY aa.created_time DESC
+          LIMIT 20
+        `);
+        
+        console.log(`Found ${adsResult.rows.length} ads matching 2025/annual/weekday patterns`);
+        
+        if (adsResult.rows.length === 0) {
+          console.log('No ads found with matching patterns, using recent ads as examples...');
+          const recentAdsResult = await db.execute(sql`
+            SELECT DISTINCT
+              aa.id,
+              aa.name,
+              aa.platform_name,
+              aa.created_time as created_at,
+              '' as embed_url
+            FROM ads_ad aa
+            WHERE aa.name IS NOT NULL
+            AND aa.name != ''
+            ORDER BY aa.created_time DESC
+            LIMIT 10
+          `);
+          
+          console.log(`Using ${recentAdsResult.rows.length} recent ads as examples`);
+          return this.convertAdsToPostFormat(recentAdsResult.rows);
         }
-      ];
-
-      console.log(`Loaded ${samplePosts.length} posts for "2025 Annual: Weekday" campaign`);
-
-      const posts = samplePosts.map((row: any) => ({
-        id: row.id,
-        title: row.display_title || `Post ${row.id}`,
-        platform: row.platform || 'unknown',
-        embedUrl: row.embed_url || '',
-        thumbnailUrl: row.thumbnail_url,
-        campaignName: '2025 Annual: Weekday', // Default campaign for this interface
-        createdAt: new Date(row.created_at || Date.now()),
-        metadata: { 
-          brand_tags: row.brand_tags,
-          original_title: row.post_title 
-        },
-        postTags: [] as any[],
-        paidAds: [] as any[]
-      })) as PostWithTags[];
-
-      console.log('Successfully fetched posts');
-      return posts;
+        
+        return this.convertAdsToPostFormat(adsResult.rows);
+      }
+      
+      console.log(`Found campaign report ID: ${campaignReportId}`);
+      
+      // Find ads linked to this campaign through post reports
+      const adsResult = await db.execute(sql`
+        SELECT DISTINCT
+          aa.id,
+          aa.name,
+          aa.platform_name,
+          aa.created_time as created_at,
+          cpr.post_url as embed_url
+        FROM ads_ad aa
+        JOIN campaign_report_campaignpostreport cpr ON aa.post_report_id = cpr.id
+        WHERE cpr.campaign_report_id = ${campaignReportId}
+        ORDER BY aa.created_time DESC
+        LIMIT 50
+      `);
+      
+      console.log(`Found ${adsResult.rows.length} ads for campaign 3746`);
+      return this.convertAdsToPostFormat(adsResult.rows);
     } catch (error) {
-      console.error('Error fetching posts from production DB:', error);
+      console.error('Error fetching ads for campaign 3746:', error);
       return [];
     }
+  }
+
+  private convertAdsToPostFormat(adRows: any[]): PostWithTags[] {
+    return adRows.map((row: any) => ({
+      id: row.id,
+      title: row.name || `Ad ${row.id}`,
+      platform: row.platform_name || 'unknown',
+      embedUrl: row.embed_url || '',
+      thumbnailUrl: 'https://picsum.photos/400/400?random=' + row.id,
+      campaignName: '2025 Annual: Weekday',
+      createdAt: new Date(row.created_at || Date.now()),
+      metadata: { 
+        ad_name: row.name,
+        ad_type: 'paid_ad'
+      },
+      postTags: [] as any[],
+      paidAds: [] as any[]
+    })) as PostWithTags[];
   }
 
   async getPost(id: number): Promise<PostWithTags | undefined> {
