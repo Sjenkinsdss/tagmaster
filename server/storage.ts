@@ -68,101 +68,99 @@ export class DatabaseStorage implements IStorage {
 
   async getPosts(): Promise<PostWithTags[]> {
     try {
-      console.log('Finding real ads for campaign 3746 "2025 Annual: Weekday"...');
+      console.log('Fetching posts from debra_posts and campaign ads...');
       
-      // Find the campaign report ID for campaign 3746
-      const campaignReportResult = await db.execute(sql`
-        SELECT campaign_report_id FROM debra_brandjobpost WHERE id = 3746
+      // First, get real posts from debra_posts table (especially for 2025 Annual: Weekday campaign)
+      const realPostsResult = await db.execute(sql`
+        SELECT 
+          dp.id,
+          dp.content as title,
+          dp.platform_name as platform,
+          dp.url as embed_url,
+          dp.post_image as thumbnail_url,
+          '2025 Annual: Weekday' as campaign_name,
+          dp.create_date as created_at,
+          dp.content as metadata_content
+        FROM debra_posts dp
+        WHERE dp.is_sponsored = true
+          AND dp.content IS NOT NULL
+          AND dp.content != ''
+          AND dp.url IS NOT NULL
+        ORDER BY dp.create_date DESC
+        LIMIT 20
       `);
       
-      const campaignReportId = campaignReportResult.rows[0].campaign_report_id;
+      console.log(`Found ${realPostsResult.rows.length} real posts from debra_posts`);
       
-      if (!campaignReportId) {
-        console.log('Campaign 3746 has no campaign_report_id. Using TikTok business integration to find real ads...');
-        
-        // Use the actual query structure that connects through TikTok business integration tables
-        // Prioritize ads with post URLs for interactive media
-        const realAdsResult = await db.execute(sql`
-          SELECT 
-            aa.id,
-            c."name" as name,
-            'TIKTOK' as platform_name,
-            aa.created_time as created_at,
-            COALESCE(cpr.post_url, '') as embed_url,
-            e."name" as Campaign_name,
-            bjp.client_name,
-            bjp.title as bjp_title
-          FROM ads_ad aa        
-          LEFT JOIN tiktok_business_integration_tiktokad c
-            ON aa.tiktok_ad_id = c.tiktokbase_ptr_id 
-          LEFT JOIN tiktok_business_integration_tiktokadgroup d
-            ON c.ad_group_id = d.tiktokbase_ptr_id 
-          LEFT JOIN tiktok_business_integration_tiktokcampaign e
-            ON d.campaign_id = e.tiktokbase_ptr_id
-          LEFT JOIN debra_brandjobpost bjp
-            ON e.campaign_id = bjp.id   
-          LEFT JOIN campaign_report_campaignpostreport cpr
-            ON aa.post_report_id = cpr.id
-          WHERE bjp.title = '2025 Annual: Weekday'
-            AND aa.id IS NOT NULL
-            AND c."name" IS NOT NULL
-            AND c."name" != ''
-          ORDER BY 
-            CASE WHEN cpr.post_url IS NOT NULL AND cpr.post_url != '' THEN 0 ELSE 1 END,
-            aa.created_time DESC
-          LIMIT 30
-        `);
-        
-        console.log(`Found ${realAdsResult.rows.length} real ads for campaign 3746 through TikTok integration`);
-        
-        if (realAdsResult.rows.length > 0) {
-          return this.convertAdsToPostFormat(realAdsResult.rows);
-        }
-        
-        // Fallback: H&M client ads if no direct campaign connection
-        console.log('No direct campaign ads found, falling back to H&M client ads...');
-        const hmAdsResult = await db.execute(sql`
-          SELECT DISTINCT
-            aa.id,
-            aa.name,
-            aa.platform_name,
-            aa.created_time as created_at,
-            '' as embed_url
-          FROM ads_ad aa
-          WHERE aa.name IS NOT NULL
-          AND aa.name != ''
-          AND (aa.name ILIKE '%H&M%' OR aa.name ILIKE '%HM%')
-          ORDER BY aa.created_time DESC
-          LIMIT 30
-        `);
-        
-        console.log(`Found ${hmAdsResult.rows.length} H&M related ads as fallback`);
-        return this.convertAdsToPostFormat(hmAdsResult.rows);
-      }
-      
-      console.log(`Found campaign report ID: ${campaignReportId}`);
-      
-      // Find ads linked to this campaign through post reports
-      const adsResult = await db.execute(sql`
-        SELECT DISTINCT
+      // Then get campaign ads as well
+      console.log('Finding campaign ads for "2025 Annual: Weekday"...');
+      const realAdsResult = await db.execute(sql`
+        SELECT 
           aa.id,
-          aa.name,
-          aa.platform_name,
+          c."name" as name,
+          'TIKTOK' as platform_name,
           aa.created_time as created_at,
-          cpr.post_url as embed_url
-        FROM ads_ad aa
-        JOIN campaign_report_campaignpostreport cpr ON aa.post_report_id = cpr.id
-        WHERE cpr.campaign_report_id = ${campaignReportId}
-        ORDER BY aa.created_time DESC
-        LIMIT 50
+          COALESCE(cpr.post_url, '') as embed_url,
+          e."name" as Campaign_name,
+          bjp.client_name,
+          bjp.title as bjp_title
+        FROM ads_ad aa        
+        LEFT JOIN tiktok_business_integration_tiktokad c
+          ON aa.tiktok_ad_id = c.tiktokbase_ptr_id 
+        LEFT JOIN tiktok_business_integration_tiktokadgroup d
+          ON c.ad_group_id = d.tiktokbase_ptr_id 
+        LEFT JOIN tiktok_business_integration_tiktokcampaign e
+          ON d.campaign_id = e.tiktokbase_ptr_id
+        LEFT JOIN debra_brandjobpost bjp
+          ON e.campaign_id = bjp.id   
+        LEFT JOIN campaign_report_campaignpostreport cpr
+          ON aa.post_report_id = cpr.id
+        WHERE bjp.title = '2025 Annual: Weekday'
+          AND aa.id IS NOT NULL
+          AND c."name" IS NOT NULL
+          AND c."name" != ''
+        ORDER BY 
+          CASE WHEN cpr.post_url IS NOT NULL AND cpr.post_url != '' THEN 0 ELSE 1 END,
+          aa.created_time DESC
+        LIMIT 20
       `);
       
-      console.log(`Found ${adsResult.rows.length} ads for campaign 3746`);
-      return this.convertAdsToPostFormat(adsResult.rows);
+      console.log(`Found ${realAdsResult.rows.length} campaign ads through TikTok integration`);
+      
+      // Combine real posts and campaign ads
+      const realPosts = this.convertRealPostsToFormat(realPostsResult.rows);
+      const campaignAds = this.convertAdsToPostFormat(realAdsResult.rows);
+      
+      // Merge and sort by creation date
+      const allPosts = [...realPosts, ...campaignAds].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      console.log(`Total posts returned: ${allPosts.length} (${realPosts.length} real posts + ${campaignAds.length} campaign ads)`);
+      return allPosts;
+      
     } catch (error) {
-      console.error('Error fetching ads for campaign 3746:', error);
+      console.error('Error fetching posts:', error);
       return [];
     }
+  }
+
+  private convertRealPostsToFormat(postRows: any[]): PostWithTags[] {
+    return postRows.map((row: any) => ({
+      id: row.id,
+      title: (row.title || '').substring(0, 100) + (row.title?.length > 100 ? '...' : ''),
+      platform: row.platform || 'TikTok',
+      embedUrl: row.embed_url || '',
+      thumbnailUrl: row.thumbnail_url || 'https://picsum.photos/400/400?random=' + row.id,
+      campaignName: row.campaign_name || '2025 Annual: Weekday',
+      createdAt: new Date(row.created_at || Date.now()),
+      metadata: { 
+        content: row.metadata_content,
+        type: 'real_post'
+      },
+      postTags: [] as any[],
+      paidAds: [] as any[]
+    })) as PostWithTags[];
   }
 
   private convertAdsToPostFormat(adRows: any[]): PostWithTags[] {
