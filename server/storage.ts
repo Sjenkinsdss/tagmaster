@@ -378,10 +378,12 @@ export class DatabaseStorage implements IStorage {
             aa.created_time,
             aa.post_report_confidence_score as confidence_score,
             'post_report' as connection_method
-          FROM debra_posts dp
-          JOIN campaign_report_campaignpostreport cpr ON dp.id = cpr.post_id
-          JOIN ads_ad aa ON cpr.id = aa.post_report_id
-          WHERE dp.id = ${postId}
+          FROM ads_ad aa
+          WHERE aa.post_report_id IN (
+            SELECT cpr.id 
+            FROM campaign_report_campaignpostreport cpr 
+            WHERE cpr.post_id = ${postId}
+          )
             AND aa.name IS NOT NULL 
             AND aa.name != ''
         )
@@ -394,10 +396,12 @@ export class DatabaseStorage implements IStorage {
             aa.created_time,
             aa.auto_connected_post_report_confidence_score as confidence_score,
             'auto_post_report' as connection_method
-          FROM debra_posts dp
-          JOIN campaign_report_campaignpostreport cpr ON dp.id = cpr.post_id
-          JOIN ads_ad aa ON cpr.id = aa.auto_connected_post_report_id
-          WHERE dp.id = ${postId}
+          FROM ads_ad aa
+          WHERE aa.auto_connected_post_report_id IN (
+            SELECT cpr.id 
+            FROM campaign_report_campaignpostreport cpr 
+            WHERE cpr.post_id = ${postId}
+          )
             AND aa.name IS NOT NULL 
             AND aa.name != ''
         )

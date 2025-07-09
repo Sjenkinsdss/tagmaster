@@ -299,6 +299,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get ads for a specific post
+  app.get("/api/posts/:postId/ads", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const ads = await storage.getPaidAdsByPost(postId);
+      res.json(ads);
+    } catch (error) {
+      console.error("Error fetching ads for post:", error);
+      res.status(500).json({ message: "Failed to fetch ads for post" });
+    }
+  });
+
   app.post("/api/paid-ads", async (req, res) => {
     try {
       const adData = insertPaidAdSchema.parse(req.body);
