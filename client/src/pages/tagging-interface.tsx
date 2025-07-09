@@ -25,13 +25,15 @@ export default function TaggingInterface() {
     platform: "",
     thumbnailUrl: "",
   });
-  const [campaignFilter, setCampaignFilter] = useState("Production Content");
+  const [campaignFilter, setCampaignFilter] = useState("All Posts");
   const [campaignOpen, setCampaignOpen] = useState(false);
   
   // Use actual campaign names from production database
   const campaignOptions = [
+    "All Posts",
+    "2025 Annual: Weekday",
     "Production Content",
-    "All Posts"
+    "Brand Tagged Posts"
   ];
   const { toast } = useToast();
   const queryClient = useQueryClient();

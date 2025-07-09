@@ -39,6 +39,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get campaign data
+  app.get("/api/campaigns", async (req, res) => {
+    try {
+      // Check what campaign-related columns exist in debra_posts
+      const campaignResult = await db.execute(sql`
+        SELECT 
+          campaign_name,
+          COUNT(*) as post_count
+        FROM debra_posts 
+        WHERE campaign_name IS NOT NULL 
+        AND campaign_name != ''
+        GROUP BY campaign_name
+        ORDER BY post_count DESC
+        LIMIT 50
+      `);
+      
+      res.json({ success: true, campaigns: campaignResult.rows });
+    } catch (error) {
+      console.error("Campaign query error:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   // Get table structure
   app.get("/api/table-structure/:tableName", async (req, res) => {
     try {
