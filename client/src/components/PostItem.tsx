@@ -67,7 +67,29 @@ export default function PostItem({ post, isSelected, onSelect }: PostItemProps) 
         
         {/* Embedded Media */}
         <div className="mb-4 relative rounded-lg overflow-hidden">
-          {post.thumbnailUrl ? (
+          {post.embedUrl && post.embedUrl.includes('tiktok.com') ? (
+            <div className="w-full h-48 bg-black flex items-center justify-center relative">
+              <iframe
+                src={post.embedUrl.replace('/video/', '/embed/')}
+                className="w-full h-full"
+                frameBorder="0"
+                allowFullScreen
+              />
+              <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(post.embedUrl, '_blank');
+                  }}
+                >
+                  <Play className="w-5 h-5 text-carbon-gray-80" />
+                </Button>
+              </div>
+            </div>
+          ) : post.thumbnailUrl ? (
             <img
               src={post.thumbnailUrl}
               alt={post.title}
@@ -75,23 +97,24 @@ export default function PostItem({ post, isSelected, onSelect }: PostItemProps) 
             />
           ) : (
             <div className="w-full h-48 bg-carbon-gray-20 flex items-center justify-center">
-              <span className="text-carbon-gray-50">No thumbnail</span>
+              <span className="text-carbon-gray-50">
+                {post.embedUrl ? 'Interactive Media Available' : 'No thumbnail'}
+              </span>
+              {post.embedUrl && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="ml-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(post.embedUrl, '_blank');
+                  }}
+                >
+                  View Original
+                </Button>
+              )}
             </div>
           )}
-          
-          <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-            <Button
-              size="icon"
-              variant="secondary"
-              className="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full"
-              onClick={(e) => {
-                e.stopPropagation();
-                // TODO: Implement video playback
-              }}
-            >
-              <Play className="w-5 h-5 text-carbon-gray-80" />
-            </Button>
-          </div>
         </div>
         
         {/* Post Stats */}

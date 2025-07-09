@@ -81,6 +81,7 @@ export class DatabaseStorage implements IStorage {
         console.log('Campaign 3746 has no campaign_report_id. Using TikTok business integration to find real ads...');
         
         // Use the actual query structure that connects through TikTok business integration tables
+        // Prioritize ads with post URLs for interactive media
         const realAdsResult = await db.execute(sql`
           SELECT 
             aa.id,
@@ -106,7 +107,9 @@ export class DatabaseStorage implements IStorage {
             AND aa.id IS NOT NULL
             AND c."name" IS NOT NULL
             AND c."name" != ''
-          ORDER BY aa.created_time DESC
+          ORDER BY 
+            CASE WHEN cpr.post_url IS NOT NULL AND cpr.post_url != '' THEN 0 ELSE 1 END,
+            aa.created_time DESC
           LIMIT 30
         `);
         
