@@ -336,20 +336,33 @@ export class DatabaseStorage implements IStorage {
 
   async getPaidAdsByPost(postId: number): Promise<(PaidAd & { adTags: (AdTag & { tag: Tag })[] })[]> {
     try {
-      // Get actual ad names from ads_ad table for this post
+      console.log(`Looking for ads connected to post ${postId}...`);
+      
+      // Get actual ads connected to this specific post
       const adsResult = await db.execute(sql`
         SELECT 
           id,
           name,
           platform_name,
-          created_time
+          created_time,
+          auto_connected_post_id,
+          auto_connected_post_report_id,
+          post_report_id,
+          auto_connected_post_confidence_score
         FROM ads_ad 
-        WHERE name IS NOT NULL 
+        WHERE (auto_connected_post_id = ${postId} 
+           OR auto_connected_post_report_id = ${postId} 
+           OR post_report_id = ${postId})
+        AND name IS NOT NULL 
         AND name != ''
-        ORDER BY RANDOM()
-        LIMIT 3
+        ORDER BY 
+          auto_connected_post_confidence_score DESC NULLS LAST,
+          created_time DESC
+        LIMIT 10
       `);
 
+      console.log(`Found ${adsResult.rows.length} ads connected to post ${postId}`);
+      
       return adsResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
