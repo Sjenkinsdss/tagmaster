@@ -78,9 +78,44 @@ export class DatabaseStorage implements IStorage {
       const campaignReportId = campaignReportResult.rows[0].campaign_report_id;
       
       if (!campaignReportId) {
-        console.log('Campaign 3746 has no campaign_report_id. Checking for H&M related ads...');
+        console.log('Campaign 3746 has no campaign_report_id. Using TikTok business integration to find real ads...');
         
-        // First check if there are any H&M ads for this client
+        // Use the actual query structure that connects through TikTok business integration tables
+        const realAdsResult = await db.execute(sql`
+          SELECT 
+            aa.id,
+            c."name" as name,
+            'TIKTOK' as platform_name,
+            aa.created_time as created_at,
+            '' as embed_url,
+            e."name" as Campaign_name,
+            bjp.client_name,
+            bjp.title as bjp_title
+          FROM ads_ad aa        
+          LEFT JOIN tiktok_business_integration_tiktokad c
+            ON aa.tiktok_ad_id = c.tiktokbase_ptr_id 
+          LEFT JOIN tiktok_business_integration_tiktokadgroup d
+            ON c.ad_group_id = d.tiktokbase_ptr_id 
+          LEFT JOIN tiktok_business_integration_tiktokcampaign e
+            ON d.campaign_id = e.tiktokbase_ptr_id
+          LEFT JOIN debra_brandjobpost bjp
+            ON e.campaign_id = bjp.id   
+          WHERE bjp.title = '2025 Annual: Weekday'
+            AND aa.id IS NOT NULL
+            AND c."name" IS NOT NULL
+            AND c."name" != ''
+          ORDER BY aa.created_time DESC
+          LIMIT 30
+        `);
+        
+        console.log(`Found ${realAdsResult.rows.length} real ads for campaign 3746 through TikTok integration`);
+        
+        if (realAdsResult.rows.length > 0) {
+          return this.convertAdsToPostFormat(realAdsResult.rows);
+        }
+        
+        // Fallback: H&M client ads if no direct campaign connection
+        console.log('No direct campaign ads found, falling back to H&M client ads...');
         const hmAdsResult = await db.execute(sql`
           SELECT DISTINCT
             aa.id,
@@ -96,55 +131,8 @@ export class DatabaseStorage implements IStorage {
           LIMIT 30
         `);
         
-        console.log(`Found ${hmAdsResult.rows.length} H&M related ads`);
-        
-        if (hmAdsResult.rows.length > 0) {
-          return this.convertAdsToPostFormat(hmAdsResult.rows);
-        }
-        
-        // Fallback: Search for ads that might be related to "2025 Annual: Weekday" by name patterns
-        const adsResult = await db.execute(sql`
-          SELECT DISTINCT
-            aa.id,
-            aa.name,
-            aa.platform_name,
-            aa.created_time as created_at,
-            '' as embed_url
-          FROM ads_ad aa
-          WHERE aa.name IS NOT NULL
-          AND aa.name != ''
-          AND (
-            aa.name ILIKE '%2025%'
-            OR aa.name ILIKE '%annual%'
-            OR aa.name ILIKE '%weekday%'
-          )
-          ORDER BY aa.created_time DESC
-          LIMIT 20
-        `);
-        
-        console.log(`Found ${adsResult.rows.length} ads matching 2025/annual/weekday patterns`);
-        
-        if (adsResult.rows.length === 0) {
-          console.log('No ads found with matching patterns, using recent ads as examples...');
-          const recentAdsResult = await db.execute(sql`
-            SELECT DISTINCT
-              aa.id,
-              aa.name,
-              aa.platform_name,
-              aa.created_time as created_at,
-              '' as embed_url
-            FROM ads_ad aa
-            WHERE aa.name IS NOT NULL
-            AND aa.name != ''
-            ORDER BY aa.created_time DESC
-            LIMIT 10
-          `);
-          
-          console.log(`Using ${recentAdsResult.rows.length} recent ads as examples`);
-          return this.convertAdsToPostFormat(recentAdsResult.rows);
-        }
-        
-        return this.convertAdsToPostFormat(adsResult.rows);
+        console.log(`Found ${hmAdsResult.rows.length} H&M related ads as fallback`);
+        return this.convertAdsToPostFormat(hmAdsResult.rows);
       }
       
       console.log(`Found campaign report ID: ${campaignReportId}`);

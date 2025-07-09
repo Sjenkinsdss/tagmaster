@@ -1,0 +1,131 @@
+SELECT 
+A.id as MainTableID
+,cast(e.advertiser_id as varchar) as "advertiser_id"
+,ta."name" as advertiser_name
+, case when e.advertiser_id = 1 or e.advertiser_id = 1925052497974691 then true else false end as is_fake
+, 'Paid' as "Type"  
+,'API' as    source
+,'TikTok'	as "platform"
+,A.snapshot_date as date_start
+,A.snapshot_date as stat_time_day
+,Date(e.create_time) as campaign_Create_Date
+,cast(aa.tiktok_ad_id as varchar) as "ad_id"
+,c."name" as ad_name
+,cast(aa.ad_group_id as varchar) as ad_set_id
+,d."name" as "Adset Name"
+,cast(e.campaign_id as varchar) as campaign_id
+,e."name" as Campaign_name
+,cast(g.post_id as varchar) as "post_id"
+, case when e.objective_type is null then e.objective else e.objective_type end as objective_type 
+,cast(DP.influencer_id as varchar) 
+,case
+when DP.influencer_id is not null then DI.name 
+when  dplat.username is not NUll then   dplat.Username  
+when  c.display_name is not NUll then   c.display_name Else c."name" end as influencer
+,DI.demographics_gender as influencergender
+,bjp.client_name 
+, bjp.title  as bjp_title 
+,A.metrics_id
+,b.video_views_p100 as video_view_value_p100	
+,b.video_views_p25 as video_view_value_p25
+,0 as video_view
+,0 as video_views_15_sec
+,0 as video_views_30_sec
+,0 as video_views_p50
+,0 as video_views_p75
+,0 as video_views_p95
+,b.video_watched_6s
+,b.video_watched_2s
+,b.impressions
+,b.shares
+,b.follows
+,b.clicks
+,b.comments
+,b.likes
+,b.spend
+,b.ctr
+,b.post_engagement
+,0 as offsite_conversion_fb_pixel_view_content
+,0 as frequency
+,0 as omni_view_content
+,0 as reach
+,0 as add_to_cart
+,0 as complete_registration
+,0 as landing_page_view
+,0 as link_click
+,0 as omni_add_to_cart
+,0 as omni_complete_registration
+,0 as omni_purchase
+,0 as omni_search
+,0 as page_engagement
+,0 as post
+,0 as post_reaction
+,0 as purchase
+,0 as "search"
+,h.user_registration as subscribe_total
+,0 as subscribe_website
+,0 as onsite_conversion_messaging_conversation_started_7d
+,0 as freq
+,0 as value_omni_purchase
+,aa.ad_type
+,psb.video_duration_seconds
+, h.engaged_view as ThruPlays
+,d.optimization_goal
+,dpt.id as post_type
+,0 as engagements
+,0 as app_clicks
+,0 as carousel_swipes
+,0 as poll_card_vote
+,0 as qualified_impressions
+,0 as replies
+,0 as tweets_send
+,0 as unfollows
+,0 as media_views 
+,dc.starting_price
+,dc.negotiated_price
+
+FROM ads_ad aa 	
+left join tiktok_business_integration_tiktokad  c
+	on aa.tiktok_ad_id = c.tiktokbase_ptr_id 
+left join tiktok_business_integration_tiktokadmetrics h
+	on c.metrics_id = H.id 
+left join tiktok_business_integration_tiktokadgroup   d
+	on c.ad_group_id = d.tiktokbase_ptr_id 
+left join tiktok_business_integration_tiktokcampaign    e
+	on d.campaign_id  = e.tiktokbase_ptr_id
+left join tiktok_business_integration_tiktokadvertiser ta
+	on e.advertiser_id = ta.tiktokbase_ptr_id
+left join debra_brandjobpost bjp
+	on e.campaign_id = bjp.id 	
+left join campaign_report_campaignpostreport  g
+	on g.id   = AA.post_report_id
+left join debra_influencerjobmapping IJM
+	on g.ijm_id = IJM.ID
+left join debra_contract dc 
+	on IJM.contract_id = dc.id
+	
+left join debra_posts dp
+	on g.post_id   = dp.id
+left join debra_platform dplat
+	on dplat.id = dp.platform_id 
+left join public.debra_influencer DI
+	on DP.influencer_id = di.id
+left join debra_postssubsetbody psb
+	on psb.post_id = g.post_id  
+left join debra_posttype dpt
+	on dpt.id = g.post_type_id 
+left join debra_postsubtype dpst
+	on dpst.id = dpt.default_post_sub_type_id	
+left join tiktok_business_integration_tiktokadmetricssnapshot A
+	on a.ad_id = aa.tiktok_ad_id
+left join tiktok_business_integration_tiktokadmetrics b
+	on a.metrics_id = b.id 
+	
+where 1=1
+-- this is being removed because of the self test ad
+--	and	ad_id IS NOT null
+--	and Date(e.create_time) >= '2022-06-01'
+--and  g.post_id = ''
+and bjp.title = '2025 Annual: Weekday'
+--and aa.api_id = '1829479061995538'
+--and  e.campaign_id = '3678'
