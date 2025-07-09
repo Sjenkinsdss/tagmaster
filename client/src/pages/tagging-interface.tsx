@@ -25,13 +25,13 @@ export default function TaggingInterface() {
     platform: "",
     thumbnailUrl: "",
   });
-  const [campaignFilter, setCampaignFilter] = useState("Summer 2024");
+  const [campaignFilter, setCampaignFilter] = useState("Production Content");
   const [campaignOpen, setCampaignOpen] = useState(false);
   
   // Use actual campaign names from production database
   const campaignOptions = [
-    "Summer 2024",
-    "Product Launch"
+    "Production Content",
+    "All Posts"
   ];
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -46,11 +46,12 @@ export default function TaggingInterface() {
 
   // Filter posts based on selected campaign using actual campaign data
   const posts = allPosts.filter((post: any) => {
+    if (campaignFilter === "All Posts") return true;
     return post.campaignName === campaignFilter;
   });
 
   const productTags = tags.filter((tag: any) => tag.pillar === "product");
-  const influencerTags = tags.filter((tag: any) => tag.pillar === "influencer");
+  const influencerTags = tags.filter((tag: any) => tag.pillar === "content" || tag.pillar === "influencer");
 
   const handleBulkEdit = () => {
     setBulkEditMode(!bulkEditMode);
