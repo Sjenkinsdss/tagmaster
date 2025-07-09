@@ -47,6 +47,13 @@ export default function TaggingInterface() {
     queryKey: ["/api/tags"],
   });
 
+  // Fetch connected ads for the selected post
+  const { data: connectedAds = [] } = useQuery({
+    queryKey: ["/api/posts", selectedPost?.id, "ads"],
+    queryFn: () => selectedPost ? fetch(`/api/posts/${selectedPost.id}/ads`).then(res => res.json()) : [],
+    enabled: !!selectedPost,
+  });
+
   // Filter posts based on selected campaign and post ID
   const posts = allPosts.filter((post: any) => {
     // Campaign filter
@@ -370,10 +377,10 @@ export default function TaggingInterface() {
               {selectedPost && (
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline" className="text-carbon-green bg-carbon-green bg-opacity-10">
-                    {selectedPost.paidAds.filter(ad => ad.isLinked).length} linked
+                    {connectedAds.filter(ad => ad.isLinked).length} linked
                   </Badge>
                   <Badge variant="outline" className="text-carbon-yellow bg-carbon-yellow bg-opacity-10">
-                    {selectedPost.paidAds.filter(ad => !ad.isLinked).length} unlinked
+                    {connectedAds.filter(ad => !ad.isLinked).length} unlinked
                   </Badge>
                 </div>
               )}
@@ -381,7 +388,7 @@ export default function TaggingInterface() {
 
             {selectedPost ? (
               <div className="space-y-4">
-                {selectedPost.paidAds.map((ad) => (
+                {connectedAds.map((ad) => (
                   <PaidAdItem
                     key={ad.id}
                     ad={ad}
@@ -389,7 +396,7 @@ export default function TaggingInterface() {
                   />
                 ))}
                 
-                {selectedPost.paidAds.length === 0 && (
+                {connectedAds.length === 0 && (
                   <div className="text-center text-carbon-gray-70 mt-12">
                     <div className="w-12 h-12 mx-auto mb-4 bg-carbon-gray-20 rounded-lg flex items-center justify-center">
                       <ShoppingBag className="w-6 h-6 text-carbon-gray-50" />

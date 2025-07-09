@@ -416,7 +416,11 @@ export class DatabaseStorage implements IStorage {
         name: row.name,
         postId: postId,
         createdAt: new Date(row.created_time || Date.now()),
-        adTags: []
+        adTags: [],
+        isLinked: true, // Connected ads are considered linked
+        platform: row.platform_name || 'TIKTOK',
+        thumbnailUrl: null,
+        performance: {}
       }));
     } catch (error) {
       console.error('Error fetching ads by post from ads_ad:', error);
