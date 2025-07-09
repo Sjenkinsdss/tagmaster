@@ -145,6 +145,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Raw query endpoint for debugging
+  app.post("/api/raw-query", async (req, res) => {
+    try {
+      const { query } = req.body;
+      const result = await db.execute(sql.raw(query));
+      res.json({ success: true, result: result.rows });
+    } catch (error) {
+      console.error("Raw query error:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   // Posts routes
   app.get("/api/posts", async (req, res) => {
     try {
