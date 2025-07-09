@@ -205,19 +205,24 @@ export class DatabaseStorage implements IStorage {
     try {
       const tagsResult = await db.execute(sql`
         SELECT 
-          id,
-          name,
-          tag_type_id
-        FROM debra_influencertag 
-        ORDER BY name 
-        LIMIT 100
+          dit.id,
+          dit.name,
+          dit.tag_type_id,
+          ditt.name as tag_type_name
+        FROM debra_influencertag dit
+        LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+        WHERE dit.name IS NOT NULL 
+        AND dit.name != ''
+        AND TRIM(dit.name) != ''
+        ORDER BY ditt.name, dit.name 
+        LIMIT 200
       `);
 
       return tagsResult.rows.map((row: any) => ({
         id: row.id,
         name: row.name,
-        code: `tag_${row.name.toLowerCase().replace(/\s+/g, '_')}_${String(row.id).padStart(4, '0')}`,
-        pillar: row.tag_type_id === 1 ? 'product' : 'content',
+        code: `${(row.tag_type_name || 'general').toLowerCase()}_${row.name.toLowerCase().replace(/\s+/g, '_')}_${String(row.id).padStart(4, '0')}`,
+        pillar: this.mapTagTypeToPillar(row.tag_type_name),
         isAiGenerated: true,
         createdAt: new Date(),
       }));
@@ -225,6 +230,23 @@ export class DatabaseStorage implements IStorage {
       console.error('Error fetching tags from production DB:', error);
       return [];
     }
+  }
+
+  private mapTagTypeToPillar(tagTypeName: string): string {
+    if (!tagTypeName) return 'product';
+    
+    const lowerName = tagTypeName.toLowerCase();
+    
+    // Influencer/Audience related  
+    if (lowerName.includes('audience') || lowerName.includes('behavior') || lowerName.includes('activity') ||
+        lowerName.includes('age') || lowerName.includes('gender') || lowerName.includes('location') ||
+        lowerName.includes('interest') || lowerName.includes('lifestyle') || lowerName.includes('demographic') ||
+        lowerName.includes('influencer') || lowerName.includes('creator')) {
+      return 'influencer';
+    }
+    
+    // Product/Brand related (default for most business tags)
+    return 'product';
   }
 
   async getTagsByPillar(pillar: string): Promise<Tag[]> {
