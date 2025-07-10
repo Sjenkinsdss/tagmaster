@@ -39,20 +39,18 @@ export default function TagSection({
     .filter(pt => pt.tag.pillar === pillar)
     .map(pt => pt.tag);
 
+  // Group tags by category (subcategory)
+  const tagsByCategory = postTags.reduce((acc, tag) => {
+    const category = tag.category || 'Other';
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(tag);
+    return acc;
+  }, {} as Record<string, any[]>);
+
   const aiTags = postTags.filter(tag => tag.isAiGenerated);
   const userTags = postTags.filter(tag => !tag.isAiGenerated);
-
-  // Group tags by category for display
-  const groupTagsByCategory = (tags: any[]) => {
-    return tags.reduce((acc, tag) => {
-      const category = tag.category || 'Other';
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(tag);
-      return acc;
-    }, {} as Record<string, any[]>);
-  };
 
   const removeTagMutation = useMutation({
     mutationFn: async (tagId: number) => {
@@ -129,21 +127,16 @@ export default function TagSection({
         </Badge>
       </div>
       
-      {/* AI Generated Tags */}
-      {aiTags.length > 0 && (
-        <div className="mb-4">
-          <p className="text-sm text-carbon-gray-70 mb-2 flex items-center">
-            <Bot className="w-4 h-4 mr-1" />
-            AI Generated
+      {/* Tags organized by subcategories */}
+      {Object.entries(tagsByCategory).map(([category, tags]) => (
+        <div key={category} className="mb-4">
+          <p className="text-sm font-medium text-carbon-gray-100 mb-2 border-b border-carbon-gray-20 pb-1">
+            {category}
           </p>
-          {Object.entries(groupTagsByCategory(aiTags)).map(([category, tags]) => (
-            <div key={category} className="mb-3">
-              <p className="text-xs font-medium text-carbon-gray-100 mb-1 pl-2 border-l-2 border-purple-200">
-                {category}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag: any) => (
-                  <div key={tag.id} className="inline-flex items-center">
+          
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag: any) => (
+              <div key={tag.id} className="inline-flex items-center">
                 {bulkEditMode && (
                   <Checkbox
                     checked={selectedTags.has(tag.id)}
@@ -212,11 +205,9 @@ export default function TagSection({
                     )}
                   </Badge>
                 )}
-                  </div>
-                ))}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
       
