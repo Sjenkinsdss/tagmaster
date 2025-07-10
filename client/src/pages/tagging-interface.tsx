@@ -54,6 +54,19 @@ export default function TaggingInterface() {
     enabled: !!selectedPost,
   });
 
+  // Fetch tags for the selected post
+  const { data: postTags = [] } = useQuery({
+    queryKey: ["/api/posts", selectedPost?.id, "tags"],
+    queryFn: () => selectedPost ? fetch(`/api/posts/${selectedPost.id}/tags`).then(res => res.json()) : [],
+    enabled: !!selectedPost,
+  });
+
+  // Enrich the selected post with tag data
+  const enrichedSelectedPost = selectedPost ? {
+    ...selectedPost,
+    postTags: postTags
+  } : null;
+
   // Filter posts based on selected campaign and post ID
   const posts = allPosts.filter((post: any) => {
     // Campaign filter
@@ -336,13 +349,13 @@ export default function TaggingInterface() {
               </div>
             </div>
 
-            {selectedPost ? (
+            {enrichedSelectedPost ? (
               <div className="space-y-8">
                 <TagSection
                   title="Product Tags"
                   icon={<ShoppingBag className="w-5 h-5 text-carbon-blue" />}
                   pillar="product"
-                  post={selectedPost}
+                  post={enrichedSelectedPost}
                   allTags={productTags}
                   bulkEditMode={bulkEditMode}
                   selectedTags={selectedTags}
@@ -353,7 +366,7 @@ export default function TaggingInterface() {
                   title="Influencer Tags"
                   icon={<Users className="w-5 h-5 text-carbon-blue" />}
                   pillar="influencer"
-                  post={selectedPost}
+                  post={enrichedSelectedPost}
                   allTags={influencerTags}
                   bulkEditMode={bulkEditMode}
                   selectedTags={selectedTags}
@@ -392,7 +405,7 @@ export default function TaggingInterface() {
                   <PaidAdItem
                     key={ad.id}
                     ad={ad}
-                    post={selectedPost}
+                    post={enrichedSelectedPost}
                   />
                 ))}
                 

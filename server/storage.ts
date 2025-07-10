@@ -311,15 +311,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPostTags(postId: number): Promise<(PostTag & { tag: Tag })[]> {
-    const tags = await this.getTags();
-    return [
-      {
-        id: 1,
-        postId,
-        tagId: 1,
-        tag: tags[0],
-      },
-    ];
+    try {
+      console.log(`Looking for tags connected to post ${postId}...`);
+      
+      // Get actual tags connected to this specific post from production tables
+      const postTagsResult = await db.execute(sql`
+        SELECT 
+          dpit.id,
+          dpit.post_id,
+          dpit.influencer_tag_id,
+          dit.name as tag_name,
+          ditt.name as tag_type_name,
+          dit.id as tag_id
+        FROM debra_posts_influencer_tags dpit
+        JOIN debra_influencertag dit ON dpit.influencer_tag_id = dit.id
+        JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+        WHERE dpit.post_id = ${postId}
+        ORDER BY dit.name
+      `);
+
+      console.log(`Found ${postTagsResult.rows.length} tags connected to post ${postId}`);
+      
+      return postTagsResult.rows.map((row: any) => ({
+        id: row.id,
+        postId: row.post_id,
+        tagId: row.tag_id,
+        createdAt: new Date(),
+        tag: {
+          id: row.tag_id,
+          name: row.tag_name,
+          code: `${this.mapTagTypeToPillar(row.tag_type_name)}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
+          pillar: this.mapTagTypeToPillar(row.tag_type_name),
+          isAiGenerated: false,
+          createdAt: new Date()
+        }
+      }));
+    } catch (error) {
+      console.error('Error fetching post tags:', error);
+      return [];
+    }
   }
 
   async getPaidAds(): Promise<PaidAd[]> {

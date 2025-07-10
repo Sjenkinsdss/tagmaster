@@ -262,6 +262,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Post-Tag relationship routes
+  app.get("/api/posts/:postId/tags", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const postTags = await storage.getPostTags(postId);
+      res.json(postTags);
+    } catch (error) {
+      console.error("Error fetching tags for post:", error);
+      res.status(500).json({ message: "Failed to fetch tags for post" });
+    }
+  });
+
   app.post("/api/posts/:postId/tags", async (req, res) => {
     try {
       const postId = parseInt(req.params.postId);
