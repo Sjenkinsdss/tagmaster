@@ -19,6 +19,8 @@ export default function TaggingInterface() {
   const [selectedPost, setSelectedPost] = useState<PostWithTags | null>(null);
   const [bulkEditMode, setBulkEditMode] = useState(false);
   const [selectedTags, setSelectedTags] = useState<Set<number>>(new Set());
+  const [bulkPostMode, setBulkPostMode] = useState(false);
+  const [selectedPosts, setSelectedPosts] = useState<Set<number>>(new Set());
   const [showCreateAdForm, setShowCreateAdForm] = useState(false);
   const [newAdData, setNewAdData] = useState({
     title: "",
@@ -134,6 +136,30 @@ export default function TaggingInterface() {
     setSelectedTags(new Set());
   };
 
+  const handleBulkPostMode = () => {
+    setBulkPostMode(!bulkPostMode);
+    setSelectedPosts(new Set());
+    setSelectedPost(null);
+  };
+
+  const handlePostSelection = (postId: number, isSelected: boolean) => {
+    const newSelection = new Set(selectedPosts);
+    if (isSelected) {
+      newSelection.add(postId);
+    } else {
+      newSelection.delete(postId);
+    }
+    setSelectedPosts(newSelection);
+  };
+
+  const handleSelectAllPosts = () => {
+    if (selectedPosts.size === posts.length) {
+      setSelectedPosts(new Set());
+    } else {
+      setSelectedPosts(new Set(posts.map(post => post.id)));
+    }
+  };
+
   const handleTagSelection = (tagId: number, isSelected: boolean) => {
     const newSelection = new Set(selectedTags);
     if (isSelected) {
@@ -175,6 +201,40 @@ export default function TaggingInterface() {
   const handleBulkDelete = () => {
     if (selectedTags.size > 0) {
       bulkDeleteMutation.mutate(Array.from(selectedTags));
+    }
+  };
+
+  // Bulk tag application mutation
+  const bulkTagApplicationMutation = useMutation({
+    mutationFn: async ({ tagId, postIds }: { tagId: number; postIds: number[] }) => {
+      // Apply tag to all selected posts
+      for (const postId of postIds) {
+        await apiRequest("POST", `/api/posts/${postId}/tags/${tagId}`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+      toast({
+        title: "Tags applied",
+        description: `Tag has been applied to ${selectedPosts.size} posts.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to apply tag to selected posts.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleBulkTagApplication = (tagId: number, pillar: string) => {
+    if (selectedPosts.size > 0) {
+      bulkTagApplicationMutation.mutate({
+        tagId,
+        postIds: Array.from(selectedPosts)
+      });
     }
   };
 
@@ -474,9 +534,35 @@ export default function TaggingInterface() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-carbon-gray-100">Content</h2>
-              <Badge variant="secondary" className="text-carbon-gray-70">
-                {posts.length} posts
-              </Badge>
+              <div className="flex items-center space-x-2">
+                {bulkPostMode && selectedPosts.size > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="text-carbon-blue">
+                      {selectedPosts.size} selected
+                    </Badge>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-carbon-blue hover:bg-carbon-blue hover:text-white"
+                      onClick={handleSelectAllPosts}
+                    >
+                      {selectedPosts.size === posts.length ? "Deselect All" : "Select All"}
+                    </Button>
+                  </div>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={bulkPostMode ? "text-red-600" : "text-carbon-blue"}
+                  onClick={handleBulkPostMode}
+                >
+                  <Edit className="w-4 h-4 mr-1" />
+                  {bulkPostMode ? "Cancel" : "Bulk Select"}
+                </Button>
+                <Badge variant="secondary" className="text-carbon-gray-70">
+                  {posts.length} posts
+                </Badge>
+              </div>
             </div>
             
             <div className="space-y-6">
@@ -485,7 +571,10 @@ export default function TaggingInterface() {
                   key={`page-${currentPage}-post-${post.id}-idx-${index}`}
                   post={post}
                   isSelected={selectedPost?.id === post.id}
-                  onSelect={() => setSelectedPost(post)}
+                  onSelect={() => !bulkPostMode && setSelectedPost(post)}
+                  bulkMode={bulkPostMode}
+                  isBulkSelected={selectedPosts.has(post.id)}
+                  onBulkSelect={(isSelected) => handlePostSelection(post.id, isSelected)}
                 />
               ))}
 
@@ -645,6 +734,50 @@ export default function TaggingInterface() {
                   selectedTags={selectedTags}
                   onTagSelection={handleTagSelection}
                 />
+              </div>
+            ) : bulkPostMode && selectedPosts.size > 0 ? (
+              <div className="space-y-6">
+                <div className="text-center">
+                  <Tags className="w-12 h-12 mx-auto mb-4 text-carbon-blue" />
+                  <h3 className="text-lg font-semibold text-carbon-gray-100 mb-2">
+                    Bulk Tag Operations
+                  </h3>
+                  <p className="text-sm text-carbon-gray-70 mb-6">
+                    Apply tags to {selectedPosts.size} selected posts
+                  </p>
+                </div>
+                
+                {/* Bulk Tag Application Interface */}
+                <div className="space-y-4">
+                  {[
+                    { title: "Ad Tags", pillar: "ad", icon: <ShoppingBag className="w-5 h-5" />, tags: adTags },
+                    { title: "Campaign Tags", pillar: "campaign", icon: <Tags className="w-5 h-5" />, tags: campaignTags },
+                    { title: "Client Tags", pillar: "client", icon: <ShoppingBag className="w-5 h-5" />, tags: clientTags },
+                    { title: "Post Tags", pillar: "post", icon: <Tags className="w-5 h-5" />, tags: contentTags },
+                    { title: "AI Tags", pillar: "ai", icon: <ShoppingBag className="w-5 h-5" />, tags: aiTags },
+                    { title: "Influencer Tags", pillar: "influencer", icon: <Users className="w-5 h-5" />, tags: influencerTags }
+                  ].map((section) => (
+                    <Card key={section.pillar} className="p-4">
+                      <div className="flex items-center space-x-2 mb-3">
+                        <div className="text-carbon-blue">{section.icon}</div>
+                        <h4 className="font-medium text-carbon-gray-100">{section.title}</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {section.tags.map((tag: any) => (
+                          <Button
+                            key={tag.id}
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => handleBulkTagApplication(tag.id, section.pillar)}
+                          >
+                            {tag.name}
+                          </Button>
+                        ))}
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="text-center text-carbon-gray-70 mt-12">

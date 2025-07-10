@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Heart, MessageCircle, Share } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PostWithTags } from "@shared/schema";
@@ -9,6 +10,9 @@ interface PostItemProps {
   post: PostWithTags;
   isSelected: boolean;
   onSelect: () => void;
+  bulkMode?: boolean;
+  isBulkSelected?: boolean;
+  onBulkSelect?: (isSelected: boolean) => void;
 }
 
 const platformIcons = {
@@ -23,7 +27,14 @@ const platformColors = {
   youtube: "from-red-600 to-red-500",
 };
 
-export default function PostItem({ post, isSelected, onSelect }: PostItemProps) {
+export default function PostItem({ 
+  post, 
+  isSelected, 
+  onSelect, 
+  bulkMode = false, 
+  isBulkSelected = false, 
+  onBulkSelect 
+}: PostItemProps) {
   const platformColor = platformColors[post.platform as keyof typeof platformColors] || "from-blue-500 to-blue-600";
   const platformIcon = platformIcons[post.platform as keyof typeof platformIcons] || "fab fa-share-square";
 
@@ -43,17 +54,25 @@ export default function PostItem({ post, isSelected, onSelect }: PostItemProps) 
     <Card 
       className={cn(
         "cursor-pointer transition-all duration-200 hover:shadow-md",
-        isSelected && "ring-2 ring-carbon-blue"
+        isSelected && !bulkMode && "ring-2 ring-carbon-blue",
+        isBulkSelected && bulkMode && "ring-2 ring-green-500 bg-green-50"
       )}
-      onClick={onSelect}
+      onClick={bulkMode ? undefined : onSelect}
     >
       <CardContent className="p-4">
         <div className="mb-4">
           <div className="flex items-center space-x-3 mb-2">
+            {bulkMode && (
+              <Checkbox
+                checked={isBulkSelected}
+                onCheckedChange={(checked) => onBulkSelect?.(checked === true)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )}
             <div className={cn("w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center", platformColor)}>
               <i className={cn(platformIcon, "text-white text-sm")} />
             </div>
-            <div>
+            <div className="flex-1">
               <h3 className="font-medium text-carbon-gray-100">{post.title}</h3>
               <p className="text-sm text-carbon-gray-70">
                 {formatTimestamp(post.createdAt)}
