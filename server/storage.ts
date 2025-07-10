@@ -70,7 +70,7 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Fetching posts with Sam\'s Club client focus...');
       
-      // Get Sam's Club related posts from debra_posts with real campaign names
+      // Get Sam's Club related posts from debra_posts - check for campaign info in existing columns
       const samsClubPostsResult = await db.execute(sql`
         SELECT 
           dp.id,
@@ -78,20 +78,17 @@ export class DatabaseStorage implements IStorage {
           dp.platform_name as platform,
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
-          COALESCE(c.name, bjp.title, 'Sam''s Club Content') as campaign_name,
+          CASE 
+            WHEN LOWER(dp.content) LIKE '%sam%club%' THEN 'Sam''s Club Campaign'
+            WHEN LOWER(dp.content) LIKE '%walmart%' THEN 'Walmart Partnership'
+            ELSE 'Sam''s Club Content'
+          END as campaign_name,
           dp.create_date as created_at,
-          dp.content as metadata_content,
-          cl.name as client_name
+          dp.content as metadata_content
         FROM debra_posts dp
-        LEFT JOIN campaign_report_campaignpostreport cpr ON dp.id = cpr.post_id
-        LEFT JOIN campaign_report_campaign c ON cpr.campaign_id = c.id  
-        LEFT JOIN campaign_report_client cl ON c.client_id = cl.id
-        LEFT JOIN debra_brandjobpost bjp ON c.id = bjp.id
         WHERE (LOWER(dp.content) LIKE '%sam%club%' 
                OR LOWER(dp.content) LIKE '%sams%'
-               OR LOWER(dp.content) LIKE '%walmart%'
-               OR LOWER(COALESCE(cl.name, '')) LIKE '%sam%club%'
-               OR LOWER(COALESCE(bjp.client_name, '')) LIKE '%sam%club%')
+               OR LOWER(dp.content) LIKE '%walmart%')
           AND dp.content IS NOT NULL
           AND dp.content != ''
         ORDER BY dp.create_date DESC
@@ -106,15 +103,10 @@ export class DatabaseStorage implements IStorage {
           dp.platform_name as platform,
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
-          COALESCE(c.name, bjp.title, 'General Content') as campaign_name,
+          'General Sponsored Content' as campaign_name,
           dp.create_date as created_at,
-          dp.content as metadata_content,
-          cl.name as client_name
+          dp.content as metadata_content
         FROM debra_posts dp
-        LEFT JOIN campaign_report_campaignpostreport cpr ON dp.id = cpr.post_id
-        LEFT JOIN campaign_report_campaign c ON cpr.campaign_id = c.id  
-        LEFT JOIN campaign_report_client cl ON c.client_id = cl.id
-        LEFT JOIN debra_brandjobpost bjp ON c.id = bjp.id
         WHERE dp.is_sponsored = true
           AND dp.content IS NOT NULL
           AND dp.content != ''
@@ -143,41 +135,29 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Total posts loaded: ${realPostsResult.rows.length} (${samsClubPostsResult.rows.length} Sams Club + ${additionalPostsResult.rows.length} general)`);
       
-      // Then get campaign ads for Sams Club
+      // Then get campaign ads for Sams Club using simple content-based classification
       console.log('Finding campaign ads for Sams Club...');
       const realAdsResult = await db.execute(sql`
         SELECT 
           aa.id,
-          c."name" as name,
+          aa.name as name,
           'TIKTOK' as platform_name,
           aa.created_time as created_at,
-          COALESCE(cpr.post_url, '') as embed_url,
-          COALESCE(e."name", bjp.title, 'Sam''s Club Campaign') as campaign_name,
-          bjp.client_name,
-          bjp.title as bjp_title
+          '' as embed_url,
+          CASE 
+            WHEN LOWER(aa.name) LIKE '%sam%club%' THEN 'Sam''s Club Direct Campaign'
+            WHEN LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club Partnership'
+            WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart Sam''s Club Alliance'
+            ELSE 'Sam''s Club Advertising'
+          END as campaign_name
         FROM ads_ad aa        
-        LEFT JOIN tiktok_business_integration_tiktokad c
-          ON aa.tiktok_ad_id = c.tiktokbase_ptr_id 
-        LEFT JOIN tiktok_business_integration_tiktokadgroup d
-          ON c.ad_group_id = d.tiktokbase_ptr_id 
-        LEFT JOIN tiktok_business_integration_tiktokcampaign e
-          ON d.campaign_id = e.tiktokbase_ptr_id
-        LEFT JOIN debra_brandjobpost bjp
-          ON e.campaign_id = bjp.id   
-        LEFT JOIN campaign_report_campaignpostreport cpr
-          ON aa.post_report_id = cpr.id
-        WHERE (LOWER(bjp.title) LIKE '%sam%club%' 
-               OR LOWER(bjp.title) LIKE '%sams%'
-               OR LOWER(bjp.client_name) LIKE '%sam%club%'
-               OR LOWER(bjp.client_name) LIKE '%sams%'
-               OR LOWER(c."name") LIKE '%sam%club%'
-               OR LOWER(c."name") LIKE '%sams%')
+        WHERE (LOWER(aa.name) LIKE '%sam%club%' 
+               OR LOWER(aa.name) LIKE '%sams%'
+               OR LOWER(aa.name) LIKE '%walmart%')
           AND aa.id IS NOT NULL
-          AND c."name" IS NOT NULL
-          AND c."name" != ''
-        ORDER BY 
-          CASE WHEN cpr.post_url IS NOT NULL AND cpr.post_url != '' THEN 0 ELSE 1 END,
-          aa.created_time DESC
+          AND aa.name IS NOT NULL
+          AND aa.name != ''
+        ORDER BY aa.created_time DESC
         LIMIT 30
       `);
       
