@@ -70,9 +70,9 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Fetching posts from production database...');
       
-      // Get diverse client posts from debra_posts with client classification
+      // Get posts that have existing tags and tag relationships
       const postsResult = await db.execute(sql`
-        SELECT 
+        SELECT DISTINCT
           dp.id,
           dp.content as title,
           dp.platform_name as platform,
@@ -99,13 +99,17 @@ export class DatabaseStorage implements IStorage {
             ELSE 'Other'
           END as client_name,
           dp.create_date as created_at,
-          dp.content as metadata_content
+          dp.content as metadata_content,
+          COUNT(dpit.id) as tag_count
         FROM debra_posts dp
+        LEFT JOIN debra_posts_influencer_tags dpit ON dp.id = dpit.post_id
         WHERE dp.content IS NOT NULL
           AND dp.content != ''
           AND dp.is_sponsored = true
-        ORDER BY dp.create_date DESC
-        LIMIT 40
+        GROUP BY dp.id, dp.content, dp.platform_name, dp.url, dp.post_image, dp.create_date
+        HAVING COUNT(dpit.id) > 0
+        ORDER BY tag_count DESC, dp.create_date DESC
+        LIMIT 25
       `);
       
       console.log(`Found ${postsResult.rows.length} sponsored posts from various clients`);
@@ -119,15 +123,15 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Total posts loaded: ${postsResult.rows.length}`);
       
-      // Get campaign ads from various clients
-      console.log('Finding campaign ads from multiple clients...');
+      // Get ads that have connections to posts through campaign reports
+      console.log('Finding connected ads with post relationships...');
       const adsResult = await db.execute(sql`
-        SELECT 
+        SELECT DISTINCT
           aa.id,
           aa.name as name,
           'TIKTOK' as platform_name,
           aa.created_time as created_at,
-          '' as embed_url,
+          crcp.post_url as embed_url,
           CASE 
             WHEN LOWER(aa.name) LIKE '%sam%club%' OR LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club Direct Campaign'
             WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart Campaign'
@@ -147,13 +151,17 @@ export class DatabaseStorage implements IStorage {
             WHEN LOWER(aa.name) LIKE '%amazon%' THEN 'Amazon'
             WHEN LOWER(aa.name) LIKE '%h&m%' OR LOWER(aa.name) LIKE '%weekday%' THEN 'H&M'
             ELSE 'Other'
-          END as client_name
+          END as client_name,
+          COUNT(crcp.id) as connection_count
         FROM ads_ad aa        
+        LEFT JOIN campaign_report_campaignpostreport crcp ON aa.id = crcp.ad_id
         WHERE aa.id IS NOT NULL
           AND aa.name IS NOT NULL
           AND aa.name != ''
-        ORDER BY aa.created_time DESC
-        LIMIT 30
+        GROUP BY aa.id, aa.name, aa.created_time, crcp.post_url
+        HAVING COUNT(crcp.id) > 0
+        ORDER BY connection_count DESC, aa.created_time DESC
+        LIMIT 20
       `);
       
       console.log(`Found ${adsResult.rows.length} ads from various clients`);
