@@ -166,7 +166,12 @@ export default function TagSection({
                     variant="outline"
                     className="bg-purple-50 text-purple-700 border-purple-200 pl-3 pr-1"
                   >
-                    {tag.name}
+                    <div className="flex flex-col">
+                      <span className="font-medium">{tag.name}</span>
+                      {tag.category && (
+                        <span className="text-xs opacity-75">{tag.category}</span>
+                      )}
+                    </div>
                     {!bulkEditMode && (
                       <>
                         <Button
@@ -245,7 +250,12 @@ export default function TagSection({
                     variant="outline"
                     className="bg-blue-50 text-blue-700 border-blue-200 pl-3 pr-1"
                   >
-                    {tag.name}
+                    <div className="flex flex-col">
+                      <span className="font-medium">{tag.name}</span>
+                      {tag.category && (
+                        <span className="text-xs opacity-75">{tag.category}</span>
+                      )}
+                    </div>
                     {!bulkEditMode && (
                       <>
                         <Button

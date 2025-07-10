@@ -530,6 +530,7 @@ export class DatabaseStorage implements IStorage {
         name: row.name,
         code: `${(row.tag_type_name || 'general').toLowerCase()}_${row.name.toLowerCase().replace(/\s+/g, '_')}_${String(row.id).padStart(4, '0')}`,
         pillar: this.mapTagTypeToPillar(row.tag_type_name),
+        category: row.tag_type_name || null, // Store the actual category name from debra_influencertagtype.name
         isAiGenerated: row.tag_source === 'client' ? false : true,
         createdAt: new Date(),
       }));
