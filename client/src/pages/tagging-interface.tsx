@@ -92,8 +92,16 @@ export default function TaggingInterface() {
     postTags: postTags
   } : null;
 
+  // Remove duplicates by ID and filter posts
+  const uniquePosts = allPosts.reduce((acc: any[], post: any) => {
+    if (!acc.find(p => p.id === post.id)) {
+      acc.push(post);
+    }
+    return acc;
+  }, []);
+
   // Filter posts based on selected campaign, client, and post ID
-  const posts = allPosts.filter((post: any) => {
+  const posts = uniquePosts.filter((post: any) => {
     // Campaign filter
     const campaignMatch = campaignFilter === "All Posts" || post.campaignName === campaignFilter;
     
@@ -433,7 +441,7 @@ export default function TaggingInterface() {
             <div className="space-y-6">
               {posts.map((post: PostWithTags, index: number) => (
                 <PostItem
-                  key={`post-${post.id}-${index}`}
+                  key={`page-${currentPage}-post-${post.id}-idx-${index}`}
                   post={post}
                   isSelected={selectedPost?.id === post.id}
                   onSelect={() => setSelectedPost(post)}

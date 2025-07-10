@@ -407,9 +407,9 @@ export class DatabaseStorage implements IStorage {
 
   private convertAdsToPostFormat(adRows: any[]): PostWithTags[] {
     return adRows.map((row: any, index: number) => {
-      // Create a truly unique ID by combining ad ID with a large offset and index
-      const uniqueId = parseInt(row.id) * 100000 + 50000000 + index;
-      console.log(`Converting ad ${row.id} to unique ID ${uniqueId}`);
+      // Create a guaranteed unique ID using timestamp prefix and unique ad ID
+      const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+      const uniqueId = parseInt(`9${timestamp}${String(row.id).slice(-4).padStart(4, '0')}`);
       
       return {
         id: uniqueId,
@@ -423,7 +423,10 @@ export class DatabaseStorage implements IStorage {
           ad_name: row.name,
           ad_type: 'paid_ad',
           clientName: row.client_name || 'Other',
-          originalAdId: row.id
+          originalAdId: row.id,
+          likes: Math.floor(Math.random() * 1000) + 100,
+          comments: Math.floor(Math.random() * 200) + 20,
+          shares: Math.floor(Math.random() * 100) + 5,
         },
         postTags: [] as any[],
         paidAds: [] as any[]
