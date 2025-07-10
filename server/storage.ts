@@ -544,10 +544,15 @@ export class DatabaseStorage implements IStorage {
     
     const lowerName = tagTypeName.toLowerCase();
     
+    // Client related tags (from debra_brandjobpost)
+    if (lowerName === 'client') {
+      return 'client';
+    }
+    
     // Ad related tags
     if (lowerName.includes('ad') || lowerName.includes('advertisement') || 
         lowerName.includes('creative') || lowerName.includes('format') ||
-        lowerName.includes('placement')) {
+        lowerName.includes('placement') || lowerName.includes('tactic')) {
       return 'ad';
     }
     
@@ -558,10 +563,10 @@ export class DatabaseStorage implements IStorage {
       return 'campaign';
     }
     
-    // Client related tags
-    if (lowerName.includes('client') || lowerName.includes('brand') || 
-        lowerName.includes('category') || lowerName.includes('industry') ||
-        lowerName.includes('business') || lowerName.includes('company')) {
+    // Client/Brand related tags
+    if (lowerName.includes('brand') || lowerName.includes('category') || 
+        lowerName.includes('industry') || lowerName.includes('business') || 
+        lowerName.includes('company')) {
       return 'client';
     }
     
@@ -572,12 +577,14 @@ export class DatabaseStorage implements IStorage {
       return 'ai';
     }
     
-    // Influencer related tags
+    // Influencer related tags (including specific categories from debra_influencertagtype)
     if (lowerName.includes('influencer') || lowerName.includes('creator') || 
         lowerName.includes('audience') || lowerName.includes('demographic') ||
         lowerName.includes('behavior') || lowerName.includes('lifestyle') ||
         lowerName.includes('interest') || lowerName.includes('age') ||
-        lowerName.includes('gender') || lowerName.includes('location')) {
+        lowerName.includes('gender') || lowerName.includes('location') ||
+        lowerName.includes('pets') || lowerName.includes('schtick') ||
+        lowerName.includes('schtikk')) {
       return 'influencer';
     }
     
