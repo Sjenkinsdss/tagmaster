@@ -134,6 +134,8 @@ export class DatabaseStorage implements IStorage {
           aa.created_time as created_at,
           '' as embed_url,
           CASE 
+            WHEN LOWER(aa.name) LIKE '%curology%' THEN 'Curology Campaign'
+            WHEN LOWER(aa.name) LIKE '%radpower%' OR LOWER(aa.name) LIKE '%rad%power%' THEN 'RadPower Bikes Campaign'
             WHEN LOWER(aa.name) LIKE '%sam%club%' OR LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club Direct Campaign'
             WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart Campaign'
             WHEN LOWER(aa.name) LIKE '%nike%' THEN 'Nike Campaign'
@@ -141,9 +143,12 @@ export class DatabaseStorage implements IStorage {
             WHEN LOWER(aa.name) LIKE '%target%' THEN 'Target Campaign'
             WHEN LOWER(aa.name) LIKE '%amazon%' THEN 'Amazon Campaign'
             WHEN LOWER(aa.name) LIKE '%h&m%' OR LOWER(aa.name) LIKE '%weekday%' THEN 'H&M Campaign'
+            WHEN LOWER(aa.name) LIKE '%trueview%' THEN 'YouTube TrueView Campaign'
             ELSE 'Brand Campaign'
           END as campaign_name,
           CASE 
+            WHEN LOWER(aa.name) LIKE '%curology%' THEN 'Curology'
+            WHEN LOWER(aa.name) LIKE '%radpower%' OR LOWER(aa.name) LIKE '%rad%power%' THEN 'RadPower Bikes'
             WHEN LOWER(aa.name) LIKE '%sam%club%' OR LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club'
             WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart'
             WHEN LOWER(aa.name) LIKE '%nike%' THEN 'Nike'
@@ -151,6 +156,7 @@ export class DatabaseStorage implements IStorage {
             WHEN LOWER(aa.name) LIKE '%target%' THEN 'Target'
             WHEN LOWER(aa.name) LIKE '%amazon%' THEN 'Amazon'
             WHEN LOWER(aa.name) LIKE '%h&m%' OR LOWER(aa.name) LIKE '%weekday%' THEN 'H&M'
+            WHEN LOWER(aa.name) LIKE '%trueview%' THEN 'YouTube'
             ELSE 'Other'
           END as client_name
         FROM ads_ad aa        
