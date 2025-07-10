@@ -209,7 +209,11 @@ export default function TaggingInterface() {
     mutationFn: async ({ tagId, postIds }: { tagId: number; postIds: number[] }) => {
       // Apply tag to all selected posts
       for (const postId of postIds) {
-        await apiRequest("POST", `/api/posts/${postId}/tags/${tagId}`);
+        const response = await apiRequest("POST", `/api/posts/${postId}/tags`, { tagId });
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to apply tag");
+        }
       }
     },
     onSuccess: () => {
@@ -220,10 +224,13 @@ export default function TaggingInterface() {
         description: `Tag has been applied to ${selectedPosts.size} posts.`,
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
       toast({
-        title: "Error",
-        description: "Failed to apply tag to selected posts.",
+        title: isReadOnlyError ? "Read-Only Database" : "Error",
+        description: isReadOnlyError 
+          ? "Cannot modify data: Connected to read-only production database for safety."
+          : `Failed to apply tag to selected posts: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -320,6 +327,9 @@ export default function TaggingInterface() {
             <div className="flex items-center space-x-4">
               <Tags className="text-carbon-blue text-xl" />
               <h1 className="text-xl font-semibold text-carbon-gray-100">Tagging Interface</h1>
+              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                Read-Only Production
+              </Badge>
             </div>
             <div className="flex items-center space-x-4 text-sm text-carbon-gray-70">
               {/* Search Input */}
@@ -742,8 +752,11 @@ export default function TaggingInterface() {
                   <h3 className="text-lg font-semibold text-carbon-gray-100 mb-2">
                     Bulk Tag Operations
                   </h3>
-                  <p className="text-sm text-carbon-gray-70 mb-6">
+                  <p className="text-sm text-carbon-gray-70 mb-2">
                     Apply tags to {selectedPosts.size} selected posts
+                  </p>
+                  <p className="text-xs text-yellow-600 mb-6 bg-yellow-50 p-2 rounded">
+                    Note: Connected to read-only production database. Tag operations will show error message.
                   </p>
                 </div>
                 

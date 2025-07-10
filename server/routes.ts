@@ -280,8 +280,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const postId = parseInt(req.params.postId);
       const { tagId } = req.body;
       
-      const postTag = await storage.addTagToPost(postId, tagId);
-      res.status(201).json(postTag);
+      // Return error for read-only database
+      res.status(403).json({ 
+        message: "Cannot modify data: Connected to read-only production database",
+        error: "READONLY_DATABASE",
+        details: "This interface is connected to a live production database with read-only access for safety."
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to add tag to post" });
     }

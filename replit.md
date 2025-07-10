@@ -259,6 +259,8 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Bulk Tag Application**: Apply any tag to multiple selected posts simultaneously with one click
 - **Organized Tag Interface**: Bulk operations show tags grouped by category (Ad, Campaign, Client, Post, AI, Influencer)
 - **Real-time Feedback**: Success and error messages for bulk operations with proper API integration
+- **Read-Only Database Handling**: Added clear visual indicators and error messages for production database limitations
+- **User Experience**: Added "Read-Only Production" badge in header and warning messages in bulk interface
 
 ## MVP Status: ✅ Complete + Enhanced + Production Ready + Live Data + Combined Filtering + Pagination + Search + Bulk Operations
 The tagging interface MVP has been successfully delivered with additional enhancements and is now fully connected to live production data. All core features plus bulk editing, paid ad creation, combined campaign and client filtering, real-time production database integration, 6-category tag organization, working filter combinations, pagination system, universal search functionality, bulk post selection and tag operations, and comprehensive bug fixes are implemented and functioning correctly.
