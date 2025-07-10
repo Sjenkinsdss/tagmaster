@@ -70,45 +70,76 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Fetching posts from debra_posts and campaign ads...');
       
-      // First, get real posts from debra_posts table (especially for 2025 Annual: Weekday campaign)
-      // Include specific test post 1378685242 for connected ads testing
-      const realPostsResult = await db.execute(sql`
-        (
-          SELECT 
-            dp.id,
-            dp.content as title,
-            dp.platform_name as platform,
-            dp.url as embed_url,
-            dp.post_image as thumbnail_url,
-            '2025 Annual: Weekday' as campaign_name,
-            dp.create_date as created_at,
-            dp.content as metadata_content
+      // First check if the specific posts with tags exist in debra_posts
+      const checkPostsResult = await db.execute(sql`
+        SELECT dp.id, dp.content, dp.platform_name
+        FROM debra_posts dp
+        WHERE dp.id IN (1378685242, 1297919915, 1254900768, 1302319915, 1254905713, 1322518812)
+      `);
+      console.log(`Found ${checkPostsResult.rows.length} specific posts in debra_posts:`, checkPostsResult.rows.map(r => r.id));
+      
+      if (checkPostsResult.rows.length === 0) {
+        console.log('None of the tagged posts exist in debra_posts table. Trying different approach...');
+        // If the specific posts don't exist, let's find posts that actually have tags
+        const postsWithTagsResult = await db.execute(sql`
+          SELECT DISTINCT dp.id, dp.content, COUNT(dpit.id) as tag_count
           FROM debra_posts dp
-          WHERE dp.id = 1378685242
-        )
-        UNION
-        (
-          SELECT 
-            dp.id,
-            dp.content as title,
-            dp.platform_name as platform,
-            dp.url as embed_url,
-            dp.post_image as thumbnail_url,
-            '2025 Annual: Weekday' as campaign_name,
-            dp.create_date as created_at,
-            dp.content as metadata_content
-          FROM debra_posts dp
-          WHERE dp.is_sponsored = true
-            AND dp.content IS NOT NULL
-            AND dp.content != ''
-            AND dp.url IS NOT NULL
-            AND dp.id != 1378685242
-          ORDER BY dp.create_date DESC
-          LIMIT 49
-        )
+          JOIN debra_posts_influencer_tags dpit ON dp.id = dpit.posts_id
+          WHERE dp.content IS NOT NULL AND dp.content != ''
+          GROUP BY dp.id, dp.content
+          ORDER BY tag_count DESC
+          LIMIT 5
+        `);
+        console.log('Posts that actually have tags:', postsWithTagsResult.rows);
+      }
+      
+      // Get specific posts with tags first, then fill with other posts
+      const specificPostsResult = await db.execute(sql`
+        SELECT 
+          dp.id,
+          COALESCE(dp.content, 'Post ' || dp.id) as title,
+          dp.platform_name as platform,
+          dp.url as embed_url,
+          dp.post_image as thumbnail_url,
+          '2025 Annual: Weekday' as campaign_name,
+          dp.create_date as created_at,
+          dp.content as metadata_content
+        FROM debra_posts dp
+        WHERE dp.id IN (1378685242, 1297919915, 1254900768, 1302319915, 1254905713, 1322518812)
       `);
       
+      // Get additional posts to fill up to 50 total
+      const additionalPostsResult = await db.execute(sql`
+        SELECT 
+          dp.id,
+          dp.content as title,
+          dp.platform_name as platform,
+          dp.url as embed_url,
+          dp.post_image as thumbnail_url,
+          '2025 Annual: Weekday' as campaign_name,
+          dp.create_date as created_at,
+          dp.content as metadata_content
+        FROM debra_posts dp
+        WHERE dp.is_sponsored = true
+          AND dp.content IS NOT NULL
+          AND dp.content != ''
+          AND dp.id NOT IN (1378685242, 1297919915, 1254900768, 1302319915, 1254905713, 1322518812)
+        ORDER BY dp.create_date DESC
+        LIMIT ${50 - specificPostsResult.rows.length}
+      `);
+      
+      // Combine specific posts and additional posts
+      const realPostsResult = {
+        rows: [...specificPostsResult.rows, ...additionalPostsResult.rows]
+      };
+      
       console.log(`Found ${realPostsResult.rows.length} real posts from debra_posts`);
+      console.log('First 10 post IDs from query:', realPostsResult.rows.slice(0, 10).map(r => r.id));
+      
+      // Check if our specific tagged posts are in the results
+      const taggedPostIds = [1297919915, 1254900768, 1302319915, 1254905713, 1322518812];
+      const foundTaggedPosts = realPostsResult.rows.filter(r => taggedPostIds.includes(r.id));
+      console.log(`Tagged posts found in query results: ${foundTaggedPosts.length}`, foundTaggedPosts.map(r => r.id));
       
       // Then get campaign ads as well
       console.log('Finding campaign ads for "2025 Annual: Weekday"...');
