@@ -280,6 +280,7 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Tag Distribution**: 200 total tags distributed across 6 pillars (102 Client, 37 Influencer, 32 Post, 28 Ad, 1 Campaign)
 - **Database Relationships**: Proper JOIN between debra_influencertag and debra_influencertagtype tables for accurate categorization
 - **Client Tag Integration**: Successfully connected client tags through debra_brandjobpost.client_id relationships
+- **Visual Subcategory Display**: Enhanced tag badges to show category names with arrow indicator (→) for clear hierarchy
 - **Real Category Display**: Tags now show authentic category names from production database in the interface
 
 ## MVP Status: ✅ Complete + Enhanced + Production Ready + Live Data + Combined Filtering + Pagination + Search + Bulk Operations + Advanced Tag Management + Real Category Integration

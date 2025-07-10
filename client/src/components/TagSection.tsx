@@ -186,7 +186,7 @@ export default function TagSection({
                     <div className="flex flex-col">
                       <span className="font-medium">{tag.name}</span>
                       {tag.category && (
-                        <span className="text-xs opacity-75">{tag.category}</span>
+                        <span className="text-xs opacity-75 italic">→ {tag.category}</span>
                       )}
                     </div>
                     {!bulkEditMode && (
@@ -272,7 +272,7 @@ export default function TagSection({
                     <div className="flex flex-col">
                       <span className="font-medium">{tag.name}</span>
                       {tag.category && (
-                        <span className="text-xs opacity-75">{tag.category}</span>
+                        <span className="text-xs opacity-75 italic">→ {tag.category}</span>
                       )}
                     </div>
                     {!bulkEditMode && (
