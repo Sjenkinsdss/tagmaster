@@ -70,7 +70,7 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Fetching posts with Sam\'s Club client focus...');
       
-      // Get Sam's Club related posts from debra_posts
+      // Get Sam's Club related posts from debra_posts with real campaign names
       const samsClubPostsResult = await db.execute(sql`
         SELECT 
           dp.id,
@@ -78,20 +78,27 @@ export class DatabaseStorage implements IStorage {
           dp.platform_name as platform,
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
-          'Sams Club Content' as campaign_name,
+          COALESCE(c.name, bjp.title, 'Sam''s Club Content') as campaign_name,
           dp.create_date as created_at,
-          dp.content as metadata_content
+          dp.content as metadata_content,
+          cl.name as client_name
         FROM debra_posts dp
+        LEFT JOIN campaign_report_campaignpostreport cpr ON dp.id = cpr.post_id
+        LEFT JOIN campaign_report_campaign c ON cpr.campaign_id = c.id  
+        LEFT JOIN campaign_report_client cl ON c.client_id = cl.id
+        LEFT JOIN debra_brandjobpost bjp ON c.id = bjp.id
         WHERE (LOWER(dp.content) LIKE '%sam%club%' 
                OR LOWER(dp.content) LIKE '%sams%'
-               OR LOWER(dp.content) LIKE '%walmart%')
+               OR LOWER(dp.content) LIKE '%walmart%'
+               OR LOWER(COALESCE(cl.name, '')) LIKE '%sam%club%'
+               OR LOWER(COALESCE(bjp.client_name, '')) LIKE '%sam%club%')
           AND dp.content IS NOT NULL
           AND dp.content != ''
         ORDER BY dp.create_date DESC
         LIMIT 25
       `);
       
-      // Get additional general sponsored posts if not enough Sam's Club content
+      // Get additional general sponsored posts if not enough Sam's Club content  
       const additionalPostsResult = await db.execute(sql`
         SELECT 
           dp.id,
@@ -99,10 +106,15 @@ export class DatabaseStorage implements IStorage {
           dp.platform_name as platform,
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
-          'General Content' as campaign_name,
+          COALESCE(c.name, bjp.title, 'General Content') as campaign_name,
           dp.create_date as created_at,
-          dp.content as metadata_content
+          dp.content as metadata_content,
+          cl.name as client_name
         FROM debra_posts dp
+        LEFT JOIN campaign_report_campaignpostreport cpr ON dp.id = cpr.post_id
+        LEFT JOIN campaign_report_campaign c ON cpr.campaign_id = c.id  
+        LEFT JOIN campaign_report_client cl ON c.client_id = cl.id
+        LEFT JOIN debra_brandjobpost bjp ON c.id = bjp.id
         WHERE dp.is_sponsored = true
           AND dp.content IS NOT NULL
           AND dp.content != ''
@@ -140,7 +152,7 @@ export class DatabaseStorage implements IStorage {
           'TIKTOK' as platform_name,
           aa.created_time as created_at,
           COALESCE(cpr.post_url, '') as embed_url,
-          e."name" as Campaign_name,
+          COALESCE(e."name", bjp.title, 'Sam''s Club Campaign') as campaign_name,
           bjp.client_name,
           bjp.title as bjp_title
         FROM ads_ad aa        
@@ -223,7 +235,7 @@ export class DatabaseStorage implements IStorage {
       platform: row.platform_name || 'unknown',
       embedUrl: row.embed_url || '',
       thumbnailUrl: 'https://picsum.photos/400/400?random=' + row.id,
-      campaignName: 'Sams Club Ads',
+      campaignName: row.campaign_name || 'Sam\'s Club Ads',
       createdAt: new Date(row.created_at || Date.now()),
       metadata: { 
         ad_name: row.name,
