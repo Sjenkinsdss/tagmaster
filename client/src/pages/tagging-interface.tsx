@@ -86,7 +86,13 @@ export default function TaggingInterface() {
     // Post ID filter
     const postIdMatch = !postIdFilter || post.id.toString().includes(postIdFilter);
 
-    return campaignMatch && clientMatch && postIdMatch;
+    // Debug logging for filter combinations
+    const matchesAll = campaignMatch && clientMatch && postIdMatch;
+    if (campaignFilter !== "All Posts" && clientFilter !== "All Clients") {
+      console.log(`Post ${post.id}: Campaign="${post.campaignName}" (${campaignMatch}), Client="${postClientName}" (${clientMatch}), Final=${matchesAll}`);
+    }
+
+    return matchesAll;
   });
 
   // Group tags by the new pillar categories
@@ -355,8 +361,45 @@ export default function TaggingInterface() {
         </div>
       </header>
 
+      {/* Active Filters Indicator */}
+      {(campaignFilter !== "All Posts" || clientFilter !== "All Clients" || postIdFilter) && (
+        <div className="bg-carbon-blue bg-opacity-10 border-b border-carbon-blue border-opacity-20 px-6 py-2">
+          <div className="flex items-center space-x-4 text-sm">
+            <span className="text-carbon-blue font-medium">Active Filters:</span>
+            {campaignFilter !== "All Posts" && (
+              <Badge variant="outline" className="text-carbon-blue border-carbon-blue">
+                Campaign: {campaignFilter}
+              </Badge>
+            )}
+            {clientFilter !== "All Clients" && (
+              <Badge variant="outline" className="text-carbon-blue border-carbon-blue">
+                Client: {clientFilter}
+              </Badge>
+            )}
+            {postIdFilter && (
+              <Badge variant="outline" className="text-carbon-blue border-carbon-blue">
+                Post ID: {postIdFilter}
+              </Badge>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setCampaignFilter("All Posts");
+                setClientFilter("All Clients");
+                setPostIdFilter("");
+                setSelectedPost(null);
+              }}
+              className="text-carbon-blue hover:bg-carbon-blue hover:text-white h-6 px-2 text-xs"
+            >
+              Clear All
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      <div className="h-[calc(100vh-73px)] flex">
+      <div className={`${(campaignFilter !== "All Posts" || clientFilter !== "All Clients" || postIdFilter) ? "h-[calc(100vh-115px)]" : "h-[calc(100vh-73px)]"} flex`}>
         {/* Content Column */}
         <div className="w-1/3 bg-white border-r border-carbon-gray-20 overflow-y-auto">
           <div className="p-6">
