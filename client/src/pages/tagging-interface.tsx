@@ -29,12 +29,13 @@ export default function TaggingInterface() {
   const [campaignOpen, setCampaignOpen] = useState(false);
   const [postIdFilter, setPostIdFilter] = useState("");
   
-  // Use Sam's Club focused campaign names
+  // Use actual campaign names from the API data
   const campaignOptions = [
     "All Posts",
-    "Sam's Club Content",
-    "General Content",
-    "Production Content"
+    "Sam's Club Campaign",
+    "Sam's Club Content", 
+    "Sam's Club Direct Campaign",
+    "Walmart Partnership"
   ];
   const { toast } = useToast();
   const queryClient = useQueryClient();
