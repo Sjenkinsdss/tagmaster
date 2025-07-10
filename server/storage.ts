@@ -78,6 +78,10 @@ export class DatabaseStorage implements IStorage {
           dp.platform_name as platform,
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
+          dp.impressions_count,
+          dp.likes_count,
+          dp.comments_count,
+          dp.shares_count,
           CASE 
             WHEN LOWER(dp.content) LIKE '%sam%club%' OR LOWER(dp.content) LIKE '%sams%' THEN 'Sam''s Club Campaign'
             WHEN LOWER(dp.content) LIKE '%walmart%' THEN 'Walmart Partnership'
@@ -186,6 +190,14 @@ export class DatabaseStorage implements IStorage {
       );
       
       console.log(`Total posts returned: ${allPosts.length} (${realPosts.length} content posts + ${campaignAds.length} ads)`);
+      
+      // Log IDs to debug duplicates
+      const allIds = allPosts.map(p => p.id);
+      const duplicateIds = allIds.filter((id, index) => allIds.indexOf(id) !== index);
+      if (duplicateIds.length > 0) {
+        console.log('DUPLICATE IDs FOUND:', duplicateIds);
+      }
+      
       return allPosts;
       
     } catch (error) {
@@ -206,7 +218,13 @@ export class DatabaseStorage implements IStorage {
       metadata: { 
         content: row.metadata_content,
         type: 'real_post',
-        clientName: row.client_name || 'Other'
+        clientName: row.client_name || 'Other',
+        engagement: {
+          likes: parseInt(row.likes_count) || 0,
+          comments: parseInt(row.comments_count) || 0,
+          shares: parseInt(row.shares_count) || 0,
+          impressions: parseInt(row.impressions_count) || 0
+        }
       },
       postTags: [] as any[],
       paidAds: [] as any[]
@@ -214,22 +232,29 @@ export class DatabaseStorage implements IStorage {
   }
 
   private convertAdsToPostFormat(adRows: any[]): PostWithTags[] {
-    return adRows.map((row: any) => ({
-      id: parseInt(row.id) + 1000000, // Add offset to prevent ID conflicts with real posts
-      title: row.name || `Ad ${row.id}`,
-      platform: row.platform_name || 'unknown',
-      embedUrl: row.embed_url || '',
-      thumbnailUrl: 'https://picsum.photos/400/400?random=' + row.id,
-      campaignName: row.campaign_name || 'Brand Campaign',
-      createdAt: new Date(row.created_at || Date.now()),
-      metadata: { 
-        ad_name: row.name,
-        ad_type: 'paid_ad',
-        clientName: row.client_name || 'Other'
-      },
-      postTags: [] as any[],
-      paidAds: [] as any[]
-    })) as PostWithTags[];
+    return adRows.map((row: any, index: number) => {
+      // Create a truly unique ID by combining ad ID with a large offset and index
+      const uniqueId = parseInt(row.id) * 100000 + 50000000 + index;
+      console.log(`Converting ad ${row.id} to unique ID ${uniqueId}`);
+      
+      return {
+        id: uniqueId,
+        title: row.name || `Ad ${row.id}`,
+        platform: row.platform_name || 'unknown',
+        embedUrl: row.embed_url || '',
+        thumbnailUrl: 'https://picsum.photos/400/400?random=' + uniqueId,
+        campaignName: row.campaign_name || 'Brand Campaign',
+        createdAt: new Date(row.created_at || Date.now()),
+        metadata: { 
+          ad_name: row.name,
+          ad_type: 'paid_ad',
+          clientName: row.client_name || 'Other',
+          originalAdId: row.id
+        },
+        postTags: [] as any[],
+        paidAds: [] as any[]
+      };
+    }) as PostWithTags[];
   }
 
   async getPost(id: number): Promise<PostWithTags | undefined> {

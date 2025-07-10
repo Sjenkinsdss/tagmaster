@@ -65,6 +65,24 @@ export default function PostItem({ post, isSelected, onSelect }: PostItemProps) 
           </Badge>
         </div>
         
+        {/* Engagement Metrics */}
+        {metadata?.engagement && (
+          <div className="mb-4 grid grid-cols-3 gap-2 text-sm text-carbon-gray-70">
+            <div className="flex items-center space-x-1">
+              <Heart className="w-4 h-4" />
+              <span>{metadata.engagement.likes.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <MessageCircle className="w-4 h-4" />
+              <span>{metadata.engagement.comments.toLocaleString()}</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <Share className="w-4 h-4" />
+              <span>{metadata.engagement.shares.toLocaleString()}</span>
+            </div>
+          </div>
+        )}
+
         {/* Embedded Media */}
         <div className="mb-4 relative rounded-lg overflow-hidden">
           {post.embedUrl && post.embedUrl.includes('tiktok.com') ? (
@@ -117,21 +135,7 @@ export default function PostItem({ post, isSelected, onSelect }: PostItemProps) 
           )}
         </div>
         
-        {/* Post Stats */}
-        <div className="flex items-center space-x-4 text-sm text-carbon-gray-70">
-          <span className="flex items-center">
-            <Heart className="w-4 h-4 text-red-500 mr-1" />
-            {metadata?.likes || 0}
-          </span>
-          <span className="flex items-center">
-            <MessageCircle className="w-4 h-4 mr-1" />
-            {metadata?.comments || 0}
-          </span>
-          <span className="flex items-center">
-            <Share className="w-4 h-4 mr-1" />
-            {metadata?.shares || 0}
-          </span>
-        </div>
+
       </CardContent>
     </Card>
   );

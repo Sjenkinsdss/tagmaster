@@ -417,9 +417,9 @@ export default function TaggingInterface() {
             </div>
             
             <div className="space-y-6">
-              {posts.map((post: PostWithTags) => (
+              {posts.map((post: PostWithTags, index: number) => (
                 <PostItem
-                  key={post.id}
+                  key={`post-${post.id}-${index}`}
                   post={post}
                   isSelected={selectedPost?.id === post.id}
                   onSelect={() => setSelectedPost(post)}
