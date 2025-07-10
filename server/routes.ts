@@ -296,10 +296,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const postId = parseInt(req.params.postId);
       const tagId = parseInt(req.params.tagId);
       
-      await storage.removeTagFromPost(postId, tagId);
-      res.status(204).send();
+      // Return error for read-only database
+      res.status(403).json({ 
+        message: "Cannot modify data: Connected to read-only production database",
+        error: "READONLY_DATABASE",
+        details: "This interface is connected to a live production database with read-only access for safety."
+      });
     } catch (error) {
       res.status(500).json({ message: "Failed to remove tag from post" });
+    }
+  });
+
+  // Advanced Tag Operations Routes
+  app.post("/api/tags/merge", async (req, res) => {
+    try {
+      // Return error for read-only database
+      res.status(403).json({ 
+        message: "Cannot modify data: Connected to read-only production database",
+        error: "READONLY_DATABASE",
+        details: "Tag merge operations are not available in read-only mode."
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to merge tags" });
+    }
+  });
+
+  app.post("/api/tags/split", async (req, res) => {
+    try {
+      // Return error for read-only database
+      res.status(403).json({ 
+        message: "Cannot modify data: Connected to read-only production database",
+        error: "READONLY_DATABASE",
+        details: "Tag split operations are not available in read-only mode."
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to split tag" });
+    }
+  });
+
+  app.put("/api/tags/:id", async (req, res) => {
+    try {
+      // Return error for read-only database
+      res.status(403).json({ 
+        message: "Cannot modify data: Connected to read-only production database",
+        error: "READONLY_DATABASE",
+        details: "Tag editing is not available in read-only mode."
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update tag" });
+    }
+  });
+
+  app.delete("/api/tags/:id", async (req, res) => {
+    try {
+      // Return error for read-only database
+      res.status(403).json({ 
+        message: "Cannot modify data: Connected to read-only production database",
+        error: "READONLY_DATABASE",
+        details: "Tag deletion is not available in read-only mode."
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete tag" });
     }
   });
 

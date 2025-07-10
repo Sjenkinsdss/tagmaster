@@ -7,12 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
 import TagSection from "@/components/TagSection";
 import PaidAdItem from "@/components/PaidAdItem";
+import TagManagement from "@/components/TagManagement";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -35,6 +36,7 @@ export default function TaggingInterface() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
+  const [showTagManagement, setShowTagManagement] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -318,6 +320,19 @@ export default function TaggingInterface() {
     );
   }
 
+  if (showTagManagement) {
+    return (
+      <div className="min-h-screen bg-carbon-gray-10">
+        <div className="p-6">
+          <TagManagement 
+            tags={tags} 
+            onClose={() => setShowTagManagement(false)} 
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-carbon-gray-10">
       {/* Header */}
@@ -330,6 +345,15 @@ export default function TaggingInterface() {
               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
                 Read-Only Production
               </Badge>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setShowTagManagement(true)}
+                className="flex items-center space-x-1"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Tag Management</span>
+              </Button>
             </div>
             <div className="flex items-center space-x-4 text-sm text-carbon-gray-70">
               {/* Search Input */}
