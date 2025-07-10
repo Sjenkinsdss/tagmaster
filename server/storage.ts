@@ -78,10 +78,9 @@ export class DatabaseStorage implements IStorage {
           dp.platform_name as platform,
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
-          dp.impressions_count,
-          dp.likes_count,
-          dp.comments_count,
-          dp.shares_count,
+          COALESCE(dp.likes_count, 0) as likes_count,
+          COALESCE(dp.comments_count, 0) as comments_count,
+          COALESCE(dp.shares_count, 0) as shares_count,
           CASE 
             WHEN LOWER(dp.content) LIKE '%sam%club%' OR LOWER(dp.content) LIKE '%sams%' THEN 'Sam''s Club Campaign'
             WHEN LOWER(dp.content) LIKE '%walmart%' THEN 'Walmart Partnership'
@@ -223,7 +222,7 @@ export class DatabaseStorage implements IStorage {
           likes: parseInt(row.likes_count) || 0,
           comments: parseInt(row.comments_count) || 0,
           shares: parseInt(row.shares_count) || 0,
-          impressions: parseInt(row.impressions_count) || 0
+          impressions: 0
         }
       },
       postTags: [] as any[],
