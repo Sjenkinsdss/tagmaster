@@ -102,7 +102,7 @@ export class DatabaseStorage implements IStorage {
           dp.content as metadata_content,
           COUNT(dpit.id) as tag_count
         FROM debra_posts dp
-        LEFT JOIN debra_posts_influencer_tags dpit ON dp.id = dpit.post_id
+        LEFT JOIN debra_posts_influencer_tags dpit ON dp.id = dpit.posts_id
         WHERE dp.content IS NOT NULL
           AND dp.content != ''
           AND dp.is_sponsored = true
