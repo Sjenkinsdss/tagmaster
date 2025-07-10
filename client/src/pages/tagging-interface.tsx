@@ -34,8 +34,10 @@ export default function TaggingInterface() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: allPosts = [], isLoading } = useQuery({
+  const { data: allPosts = [], isLoading, error } = useQuery({
     queryKey: ["/api/posts"],
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // Generate campaign options dynamically from actual API data
@@ -50,8 +52,10 @@ export default function TaggingInterface() {
     ...Array.from(new Set(allPosts.map((post: any) => post.metadata?.clientName).filter(Boolean))).sort()
   ];
 
-  const { data: tags = [] } = useQuery({
+  const { data: tags = [], error: tagsError } = useQuery({
     queryKey: ["/api/tags"],
+    retry: 3,
+    retryDelay: 1000,
   });
 
   // Fetch connected ads for the selected post
@@ -207,6 +211,14 @@ export default function TaggingInterface() {
     return (
       <div className="min-h-screen bg-carbon-gray-10 flex items-center justify-center">
         <div className="text-carbon-gray-70">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-carbon-gray-10 flex items-center justify-center">
+        <div className="text-red-600">Error loading posts: {error.message}</div>
       </div>
     );
   }

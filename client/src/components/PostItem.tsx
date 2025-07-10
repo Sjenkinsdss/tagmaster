@@ -27,8 +27,8 @@ export default function PostItem({ post, isSelected, onSelect }: PostItemProps) 
   const platformColor = platformColors[post.platform as keyof typeof platformColors] || "from-blue-500 to-blue-600";
   const platformIcon = platformIcons[post.platform as keyof typeof platformIcons] || "fab fa-share-square";
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp);
+  const formatTimestamp = (timestamp: string | Date) => {
+    const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
     const now = new Date();
     const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
     
@@ -69,12 +69,12 @@ export default function PostItem({ post, isSelected, onSelect }: PostItemProps) 
         <div className="mb-4 relative rounded-lg overflow-hidden">
           {post.embedUrl && post.embedUrl.includes('tiktok.com') ? (
             <div className="w-full h-48 bg-black flex items-center justify-center relative">
-              <iframe
-                src={post.embedUrl.replace('/video/', '/embed/')}
-                className="w-full h-full"
-                frameBorder="0"
-                allowFullScreen
-              />
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500">
+                <div className="text-center text-white">
+                  <Play className="w-8 h-8 mx-auto mb-2" />
+                  <p className="text-sm">TikTok Video</p>
+                </div>
+              </div>
               <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                 <Button
                   size="icon"

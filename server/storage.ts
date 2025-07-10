@@ -196,7 +196,7 @@ export class DatabaseStorage implements IStorage {
 
   private convertRealPostsToFormat(postRows: any[]): PostWithTags[] {
     return postRows.map((row: any) => ({
-      id: row.id,
+      id: parseInt(row.id), // Ensure ID is a number
       title: (row.title || '').substring(0, 100) + (row.title?.length > 100 ? '...' : ''),
       platform: row.platform || 'TikTok',
       embedUrl: row.embed_url || '',
@@ -215,7 +215,7 @@ export class DatabaseStorage implements IStorage {
 
   private convertAdsToPostFormat(adRows: any[]): PostWithTags[] {
     return adRows.map((row: any) => ({
-      id: row.id,
+      id: parseInt(row.id) + 1000000, // Add offset to prevent ID conflicts with real posts
       title: row.name || `Ad ${row.id}`,
       platform: row.platform_name || 'unknown',
       embedUrl: row.embed_url || '',
