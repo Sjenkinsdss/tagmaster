@@ -68,10 +68,10 @@ export class DatabaseStorage implements IStorage {
 
   async getPosts(): Promise<PostWithTags[]> {
     try {
-      console.log('Fetching posts with Sam\'s Club client focus...');
+      console.log('Fetching posts from production database...');
       
-      // Get Sam's Club related posts from debra_posts - check for campaign info in existing columns
-      const samsClubPostsResult = await db.execute(sql`
+      // Get diverse client posts from debra_posts with client classification
+      const postsResult = await db.execute(sql`
         SELECT 
           dp.id,
           dp.content as title,
@@ -79,65 +79,49 @@ export class DatabaseStorage implements IStorage {
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
           CASE 
-            WHEN LOWER(dp.content) LIKE '%sam%club%' THEN 'Sam''s Club Campaign'
+            WHEN LOWER(dp.content) LIKE '%sam%club%' OR LOWER(dp.content) LIKE '%sams%' THEN 'Sam''s Club Campaign'
             WHEN LOWER(dp.content) LIKE '%walmart%' THEN 'Walmart Partnership'
-            ELSE 'Sam''s Club Content'
+            WHEN LOWER(dp.content) LIKE '%nike%' THEN 'Nike Campaign'
+            WHEN LOWER(dp.content) LIKE '%adidas%' THEN 'Adidas Campaign'
+            WHEN LOWER(dp.content) LIKE '%target%' THEN 'Target Campaign'
+            WHEN LOWER(dp.content) LIKE '%amazon%' THEN 'Amazon Campaign'
+            WHEN LOWER(dp.content) LIKE '%h&m%' OR LOWER(dp.content) LIKE '%weekday%' THEN 'H&M Campaign'
+            ELSE 'General Content'
           END as campaign_name,
+          CASE 
+            WHEN LOWER(dp.content) LIKE '%sam%club%' OR LOWER(dp.content) LIKE '%sams%' THEN 'Sam''s Club'
+            WHEN LOWER(dp.content) LIKE '%walmart%' THEN 'Walmart'
+            WHEN LOWER(dp.content) LIKE '%nike%' THEN 'Nike'
+            WHEN LOWER(dp.content) LIKE '%adidas%' THEN 'Adidas'
+            WHEN LOWER(dp.content) LIKE '%target%' THEN 'Target'
+            WHEN LOWER(dp.content) LIKE '%amazon%' THEN 'Amazon'
+            WHEN LOWER(dp.content) LIKE '%h&m%' OR LOWER(dp.content) LIKE '%weekday%' THEN 'H&M'
+            ELSE 'Other'
+          END as client_name,
           dp.create_date as created_at,
           dp.content as metadata_content
         FROM debra_posts dp
-        WHERE (LOWER(dp.content) LIKE '%sam%club%' 
-               OR LOWER(dp.content) LIKE '%sams%'
-               OR LOWER(dp.content) LIKE '%walmart%')
-          AND dp.content IS NOT NULL
+        WHERE dp.content IS NOT NULL
           AND dp.content != ''
+          AND dp.is_sponsored = true
         ORDER BY dp.create_date DESC
-        LIMIT 25
+        LIMIT 40
       `);
       
-      // Get additional general sponsored posts if not enough Sam's Club content  
-      const additionalPostsResult = await db.execute(sql`
-        SELECT 
-          dp.id,
-          dp.content as title,
-          dp.platform_name as platform,
-          dp.url as embed_url,
-          dp.post_image as thumbnail_url,
-          'General Sponsored Content' as campaign_name,
-          dp.create_date as created_at,
-          dp.content as metadata_content
-        FROM debra_posts dp
-        WHERE dp.is_sponsored = true
-          AND dp.content IS NOT NULL
-          AND dp.content != ''
-          AND dp.id NOT IN (1378685242, 1297919915, 1254900768, 1302319915, 1254905713, 1322518812)
-          AND NOT (LOWER(dp.content) LIKE '%sam%club%' 
-                   OR LOWER(dp.content) LIKE '%sams%'
-                   OR LOWER(dp.content) LIKE '%walmart%')
-        ORDER BY dp.create_date DESC
-        LIMIT ${Math.max(0, 25 - samsClubPostsResult.rows.length)}
-      `);
-      
-      // Combine Sam's Club posts and additional posts (prioritize Sam's Club content)
-      const realPostsResult = {
-        rows: [...samsClubPostsResult.rows, ...additionalPostsResult.rows]
-      };
-      
-      console.log(`Found ${samsClubPostsResult.rows.length} Sam's Club related posts`);
-      if (samsClubPostsResult.rows.length > 0) {
-        console.log('Sample Sams Club posts:', samsClubPostsResult.rows.slice(0, 3).map(r => ({ 
-          id: r.id, 
-          title: r.title?.substring(0, 60) + '...' 
-        })));
-      } else {
-        console.log('No Sams Club content found in database. Loading general content instead.');
+      console.log(`Found ${postsResult.rows.length} sponsored posts from various clients`);
+      if (postsResult.rows.length > 0) {
+        const clientCounts = postsResult.rows.reduce((acc: any, row: any) => {
+          acc[row.client_name] = (acc[row.client_name] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('Client distribution:', clientCounts);
       }
       
-      console.log(`Total posts loaded: ${realPostsResult.rows.length} (${samsClubPostsResult.rows.length} Sams Club + ${additionalPostsResult.rows.length} general)`);
+      console.log(`Total posts loaded: ${postsResult.rows.length}`);
       
-      // Then get campaign ads for Sams Club using simple content-based classification
-      console.log('Finding campaign ads for Sams Club...');
-      const realAdsResult = await db.execute(sql`
+      // Get campaign ads from various clients
+      console.log('Finding campaign ads from multiple clients...');
+      const adsResult = await db.execute(sql`
         SELECT 
           aa.id,
           aa.name as name,
@@ -145,43 +129,52 @@ export class DatabaseStorage implements IStorage {
           aa.created_time as created_at,
           '' as embed_url,
           CASE 
-            WHEN LOWER(aa.name) LIKE '%sam%club%' THEN 'Sam''s Club Direct Campaign'
-            WHEN LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club Partnership'
-            WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart Sam''s Club Alliance'
-            ELSE 'Sam''s Club Advertising'
-          END as campaign_name
+            WHEN LOWER(aa.name) LIKE '%sam%club%' OR LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club Direct Campaign'
+            WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart Campaign'
+            WHEN LOWER(aa.name) LIKE '%nike%' THEN 'Nike Campaign'
+            WHEN LOWER(aa.name) LIKE '%adidas%' THEN 'Adidas Campaign'
+            WHEN LOWER(aa.name) LIKE '%target%' THEN 'Target Campaign'
+            WHEN LOWER(aa.name) LIKE '%amazon%' THEN 'Amazon Campaign'
+            WHEN LOWER(aa.name) LIKE '%h&m%' OR LOWER(aa.name) LIKE '%weekday%' THEN 'H&M Campaign'
+            ELSE 'Brand Campaign'
+          END as campaign_name,
+          CASE 
+            WHEN LOWER(aa.name) LIKE '%sam%club%' OR LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club'
+            WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart'
+            WHEN LOWER(aa.name) LIKE '%nike%' THEN 'Nike'
+            WHEN LOWER(aa.name) LIKE '%adidas%' THEN 'Adidas'
+            WHEN LOWER(aa.name) LIKE '%target%' THEN 'Target'
+            WHEN LOWER(aa.name) LIKE '%amazon%' THEN 'Amazon'
+            WHEN LOWER(aa.name) LIKE '%h&m%' OR LOWER(aa.name) LIKE '%weekday%' THEN 'H&M'
+            ELSE 'Other'
+          END as client_name
         FROM ads_ad aa        
-        WHERE (LOWER(aa.name) LIKE '%sam%club%' 
-               OR LOWER(aa.name) LIKE '%sams%'
-               OR LOWER(aa.name) LIKE '%walmart%')
-          AND aa.id IS NOT NULL
+        WHERE aa.id IS NOT NULL
           AND aa.name IS NOT NULL
           AND aa.name != ''
         ORDER BY aa.created_time DESC
         LIMIT 30
       `);
       
-      console.log(`Found ${realAdsResult.rows.length} Sams Club ads through TikTok integration`);
-      if (realAdsResult.rows.length > 0) {
-        console.log('Sample Sams Club ads:', realAdsResult.rows.slice(0, 2).map(r => ({ 
-          id: r.id, 
-          name: r.name?.substring(0, 40) + '...',
-          client: r.client_name
-        })));
-      } else {
-        console.log('No Sams Club ads found. Consider checking campaign/client name variations.');
+      console.log(`Found ${adsResult.rows.length} ads from various clients`);
+      if (adsResult.rows.length > 0) {
+        const adClientCounts = adsResult.rows.reduce((acc: any, row: any) => {
+          acc[row.client_name] = (acc[row.client_name] || 0) + 1;
+          return acc;
+        }, {});
+        console.log('Ad client distribution:', adClientCounts);
       }
       
       // Combine real posts and campaign ads
-      const realPosts = this.convertRealPostsToFormat(realPostsResult.rows);
-      const campaignAds = this.convertAdsToPostFormat(realAdsResult.rows);
+      const realPosts = this.convertRealPostsToFormat(postsResult.rows);
+      const campaignAds = this.convertAdsToPostFormat(adsResult.rows);
       
       // Merge and sort by creation date
       const allPosts = [...realPosts, ...campaignAds].sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       
-      console.log(`Total posts returned: ${allPosts.length} (${realPosts.length} content posts + ${campaignAds.length} Sams Club ads)`);
+      console.log(`Total posts returned: ${allPosts.length} (${realPosts.length} content posts + ${campaignAds.length} ads)`);
       return allPosts;
       
     } catch (error) {
@@ -201,7 +194,8 @@ export class DatabaseStorage implements IStorage {
       createdAt: new Date(row.created_at || Date.now()),
       metadata: { 
         content: row.metadata_content,
-        type: 'real_post'
+        type: 'real_post',
+        clientName: row.client_name || 'Other'
       },
       postTags: [] as any[],
       paidAds: [] as any[]
@@ -215,11 +209,12 @@ export class DatabaseStorage implements IStorage {
       platform: row.platform_name || 'unknown',
       embedUrl: row.embed_url || '',
       thumbnailUrl: 'https://picsum.photos/400/400?random=' + row.id,
-      campaignName: row.campaign_name || 'Sam\'s Club Ads',
+      campaignName: row.campaign_name || 'Brand Campaign',
       createdAt: new Date(row.created_at || Date.now()),
       metadata: { 
         ad_name: row.name,
-        ad_type: 'paid_ad'
+        ad_type: 'paid_ad',
+        clientName: row.client_name || 'Other'
       },
       postTags: [] as any[],
       paidAds: [] as any[]

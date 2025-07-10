@@ -27,6 +27,8 @@ export default function TaggingInterface() {
   });
   const [campaignFilter, setCampaignFilter] = useState("All Posts");
   const [campaignOpen, setCampaignOpen] = useState(false);
+  const [clientFilter, setClientFilter] = useState("All Clients");
+  const [clientOpen, setClientOpen] = useState(false);
   const [postIdFilter, setPostIdFilter] = useState("");
   
   // Use actual campaign names from the API data
@@ -35,7 +37,27 @@ export default function TaggingInterface() {
     "Sam's Club Campaign",
     "Sam's Club Content", 
     "Sam's Club Direct Campaign",
-    "Walmart Partnership"
+    "Walmart Partnership",
+    "Nike Campaign",
+    "Adidas Campaign",
+    "Target Campaign",
+    "Amazon Campaign",
+    "H&M Campaign",
+    "General Content",
+    "Brand Campaign"
+  ];
+
+  // Client filter options based on content analysis
+  const clientOptions = [
+    "All Clients",
+    "Sam's Club",
+    "Walmart", 
+    "Nike",
+    "Adidas",
+    "Target",
+    "Amazon",
+    "H&M",
+    "Other"
   ];
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -68,17 +90,19 @@ export default function TaggingInterface() {
     postTags: postTags
   } : null;
 
-  // Filter posts based on selected campaign and post ID
+  // Filter posts based on selected campaign, client, and post ID
   const posts = allPosts.filter((post: any) => {
     // Campaign filter
     const campaignMatch = campaignFilter === "All Posts" || post.campaignName === campaignFilter;
     
+    // Client filter
+    const postClientName = post.metadata?.clientName || 'Other';
+    const clientMatch = clientFilter === "All Clients" || postClientName === clientFilter;
+    
     // Post ID filter
     const postIdMatch = !postIdFilter || post.id.toString().includes(postIdFilter);
-    
 
-    
-    return campaignMatch && postIdMatch;
+    return campaignMatch && clientMatch && postIdMatch;
   });
 
   // Group tags by the new pillar categories
@@ -257,6 +281,57 @@ export default function TaggingInterface() {
                                 }`}
                               />
                               {campaign}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span>Client:</span>
+                <Popover open={clientOpen} onOpenChange={setClientOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={clientOpen}
+                      className="w-40 justify-between text-sm h-8"
+                    >
+                      <span className="truncate">{clientFilter}</span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-40 p-0">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search clients..." 
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          <div className="p-2 text-sm text-carbon-gray-70">
+                            No clients found
+                          </div>
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {clientOptions.map((client) => (
+                            <CommandItem
+                              key={client}
+                              value={client}
+                              onSelect={(currentValue) => {
+                                setClientFilter(currentValue);
+                                setClientOpen(false);
+                                // Clear selected post when switching clients
+                                setSelectedPost(null);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  clientFilter === client ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {client}
                             </CommandItem>
                           ))}
                         </CommandGroup>
