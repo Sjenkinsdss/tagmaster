@@ -454,27 +454,83 @@ export class DatabaseStorage implements IStorage {
 
   async getTags(): Promise<Tag[]> {
     try {
-      const tagsResult = await db.execute(sql`
+      console.log("Getting tags from debra_influencertag and client tag sources");
+      
+      // Query influencer tags
+      const influencerTagsResult = await db.execute(sql`
         SELECT 
           dit.id,
           dit.name,
           dit.tag_type_id,
-          ditt.name as tag_type_name
+          ditt.name as tag_type_name,
+          'influencer' as tag_source
         FROM debra_influencertag dit
         LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
         WHERE dit.name IS NOT NULL 
         AND dit.name != ''
         AND TRIM(dit.name) != ''
         ORDER BY ditt.name, dit.name 
-        LIMIT 200
+        LIMIT 150
       `);
 
-      return tagsResult.rows.map((row: any) => ({
+      let allTags = [...influencerTagsResult.rows];
+
+      // Get client tags from debra_brandjobpost using client_id
+      try {
+        console.log("Attempting to query client tags from debra_brandjobpost");
+        const clientTagsResult = await db.execute(sql`
+          SELECT DISTINCT
+            client_id as id,
+            COALESCE(client_name, 'Client ' || client_id) as name,
+            'client' as tag_type_name,
+            'Client' as tag_type_group_name,
+            'client' as tag_source
+          FROM debra_brandjobpost 
+          WHERE client_id IS NOT NULL 
+          AND client_id > 0
+          AND (client_name IS NOT NULL AND client_name != '' AND TRIM(client_name) != '')
+          ORDER BY name
+          LIMIT 50
+        `);
+        
+        console.log(`Successfully found ${clientTagsResult.rows.length} client tags from debra_brandjobpost`);
+        allTags = [...allTags, ...clientTagsResult.rows];
+      } catch (clientError) {
+        console.log(`Could not fetch client tags from debra_brandjobpost: ${clientError.message}`);
+        
+        // Try alternative client tag approach using brand_client_id
+        try {
+          console.log("Attempting to query client tags using brand_client_id");
+          const brandClientTagsResult = await db.execute(sql`
+            SELECT DISTINCT
+              brand_client_id as id,
+              COALESCE(client_name, 'Brand Client ' || brand_client_id) as name,
+              'client' as tag_type_name,
+              'Client' as tag_type_group_name,
+              'client' as tag_source
+            FROM debra_brandjobpost 
+            WHERE brand_client_id IS NOT NULL 
+            AND brand_client_id > 0
+            AND (client_name IS NOT NULL AND client_name != '' AND TRIM(client_name) != '')
+            ORDER BY name
+            LIMIT 50
+          `);
+          
+          console.log(`Successfully found ${brandClientTagsResult.rows.length} brand client tags from debra_brandjobpost`);
+          allTags = [...allTags, ...brandClientTagsResult.rows];
+        } catch (brandClientError) {
+          console.log(`Could not fetch brand client tags: ${brandClientError.message}`);
+        }
+      }
+
+      console.log(`Found ${allTags.length} total tags (${influencerTagsResult.rows.length} influencer + ${allTags.length - influencerTagsResult.rows.length} client)`);
+
+      return allTags.map((row: any) => ({
         id: row.id,
         name: row.name,
         code: `${(row.tag_type_name || 'general').toLowerCase()}_${row.name.toLowerCase().replace(/\s+/g, '_')}_${String(row.id).padStart(4, '0')}`,
         pillar: this.mapTagTypeToPillar(row.tag_type_name),
-        isAiGenerated: true,
+        isAiGenerated: row.tag_source === 'client' ? false : true,
         createdAt: new Date(),
       }));
     } catch (error) {
