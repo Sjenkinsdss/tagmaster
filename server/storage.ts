@@ -68,47 +68,30 @@ export class DatabaseStorage implements IStorage {
 
   async getPosts(): Promise<PostWithTags[]> {
     try {
-      console.log('Fetching posts from debra_posts and campaign ads...');
+      console.log('Fetching posts with Sam\'s Club client focus...');
       
-      // First check if the specific posts with tags exist in debra_posts
-      const checkPostsResult = await db.execute(sql`
-        SELECT dp.id, dp.content, dp.platform_name
-        FROM debra_posts dp
-        WHERE dp.id IN (1378685242, 1297919915, 1254900768, 1302319915, 1254905713, 1322518812)
-      `);
-      console.log(`Found ${checkPostsResult.rows.length} specific posts in debra_posts:`, checkPostsResult.rows.map(r => r.id));
-      
-      if (checkPostsResult.rows.length === 0) {
-        console.log('None of the tagged posts exist in debra_posts table. Trying different approach...');
-        // If the specific posts don't exist, let's find posts that actually have tags
-        const postsWithTagsResult = await db.execute(sql`
-          SELECT DISTINCT dp.id, dp.content, COUNT(dpit.id) as tag_count
-          FROM debra_posts dp
-          JOIN debra_posts_influencer_tags dpit ON dp.id = dpit.posts_id
-          WHERE dp.content IS NOT NULL AND dp.content != ''
-          GROUP BY dp.id, dp.content
-          ORDER BY tag_count DESC
-          LIMIT 5
-        `);
-        console.log('Posts that actually have tags:', postsWithTagsResult.rows);
-      }
-      
-      // Get specific posts with tags first, then fill with other posts
-      const specificPostsResult = await db.execute(sql`
+      // Get Sam's Club related posts from debra_posts
+      const samsClubPostsResult = await db.execute(sql`
         SELECT 
           dp.id,
-          COALESCE(dp.content, 'Post ' || dp.id) as title,
+          dp.content as title,
           dp.platform_name as platform,
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
-          '2025 Annual: Weekday' as campaign_name,
+          'Sams Club Content' as campaign_name,
           dp.create_date as created_at,
           dp.content as metadata_content
         FROM debra_posts dp
-        WHERE dp.id IN (1378685242, 1297919915, 1254900768, 1302319915, 1254905713, 1322518812)
+        WHERE (LOWER(dp.content) LIKE '%sam%club%' 
+               OR LOWER(dp.content) LIKE '%sams%'
+               OR LOWER(dp.content) LIKE '%walmart%')
+          AND dp.content IS NOT NULL
+          AND dp.content != ''
+        ORDER BY dp.create_date DESC
+        LIMIT 25
       `);
       
-      // Get additional posts to fill up to 50 total
+      // Get additional general sponsored posts if not enough Sam's Club content
       const additionalPostsResult = await db.execute(sql`
         SELECT 
           dp.id,
@@ -116,7 +99,7 @@ export class DatabaseStorage implements IStorage {
           dp.platform_name as platform,
           dp.url as embed_url,
           dp.post_image as thumbnail_url,
-          '2025 Annual: Weekday' as campaign_name,
+          'General Content' as campaign_name,
           dp.create_date as created_at,
           dp.content as metadata_content
         FROM debra_posts dp
@@ -124,25 +107,32 @@ export class DatabaseStorage implements IStorage {
           AND dp.content IS NOT NULL
           AND dp.content != ''
           AND dp.id NOT IN (1378685242, 1297919915, 1254900768, 1302319915, 1254905713, 1322518812)
+          AND NOT (LOWER(dp.content) LIKE '%sam%club%' 
+                   OR LOWER(dp.content) LIKE '%sams%'
+                   OR LOWER(dp.content) LIKE '%walmart%')
         ORDER BY dp.create_date DESC
-        LIMIT ${50 - specificPostsResult.rows.length}
+        LIMIT ${Math.max(0, 25 - samsClubPostsResult.rows.length)}
       `);
       
-      // Combine specific posts and additional posts
+      // Combine Sam's Club posts and additional posts (prioritize Sam's Club content)
       const realPostsResult = {
-        rows: [...specificPostsResult.rows, ...additionalPostsResult.rows]
+        rows: [...samsClubPostsResult.rows, ...additionalPostsResult.rows]
       };
       
-      console.log(`Found ${realPostsResult.rows.length} real posts from debra_posts`);
-      console.log('First 10 post IDs from query:', realPostsResult.rows.slice(0, 10).map(r => r.id));
+      console.log(`Found ${samsClubPostsResult.rows.length} Sam's Club related posts`);
+      if (samsClubPostsResult.rows.length > 0) {
+        console.log('Sample Sams Club posts:', samsClubPostsResult.rows.slice(0, 3).map(r => ({ 
+          id: r.id, 
+          title: r.title?.substring(0, 60) + '...' 
+        })));
+      } else {
+        console.log('No Sams Club content found in database. Loading general content instead.');
+      }
       
-      // Check if our specific tagged posts are in the results
-      const taggedPostIds = [1297919915, 1254900768, 1302319915, 1254905713, 1322518812];
-      const foundTaggedPosts = realPostsResult.rows.filter(r => taggedPostIds.includes(r.id));
-      console.log(`Tagged posts found in query results: ${foundTaggedPosts.length}`, foundTaggedPosts.map(r => r.id));
+      console.log(`Total posts loaded: ${realPostsResult.rows.length} (${samsClubPostsResult.rows.length} Sams Club + ${additionalPostsResult.rows.length} general)`);
       
-      // Then get campaign ads as well
-      console.log('Finding campaign ads for "2025 Annual: Weekday"...');
+      // Then get campaign ads for Sams Club
+      console.log('Finding campaign ads for Sams Club...');
       const realAdsResult = await db.execute(sql`
         SELECT 
           aa.id,
@@ -164,7 +154,12 @@ export class DatabaseStorage implements IStorage {
           ON e.campaign_id = bjp.id   
         LEFT JOIN campaign_report_campaignpostreport cpr
           ON aa.post_report_id = cpr.id
-        WHERE bjp.title = '2025 Annual: Weekday'
+        WHERE (LOWER(bjp.title) LIKE '%sam%club%' 
+               OR LOWER(bjp.title) LIKE '%sams%'
+               OR LOWER(bjp.client_name) LIKE '%sam%club%'
+               OR LOWER(bjp.client_name) LIKE '%sams%'
+               OR LOWER(c."name") LIKE '%sam%club%'
+               OR LOWER(c."name") LIKE '%sams%')
           AND aa.id IS NOT NULL
           AND c."name" IS NOT NULL
           AND c."name" != ''
@@ -174,7 +169,16 @@ export class DatabaseStorage implements IStorage {
         LIMIT 30
       `);
       
-      console.log(`Found ${realAdsResult.rows.length} campaign ads through TikTok integration`);
+      console.log(`Found ${realAdsResult.rows.length} Sams Club ads through TikTok integration`);
+      if (realAdsResult.rows.length > 0) {
+        console.log('Sample Sams Club ads:', realAdsResult.rows.slice(0, 2).map(r => ({ 
+          id: r.id, 
+          name: r.name?.substring(0, 40) + '...',
+          client: r.client_name
+        })));
+      } else {
+        console.log('No Sams Club ads found. Consider checking campaign/client name variations.');
+      }
       
       // Combine real posts and campaign ads
       const realPosts = this.convertRealPostsToFormat(realPostsResult.rows);
@@ -185,7 +189,7 @@ export class DatabaseStorage implements IStorage {
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
       
-      console.log(`Total posts returned: ${allPosts.length} (${realPosts.length} real posts + ${campaignAds.length} campaign ads)`);
+      console.log(`Total posts returned: ${allPosts.length} (${realPosts.length} content posts + ${campaignAds.length} Sams Club ads)`);
       return allPosts;
       
     } catch (error) {
@@ -201,7 +205,7 @@ export class DatabaseStorage implements IStorage {
       platform: row.platform || 'TikTok',
       embedUrl: row.embed_url || '',
       thumbnailUrl: row.thumbnail_url || 'https://picsum.photos/400/400?random=' + row.id,
-      campaignName: row.campaign_name || '2025 Annual: Weekday',
+      campaignName: row.campaign_name || 'General Content',
       createdAt: new Date(row.created_at || Date.now()),
       metadata: { 
         content: row.metadata_content,
@@ -219,7 +223,7 @@ export class DatabaseStorage implements IStorage {
       platform: row.platform_name || 'unknown',
       embedUrl: row.embed_url || '',
       thumbnailUrl: 'https://picsum.photos/400/400?random=' + row.id,
-      campaignName: '2025 Annual: Weekday',
+      campaignName: 'Sams Club Ads',
       createdAt: new Date(row.created_at || Date.now()),
       metadata: { 
         ad_name: row.name,
