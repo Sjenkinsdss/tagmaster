@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown } from "lucide-react";
+import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
@@ -30,15 +30,29 @@ export default function TaggingInterface() {
   const [clientFilter, setClientFilter] = useState("All Clients");
   const [clientOpen, setClientOpen] = useState(false);
   const [postIdFilter, setPostIdFilter] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: allPosts = [], isLoading, error } = useQuery({
-    queryKey: ["/api/posts"],
+  const { data: postsResponse, isLoading, error } = useQuery({
+    queryKey: ["/api/posts", currentPage, pageSize],
+    queryFn: () => 
+      fetch(`/api/posts?page=${currentPage}&limit=${pageSize}`)
+        .then(res => res.json()),
     retry: 3,
     retryDelay: 1000,
   });
+
+  const allPosts = postsResponse?.posts || [];
+  const pagination = postsResponse?.pagination || {
+    currentPage: 1,
+    totalPages: 1,
+    totalPosts: 0,
+    hasNextPage: false,
+    hasPreviousPage: false,
+  };
 
   // Generate campaign options dynamically from actual API data
   const campaignOptions = [
@@ -425,6 +439,58 @@ export default function TaggingInterface() {
                   onSelect={() => setSelectedPost(post)}
                 />
               ))}
+
+              {/* Pagination Controls */}
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between mt-6 p-4 bg-gray-50 rounded-lg border">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-carbon-gray-70">
+                      Page {pagination.currentPage} of {pagination.totalPages} 
+                      ({pagination.totalPosts} total posts)
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Select 
+                      value={pageSize.toString()} 
+                      onValueChange={(value) => {
+                        setPageSize(parseInt(value));
+                        setCurrentPage(1); // Reset to page 1 when changing page size
+                      }}
+                    >
+                      <SelectTrigger className="w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10">10</SelectItem>
+                        <SelectItem value="20">20</SelectItem>
+                        <SelectItem value="50">50</SelectItem>
+                        <SelectItem value="100">100</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={!pagination.hasPreviousPage}
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Previous
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
+                      disabled={!pagination.hasNextPage}
+                    >
+                      Next
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

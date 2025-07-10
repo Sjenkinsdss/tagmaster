@@ -160,8 +160,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Posts routes
   app.get("/api/posts", async (req, res) => {
     try {
-      const posts = await storage.getPosts();
-      res.json(posts);
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 20;
+      const result = await storage.getPostsPaginated(page, limit);
+      res.json(result);
     } catch (error) {
       console.error("Error fetching posts:", error);
       res.status(500).json({ message: "Failed to fetch posts", error: String(error) });

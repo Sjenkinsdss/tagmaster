@@ -24,6 +24,16 @@ export interface IStorage {
 
   // Post methods
   getPosts(): Promise<PostWithTags[]>;
+  getPostsPaginated(page: number, limit: number): Promise<{
+    posts: PostWithTags[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalPosts: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }>;
   getPost(id: number): Promise<PostWithTags | undefined>;
   createPost(post: InsertPost): Promise<Post>;
 
@@ -199,6 +209,174 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching posts:', error);
       return [];
+    }
+  }
+
+  async getPostsPaginated(page: number, limit: number): Promise<{
+    posts: PostWithTags[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalPosts: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+  }> {
+    try {
+      console.log(`Fetching posts with pagination: page ${page}, limit ${limit}`);
+      
+      // Calculate offset for pagination
+      const offset = (page - 1) * limit;
+      
+      // Get total count first
+      const totalCountResult = await db.execute(sql`
+        SELECT COUNT(*) as total FROM (
+          (
+            SELECT id FROM debra_posts 
+            WHERE content IS NOT NULL
+              AND content != ''
+              AND is_sponsored = true
+              AND id IN (
+                SELECT DISTINCT dpit.posts_id 
+                FROM debra_posts_influencer_tags dpit 
+                LIMIT 50
+              )
+          )
+          UNION
+          (
+            SELECT id FROM ads_ad 
+            WHERE id IS NOT NULL
+              AND name IS NOT NULL
+              AND name != ''
+          )
+        ) as combined_posts
+      `);
+      
+      const totalPosts = parseInt(totalCountResult.rows[0]?.total || '0');
+      const totalPages = Math.ceil(totalPosts / limit);
+      
+      // Get paginated posts with similar query but with limits
+      const postsResult = await db.execute(sql`
+        SELECT 
+          dp.id,
+          dp.content as title,
+          dp.platform_name as platform,
+          dp.url as embed_url,
+          dp.post_image as thumbnail_url,
+          CASE 
+            WHEN LOWER(dp.content) LIKE '%sam%club%' OR LOWER(dp.content) LIKE '%sams%' THEN 'Sam''s Club Campaign'
+            WHEN LOWER(dp.content) LIKE '%walmart%' THEN 'Walmart Partnership'
+            WHEN LOWER(dp.content) LIKE '%nike%' THEN 'Nike Campaign'
+            WHEN LOWER(dp.content) LIKE '%adidas%' THEN 'Adidas Campaign'
+            WHEN LOWER(dp.content) LIKE '%target%' THEN 'Target Campaign'
+            WHEN LOWER(dp.content) LIKE '%amazon%' THEN 'Amazon Campaign'
+            WHEN LOWER(dp.content) LIKE '%h&m%' OR LOWER(dp.content) LIKE '%weekday%' THEN 'H&M Campaign'
+            ELSE 'General Content'
+          END as campaign_name,
+          CASE 
+            WHEN LOWER(dp.content) LIKE '%sam%club%' OR LOWER(dp.content) LIKE '%sams%' THEN 'Sam''s Club'
+            WHEN LOWER(dp.content) LIKE '%walmart%' THEN 'Walmart'
+            WHEN LOWER(dp.content) LIKE '%nike%' THEN 'Nike'
+            WHEN LOWER(dp.content) LIKE '%adidas%' THEN 'Adidas'
+            WHEN LOWER(dp.content) LIKE '%target%' THEN 'Target'
+            WHEN LOWER(dp.content) LIKE '%amazon%' THEN 'Amazon'
+            WHEN LOWER(dp.content) LIKE '%h&m%' OR LOWER(dp.content) LIKE '%weekday%' THEN 'H&M'
+            ELSE 'Other'
+          END as client_name,
+          dp.create_date as created_at,
+          dp.content as metadata_content
+        FROM debra_posts dp
+        WHERE dp.content IS NOT NULL
+          AND dp.content != ''
+          AND dp.is_sponsored = true
+          AND dp.id IN (
+            SELECT DISTINCT dpit.posts_id 
+            FROM debra_posts_influencer_tags dpit 
+            LIMIT 50
+          )
+        ORDER BY dp.create_date DESC
+        LIMIT ${limit}
+        OFFSET ${offset}
+      `);
+      
+      console.log(`Found ${postsResult.rows.length} posts for page ${page}`);
+      
+      // Get ads (for now, just take remaining from limit)
+      const remainingLimit = Math.max(0, limit - postsResult.rows.length);
+      const adsResult = remainingLimit > 0 ? await db.execute(sql`
+        SELECT 
+          aa.id,
+          aa.name as name,
+          'TIKTOK' as platform_name,
+          aa.created_time as created_at,
+          '' as embed_url,
+          CASE 
+            WHEN LOWER(aa.name) LIKE '%curology%' THEN 'Curology Campaign'
+            WHEN LOWER(aa.name) LIKE '%radpower%' OR LOWER(aa.name) LIKE '%rad%power%' THEN 'RadPower Bikes Campaign'
+            WHEN LOWER(aa.name) LIKE '%sam%club%' OR LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club Direct Campaign'
+            WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart Campaign'
+            WHEN LOWER(aa.name) LIKE '%nike%' THEN 'Nike Campaign'
+            WHEN LOWER(aa.name) LIKE '%adidas%' THEN 'Adidas Campaign'
+            WHEN LOWER(aa.name) LIKE '%target%' THEN 'Target Campaign'
+            WHEN LOWER(aa.name) LIKE '%amazon%' THEN 'Amazon Campaign'
+            WHEN LOWER(aa.name) LIKE '%h&m%' OR LOWER(aa.name) LIKE '%weekday%' THEN 'H&M Campaign'
+            WHEN LOWER(aa.name) LIKE '%trueview%' THEN 'YouTube TrueView Campaign'
+            ELSE 'Brand Campaign'
+          END as campaign_name,
+          CASE 
+            WHEN LOWER(aa.name) LIKE '%curology%' THEN 'Curology'
+            WHEN LOWER(aa.name) LIKE '%radpower%' OR LOWER(aa.name) LIKE '%rad%power%' THEN 'RadPower Bikes'
+            WHEN LOWER(aa.name) LIKE '%sam%club%' OR LOWER(aa.name) LIKE '%sams%' THEN 'Sam''s Club'
+            WHEN LOWER(aa.name) LIKE '%walmart%' THEN 'Walmart'
+            WHEN LOWER(aa.name) LIKE '%nike%' THEN 'Nike'
+            WHEN LOWER(aa.name) LIKE '%adidas%' THEN 'Adidas'
+            WHEN LOWER(aa.name) LIKE '%target%' THEN 'Target'
+            WHEN LOWER(aa.name) LIKE '%amazon%' THEN 'Amazon'
+            WHEN LOWER(aa.name) LIKE '%h&m%' OR LOWER(aa.name) LIKE '%weekday%' THEN 'H&M'
+            WHEN LOWER(aa.name) LIKE '%trueview%' THEN 'YouTube'
+            ELSE 'Other'
+          END as client_name
+        FROM ads_ad aa        
+        WHERE aa.id IS NOT NULL
+          AND aa.name IS NOT NULL
+          AND aa.name != ''
+        ORDER BY aa.created_time DESC
+        LIMIT ${remainingLimit}
+      `) : { rows: [] };
+      
+      // Combine and format posts
+      const realPosts = this.convertRealPostsToFormat(postsResult.rows);
+      const campaignAds = this.convertAdsToPostFormat(adsResult.rows);
+      
+      const allPosts = [...realPosts, ...campaignAds].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      console.log(`Returning ${allPosts.length} posts for page ${page} of ${totalPages}`);
+      
+      return {
+        posts: allPosts,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalPosts,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1,
+        }
+      };
+      
+    } catch (error) {
+      console.error('Error fetching paginated posts:', error);
+      return {
+        posts: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalPosts: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+        }
+      };
     }
   }
 
