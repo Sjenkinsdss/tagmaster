@@ -31,40 +31,24 @@ export default function TaggingInterface() {
   const [clientOpen, setClientOpen] = useState(false);
   const [postIdFilter, setPostIdFilter] = useState("");
   
-  // Use actual campaign names from the API data
-  const campaignOptions = [
-    "All Posts",
-    "Sam's Club Campaign",
-    "Sam's Club Content", 
-    "Sam's Club Direct Campaign",
-    "Walmart Partnership",
-    "Nike Campaign",
-    "Adidas Campaign",
-    "Target Campaign",
-    "Amazon Campaign",
-    "H&M Campaign",
-    "General Content",
-    "Brand Campaign"
-  ];
-
-  // Client filter options based on content analysis
-  const clientOptions = [
-    "All Clients",
-    "Sam's Club",
-    "Walmart", 
-    "Nike",
-    "Adidas",
-    "Target",
-    "Amazon",
-    "H&M",
-    "Other"
-  ];
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: allPosts = [], isLoading } = useQuery({
     queryKey: ["/api/posts"],
   });
+
+  // Generate campaign options dynamically from actual API data
+  const campaignOptions = [
+    "All Posts",
+    ...Array.from(new Set(allPosts.map((post: any) => post.campaignName).filter(Boolean))).sort()
+  ];
+
+  // Generate client options dynamically from actual API data
+  const clientOptions = [
+    "All Clients",
+    ...Array.from(new Set(allPosts.map((post: any) => post.metadata?.clientName).filter(Boolean))).sort()
+  ];
 
   const { data: tags = [] } = useQuery({
     queryKey: ["/api/tags"],
