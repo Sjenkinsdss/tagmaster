@@ -280,20 +280,49 @@ export class DatabaseStorage implements IStorage {
   }
 
   private mapTagTypeToPillar(tagTypeName: string): string {
-    if (!tagTypeName) return 'product';
+    if (!tagTypeName) return 'post';
     
     const lowerName = tagTypeName.toLowerCase();
     
-    // Influencer/Audience related  
-    if (lowerName.includes('audience') || lowerName.includes('behavior') || lowerName.includes('activity') ||
-        lowerName.includes('age') || lowerName.includes('gender') || lowerName.includes('location') ||
-        lowerName.includes('interest') || lowerName.includes('lifestyle') || lowerName.includes('demographic') ||
-        lowerName.includes('influencer') || lowerName.includes('creator')) {
+    // Ad related tags
+    if (lowerName.includes('ad') || lowerName.includes('advertisement') || 
+        lowerName.includes('creative') || lowerName.includes('format') ||
+        lowerName.includes('placement')) {
+      return 'ad';
+    }
+    
+    // Campaign related tags
+    if (lowerName.includes('campaign') || lowerName.includes('objective') || 
+        lowerName.includes('strategy') || lowerName.includes('goal') ||
+        lowerName.includes('performance') || lowerName.includes('metric')) {
+      return 'campaign';
+    }
+    
+    // Client related tags
+    if (lowerName.includes('client') || lowerName.includes('brand') || 
+        lowerName.includes('category') || lowerName.includes('industry') ||
+        lowerName.includes('business') || lowerName.includes('company')) {
+      return 'client';
+    }
+    
+    // AI related tags
+    if (lowerName.includes('ai') || lowerName.includes('artificial') || 
+        lowerName.includes('generated') || lowerName.includes('automated') ||
+        lowerName.includes('algorithm') || lowerName.includes('machine')) {
+      return 'ai';
+    }
+    
+    // Influencer related tags
+    if (lowerName.includes('influencer') || lowerName.includes('creator') || 
+        lowerName.includes('audience') || lowerName.includes('demographic') ||
+        lowerName.includes('behavior') || lowerName.includes('lifestyle') ||
+        lowerName.includes('interest') || lowerName.includes('age') ||
+        lowerName.includes('gender') || lowerName.includes('location')) {
       return 'influencer';
     }
     
-    // Product/Brand related (default for most business tags)
-    return 'product';
+    // Post/Content related (default for content, style, topic tags)
+    return 'post';
   }
 
   async getTagsByPillar(pillar: string): Promise<Tag[]> {

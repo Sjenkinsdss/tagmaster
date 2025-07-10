@@ -80,8 +80,13 @@ export default function TaggingInterface() {
     return campaignMatch && postIdMatch;
   });
 
-  const productTags = tags.filter((tag: any) => tag.pillar === "product");
-  const influencerTags = tags.filter((tag: any) => tag.pillar === "content" || tag.pillar === "influencer");
+  // Group tags by the new pillar categories
+  const adTags = tags.filter((tag: any) => tag.pillar === "ad");
+  const campaignTags = tags.filter((tag: any) => tag.pillar === "campaign");
+  const clientTags = tags.filter((tag: any) => tag.pillar === "client");
+  const contentTags = tags.filter((tag: any) => tag.pillar === "post");
+  const aiTags = tags.filter((tag: any) => tag.pillar === "ai");
+  const influencerTags = tags.filter((tag: any) => tag.pillar === "influencer");
 
   const handleBulkEdit = () => {
     setBulkEditMode(!bulkEditMode);
@@ -352,11 +357,55 @@ export default function TaggingInterface() {
             {enrichedSelectedPost ? (
               <div className="space-y-8">
                 <TagSection
-                  title="Product Tags"
+                  title="Ad Tags"
                   icon={<ShoppingBag className="w-5 h-5 text-carbon-blue" />}
-                  pillar="product"
+                  pillar="ad"
                   post={enrichedSelectedPost}
-                  allTags={productTags}
+                  allTags={adTags}
+                  bulkEditMode={bulkEditMode}
+                  selectedTags={selectedTags}
+                  onTagSelection={handleTagSelection}
+                />
+                
+                <TagSection
+                  title="Campaign Tags"
+                  icon={<Tags className="w-5 h-5 text-carbon-blue" />}
+                  pillar="campaign"
+                  post={enrichedSelectedPost}
+                  allTags={campaignTags}
+                  bulkEditMode={bulkEditMode}
+                  selectedTags={selectedTags}
+                  onTagSelection={handleTagSelection}
+                />
+                
+                <TagSection
+                  title="Client Tags"
+                  icon={<ShoppingBag className="w-5 h-5 text-carbon-blue" />}
+                  pillar="client"
+                  post={enrichedSelectedPost}
+                  allTags={clientTags}
+                  bulkEditMode={bulkEditMode}
+                  selectedTags={selectedTags}
+                  onTagSelection={handleTagSelection}
+                />
+                
+                <TagSection
+                  title="Post Tags"
+                  icon={<Tags className="w-5 h-5 text-carbon-blue" />}
+                  pillar="post"
+                  post={enrichedSelectedPost}
+                  allTags={contentTags}
+                  bulkEditMode={bulkEditMode}
+                  selectedTags={selectedTags}
+                  onTagSelection={handleTagSelection}
+                />
+                
+                <TagSection
+                  title="AI Tags"
+                  icon={<ShoppingBag className="w-5 h-5 text-carbon-blue" />}
+                  pillar="ai"
+                  post={enrichedSelectedPost}
+                  allTags={aiTags}
                   bulkEditMode={bulkEditMode}
                   selectedTags={selectedTags}
                   onTagSelection={handleTagSelection}
