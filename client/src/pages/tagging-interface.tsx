@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
@@ -30,6 +30,7 @@ export default function TaggingInterface() {
   const [clientFilter, setClientFilter] = useState("All Clients");
   const [clientOpen, setClientOpen] = useState(false);
   const [postIdFilter, setPostIdFilter] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   
@@ -100,7 +101,7 @@ export default function TaggingInterface() {
     return acc;
   }, []);
 
-  // Filter posts based on selected campaign, client, and post ID
+  // Filter posts based on all criteria
   const posts = uniquePosts.filter((post: any) => {
     // Campaign filter
     const campaignMatch = campaignFilter === "All Posts" || post.campaignName === campaignFilter;
@@ -111,8 +112,13 @@ export default function TaggingInterface() {
     
     // Post ID filter
     const postIdMatch = !postIdFilter || post.id.toString().includes(postIdFilter);
+    
+    // Search filter (searches through title and content)
+    const searchMatch = !searchQuery || 
+      post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.metadata?.content?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return campaignMatch && clientMatch && postIdMatch;
+    return campaignMatch && clientMatch && postIdMatch && searchMatch;
   });
 
   // Group tags by the new pillar categories
@@ -256,6 +262,35 @@ export default function TaggingInterface() {
               <h1 className="text-xl font-semibold text-carbon-gray-100">Tagging Interface</h1>
             </div>
             <div className="flex items-center space-x-4 text-sm text-carbon-gray-70">
+              {/* Search Input */}
+              <div className="flex items-center space-x-2">
+                <Search className="w-4 h-4 text-carbon-gray-50" />
+                <div className="relative">
+                  <Input
+                    placeholder="Search posts..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1); // Reset to page 1 when searching
+                      setSelectedPost(null);
+                    }}
+                    className="w-48 h-8 text-sm pr-8"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setSelectedPost(null);
+                      }}
+                      className="absolute right-1 top-0 h-8 w-6 p-0"
+                    >
+                      <X className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
               <div className="flex items-center space-x-2">
                 <span>Campaign:</span>
                 <Popover open={campaignOpen} onOpenChange={setCampaignOpen}>
@@ -390,10 +425,15 @@ export default function TaggingInterface() {
       </header>
 
       {/* Active Filters Indicator */}
-      {(campaignFilter !== "All Posts" || clientFilter !== "All Clients" || postIdFilter) && (
+      {(campaignFilter !== "All Posts" || clientFilter !== "All Clients" || postIdFilter || searchQuery) && (
         <div className="bg-carbon-blue bg-opacity-10 border-b border-carbon-blue border-opacity-20 px-6 py-2">
           <div className="flex items-center space-x-4 text-sm">
             <span className="text-carbon-blue font-medium">Active Filters:</span>
+            {searchQuery && (
+              <Badge variant="outline" className="text-carbon-blue border-carbon-blue">
+                Search: "{searchQuery}"
+              </Badge>
+            )}
             {campaignFilter !== "All Posts" && (
               <Badge variant="outline" className="text-carbon-blue border-carbon-blue">
                 Campaign: {campaignFilter}
@@ -416,6 +456,7 @@ export default function TaggingInterface() {
                 setCampaignFilter("All Posts");
                 setClientFilter("All Clients");
                 setPostIdFilter("");
+                setSearchQuery("");
                 setSelectedPost(null);
               }}
               className="text-carbon-blue hover:bg-carbon-blue hover:text-white h-6 px-2 text-xs"
@@ -427,7 +468,7 @@ export default function TaggingInterface() {
       )}
 
       {/* Main Content */}
-      <div className={`${(campaignFilter !== "All Posts" || clientFilter !== "All Clients" || postIdFilter) ? "h-[calc(100vh-115px)]" : "h-[calc(100vh-73px)]"} flex`}>
+      <div className={`${(campaignFilter !== "All Posts" || clientFilter !== "All Clients" || postIdFilter || searchQuery) ? "h-[calc(100vh-115px)]" : "h-[calc(100vh-73px)]"} flex`}>
         {/* Content Column */}
         <div className="w-1/3 bg-white border-r border-carbon-gray-20 overflow-y-auto">
           <div className="p-6">
