@@ -222,13 +222,13 @@ export default function TaggingInterface() {
                       variant="outline"
                       role="combobox"
                       aria-expanded={campaignOpen}
-                      className="w-48 justify-between text-sm h-8"
+                      className="w-56 justify-between text-sm h-8"
                     >
-                      {campaignFilter}
+                      <span className="truncate">{campaignFilter}</span>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-48 p-0">
+                  <PopoverContent className="w-56 p-0">
                     <Command>
                       <CommandInput 
                         placeholder="Search campaigns..." 
