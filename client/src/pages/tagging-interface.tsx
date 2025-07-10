@@ -86,13 +86,7 @@ export default function TaggingInterface() {
     // Post ID filter
     const postIdMatch = !postIdFilter || post.id.toString().includes(postIdFilter);
 
-    // Debug logging for filter combinations
-    const matchesAll = campaignMatch && clientMatch && postIdMatch;
-    if (campaignFilter !== "All Posts" && clientFilter !== "All Clients") {
-      console.log(`Post ${post.id}: Campaign="${post.campaignName}" (${campaignMatch}), Client="${postClientName}" (${clientMatch}), Final=${matchesAll}`);
-    }
-
-    return matchesAll;
+    return campaignMatch && clientMatch && postIdMatch;
   });
 
   // Group tags by the new pillar categories
