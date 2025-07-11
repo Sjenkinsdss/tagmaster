@@ -530,7 +530,6 @@ export class DatabaseStorage implements IStorage {
         name: row.name,
         code: `${(row.tag_type_name || 'general').toLowerCase()}_${row.name.toLowerCase().replace(/\s+/g, '_')}_${String(row.id).padStart(4, '0')}`,
         pillar: this.mapTagTypeToPillar(row.tag_type_name),
-        category: row.tag_type_name || null, // Store the actual category name from debra_influencertagtype.name
         isAiGenerated: row.tag_source === 'client' ? false : true,
         createdAt: new Date(),
       }));
@@ -545,15 +544,10 @@ export class DatabaseStorage implements IStorage {
     
     const lowerName = tagTypeName.toLowerCase();
     
-    // Client related tags (from debra_brandjobpost)
-    if (lowerName === 'client') {
-      return 'client';
-    }
-    
     // Ad related tags
     if (lowerName.includes('ad') || lowerName.includes('advertisement') || 
         lowerName.includes('creative') || lowerName.includes('format') ||
-        lowerName.includes('placement') || lowerName.includes('tactic')) {
+        lowerName.includes('placement')) {
       return 'ad';
     }
     
@@ -564,10 +558,10 @@ export class DatabaseStorage implements IStorage {
       return 'campaign';
     }
     
-    // Client/Brand related tags
-    if (lowerName.includes('brand') || lowerName.includes('category') || 
-        lowerName.includes('industry') || lowerName.includes('business') || 
-        lowerName.includes('company')) {
+    // Client related tags
+    if (lowerName.includes('client') || lowerName.includes('brand') || 
+        lowerName.includes('category') || lowerName.includes('industry') ||
+        lowerName.includes('business') || lowerName.includes('company')) {
       return 'client';
     }
     
@@ -578,14 +572,12 @@ export class DatabaseStorage implements IStorage {
       return 'ai';
     }
     
-    // Influencer related tags (including specific categories from debra_influencertagtype)
+    // Influencer related tags
     if (lowerName.includes('influencer') || lowerName.includes('creator') || 
         lowerName.includes('audience') || lowerName.includes('demographic') ||
         lowerName.includes('behavior') || lowerName.includes('lifestyle') ||
         lowerName.includes('interest') || lowerName.includes('age') ||
-        lowerName.includes('gender') || lowerName.includes('location') ||
-        lowerName.includes('pets') || lowerName.includes('schtick') ||
-        lowerName.includes('schtikk')) {
+        lowerName.includes('gender') || lowerName.includes('location')) {
       return 'influencer';
     }
     

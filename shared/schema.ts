@@ -25,7 +25,6 @@ export const tags = pgTable("tags", {
   name: text("name").notNull(),
   code: text("code").notNull().unique(), // pillar_tagname_####
   pillar: text("pillar").notNull(), // product, influencer
-  category: text("category"), // category name from debra_influencertagtype.name
   isAiGenerated: boolean("is_ai_generated").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

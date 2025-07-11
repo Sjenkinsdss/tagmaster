@@ -42,18 +42,6 @@ export default function TagSection({
   const aiTags = postTags.filter(tag => tag.isAiGenerated);
   const userTags = postTags.filter(tag => !tag.isAiGenerated);
 
-  // Group tags by category for display
-  const groupTagsByCategory = (tags: any[]) => {
-    return tags.reduce((acc, tag) => {
-      const category = tag.category || 'Other';
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push(tag);
-      return acc;
-    }, {} as Record<string, any[]>);
-  };
-
   const removeTagMutation = useMutation({
     mutationFn: async (tagId: number) => {
       await apiRequest("DELETE", `/api/posts/${post.id}/tags/${tagId}`);
@@ -136,14 +124,9 @@ export default function TagSection({
             <Bot className="w-4 h-4 mr-1" />
             AI Generated
           </p>
-          {Object.entries(groupTagsByCategory(aiTags)).map(([category, tags]) => (
-            <div key={category} className="mb-3">
-              <p className="text-xs font-medium text-carbon-gray-100 mb-1 pl-2 border-l-2 border-purple-200">
-                {category}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {tags.map((tag: any) => (
-                  <div key={tag.id} className="inline-flex items-center">
+          <div className="flex flex-wrap gap-2">
+            {aiTags.map((tag) => (
+              <div key={tag.id} className="inline-flex items-center">
                 {bulkEditMode && (
                   <Checkbox
                     checked={selectedTags.has(tag.id)}
@@ -183,12 +166,7 @@ export default function TagSection({
                     variant="outline"
                     className="bg-purple-50 text-purple-700 border-purple-200 pl-3 pr-1"
                   >
-                    <div className="flex flex-col">
-                      <span className="font-medium">{tag.name}</span>
-                      {tag.category && (
-                        <span className="text-xs opacity-75 italic">→ {tag.category}</span>
-                      )}
-                    </div>
+                    {tag.name}
                     {!bulkEditMode && (
                       <>
                         <Button
@@ -212,11 +190,9 @@ export default function TagSection({
                     )}
                   </Badge>
                 )}
-                  </div>
-                ))}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
       
@@ -269,12 +245,7 @@ export default function TagSection({
                     variant="outline"
                     className="bg-blue-50 text-blue-700 border-blue-200 pl-3 pr-1"
                   >
-                    <div className="flex flex-col">
-                      <span className="font-medium">{tag.name}</span>
-                      {tag.category && (
-                        <span className="text-xs opacity-75 italic">→ {tag.category}</span>
-                      )}
-                    </div>
+                    {tag.name}
                     {!bulkEditMode && (
                       <>
                         <Button
