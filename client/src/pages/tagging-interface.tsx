@@ -602,7 +602,7 @@ export default function TaggingInterface() {
             <div className="space-y-6">
               {posts.map((post: PostWithTags, index: number) => (
                 <PostItem
-                  key={`page-${currentPage}-post-${post.id}-idx-${index}`}
+                  key={`post-${post.id}-${post.platform}-${index}`}
                   post={post}
                   isSelected={selectedPost?.id === post.id}
                   onSelect={() => !bulkPostMode && setSelectedPost(post)}
