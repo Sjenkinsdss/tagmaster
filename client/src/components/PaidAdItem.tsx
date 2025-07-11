@@ -79,17 +79,21 @@ export default function PaidAdItem({ ad, post }: PaidAdItemProps) {
               {ad.thumbnailUrl ? (
                 <img
                   src={ad.thumbnailUrl}
-                  alt={ad.title}
+                  alt={ad.name || ad.title}
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <span className="text-carbon-gray-50 text-xs">No image</span>
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600">
+                  <div className="text-white text-xs font-bold text-center leading-tight">
+                    {ad.platform === 'META' ? 'META' : 
+                     ad.platform === 'TIKTOK' ? 'TT' : 
+                     ad.platform === 'YOUTUBE' ? 'YT' : 'AD'}
+                  </div>
                 </div>
               )}
             </div>
             <div>
-              <h4 className="font-medium text-carbon-gray-100 text-sm">{ad.title}</h4>
+              <h4 className="font-medium text-carbon-gray-100 text-sm">{ad.name || ad.title}</h4>
               <p className="text-xs text-carbon-gray-70">
                 {ad.platform} • {ad.status}
               </p>
