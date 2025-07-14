@@ -659,7 +659,7 @@ export class DatabaseStorage implements IStorage {
           dit.id as tag_id
         FROM debra_posts_influencer_tags dpit
         JOIN debra_influencertag dit ON dpit.influencertag_id = dit.id
-        JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+        LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
         WHERE dpit.posts_id = ${postId}
         ORDER BY dit.name
       `);
@@ -706,7 +706,9 @@ export class DatabaseStorage implements IStorage {
           code: `${this.mapTagTypeToPillar(row.tag_type_name)}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
           pillar: this.mapTagTypeToPillar(row.tag_type_name),
           isAiGenerated: false,
-          createdAt: new Date()
+          createdAt: new Date(),
+          tag_type_name: row.tag_type_name || 'general', // Include the category name
+          categoryName: row.tag_type_name || 'general' // Also include as categoryName for consistency
         }
       }));
     } catch (error) {

@@ -730,6 +730,26 @@ export default function TaggingInterface() {
 
             {enrichedSelectedPost ? (
               <div className="space-y-6">
+                {/* Show Connected Tags for this Post */}
+                {enrichedSelectedPost.postTags && enrichedSelectedPost.postTags.length > 0 && (
+                  <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Tags className="w-5 h-5 text-green-600" />
+                      <h3 className="font-medium text-green-800">Connected Tags ({enrichedSelectedPost.postTags.length})</h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {enrichedSelectedPost.postTags.map((postTag: any) => (
+                        <span
+                          key={postTag.id}
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                        >
+                          {postTag.tag.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 {/* Display categories dynamically organized by production data */}
                 {displayCategories.map((category: any) => {
                   const categoryTags = getTagsForCategory(category.name);
