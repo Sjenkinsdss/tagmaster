@@ -37,6 +37,63 @@ The application uses a relational database with the following main entities:
 - **PaidAds**: Advertisements linked to posts
 - **AdTags**: Many-to-many relationship between ads and tags
 
+### Connected Tags Organization System
+The interface displays tags connected to selected posts using a hierarchical Type → Category structure:
+
+#### Data Structure
+- **Production Tables**: Uses `debra_posts_influencer_tags` for post-tag relationships
+- **Tag Information**: Fetched from `debra_influencertag` with optional category data from `debra_influencertagtype`
+- **Fallback Handling**: Tags without category information are grouped as "Uncategorized"
+
+#### Display Hierarchy
+1. **Type Level**: Primary grouping by tag type (post, product, influencer, etc.)
+   - Shows total count of tags in that type
+   - Capitalized display name for clarity
+   - Alphabetically sorted types
+
+2. **Category Level**: Secondary grouping within each type
+   - Uses tag_type_name from production database when available
+   - Falls back to "Uncategorized" for tags without category relationships
+   - Shows count of tags in each category
+   - Alphabetically sorted categories within each type
+
+3. **Individual Tags**: Final level showing actual tag names
+   - Alphabetically sorted within each category
+   - Displayed as small green badges for visual distinction
+   - Uses production tag names from debra_influencertag table
+
+#### Visual Implementation
+- **Green Styling**: Connected tags use green color scheme to distinguish from browseable tags
+- **Indentation**: Clear visual hierarchy with proper spacing and margins
+- **Count Indicators**: Each level shows tag counts in parentheses for quick reference
+- **Responsive Layout**: Flex-wrap design adapts to different screen sizes
+
+#### Technical Implementation
+The connected tags system is implemented in the TaggingInterface component with the following structure:
+
+```typescript
+// Data Flow
+1. User selects a post → triggers API call to /api/posts/{id}/tags
+2. Backend queries debra_posts_influencer_tags with LEFT JOIN to debra_influencertagtype
+3. Frontend receives array of PostTag objects with nested tag information
+4. JavaScript reduces tags into nested structure: Type → Category → Individual Tags
+5. React renders hierarchical display with proper sorting and styling
+
+// Key Functions
+- getPostTags(): Fetches connected tags from production database
+- Type grouping: Uses tag.pillar field for primary organization
+- Category grouping: Uses tag.tag_type_name or fallback to "Uncategorized"
+- Sorting: Alphabetical at all levels for consistency
+```
+
+#### Database Relationships
+- **Primary Table**: `debra_posts_influencer_tags` (post_id, influencertag_id)
+- **Tag Details**: `debra_influencertag` (id, name, tag_type_id)
+- **Category Info**: `debra_influencertagtype` (id, name) via LEFT JOIN
+- **Fallback Strategy**: When category relationships missing, displays as "Uncategorized"
+
+This system provides users with clear visibility into existing tag associations while maintaining the ability to browse and add new tags through the category-based sections below.
+
 ### Frontend Components
 - **TaggingInterface**: Main interface with three-column layout
 - **PostItem**: Individual post display with embedded media
