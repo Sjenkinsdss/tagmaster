@@ -22,12 +22,31 @@ interface TagManagementProps {
 
 export default function TagManagement({ tags, onClose }: TagManagementProps) {
   const { toast } = useToast();
+
+  // Fetch tag categories for new tag creation
+  const { data: categoriesData } = useQuery({
+    queryKey: ["/api/tag-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/tag-categories");
+      const data = await response.json();
+      return data;
+    },
+  });
   const [selectedTags, setSelectedTags] = useState<Set<number>>(new Set());
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedTag, setSelectedTag] = useState<TagType | null>(null);
+  
+  // New tag creation state
+  const [createTagDialogOpen, setCreateTagDialogOpen] = useState(false);
+  const [confirmCreateDialogOpen, setConfirmCreateDialogOpen] = useState(false);
+  const [newTagData, setNewTagData] = useState({
+    type: "",
+    category: "none",
+    name: "",
+  });
 
   // Merge operation state
   const [mergeData, setMergeData] = useState({
@@ -233,6 +252,58 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
     },
   });
 
+  // New tag creation mutation
+  const createTagMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/tags", {
+        name: newTagData.name.trim(),
+        pillar: newTagData.type,
+        // Auto-generate code based on pillar and name
+        code: `${newTagData.type}_${newTagData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create tag");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+      setConfirmCreateDialogOpen(false);
+      setNewTagData({ type: "", category: "none", name: "" });
+      toast({
+        title: "Tag Created",
+        description: `Successfully created tag "${newTagData.name}".`,
+      });
+    },
+    onError: (error: any) => {
+      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
+      toast({
+        title: isReadOnlyError ? "Read-Only Database" : "Error",
+        description: isReadOnlyError 
+          ? "Cannot create tag: Connected to read-only production database."
+          : `Failed to create tag: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleCreateTag = () => {
+    if (!newTagData.type || !newTagData.name.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please select a tag type and enter a tag name.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setConfirmCreateDialogOpen(true);
+  };
+
+  const confirmCreateTag = () => {
+    createTagMutation.mutate();
+  };
+
   const addSplitTagName = () => {
     setSplitData(prev => ({
       ...prev,
@@ -274,6 +345,10 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
   }, {} as Record<string, Record<string, TagType[]>>);
 
   const selectedTagsList = tags.filter(tag => selectedTags.has(tag.id));
+  const categories = categoriesData?.categories || [];
+  
+  // Get unique tag types from existing tags
+  const tagTypes = Array.from(new Set(tags.map(tag => tag.pillar))).sort();
 
   return (
     <div className="space-y-6">
@@ -290,6 +365,86 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
           Close
         </Button>
       </div>
+
+      {/* New Tag Creation Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Plus className="w-4 h-4" />
+            <span>Create New Tag</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Tag Type Dropdown */}
+            <div className="space-y-2">
+              <Label htmlFor="tag-type">Tag Type</Label>
+              <Select 
+                value={newTagData.type} 
+                onValueChange={(value) => setNewTagData(prev => ({ ...prev, type: value, category: "none" }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tagTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type.charAt(0).toUpperCase() + type.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tag Category Dropdown */}
+            <div className="space-y-2">
+              <Label htmlFor="tag-category">Category (Optional)</Label>
+              <Select 
+                value={newTagData.category} 
+                onValueChange={(value) => setNewTagData(prev => ({ ...prev, category: value }))}
+                disabled={!newTagData.type}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No specific category</SelectItem>
+                  {categories.map((category: any) => (
+                    <SelectItem key={category.id} value={category.name}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tag Name Input */}
+            <div className="space-y-2">
+              <Label htmlFor="tag-name">Tag Name</Label>
+              <Input
+                id="tag-name"
+                value={newTagData.name}
+                onChange={(e) => setNewTagData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Enter tag name"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
+              Note: Tag creation will show error message due to read-only database access.
+            </p>
+            <Button 
+              onClick={handleCreateTag}
+              disabled={!newTagData.type || !newTagData.name.trim() || createTagMutation.isPending}
+              className="flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Create Tag</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Bulk Operations */}
       <Card>
@@ -647,6 +802,36 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
               className="bg-red-600 hover:bg-red-700"
             >
               {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Create Tag Confirmation Dialog */}
+      <AlertDialog open={confirmCreateDialogOpen} onOpenChange={setConfirmCreateDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Tag Creation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to create this new tag with the following details?
+              <div className="mt-3 p-3 bg-gray-50 rounded border space-y-2">
+                <div><strong>Type:</strong> {newTagData.type}</div>
+                <div><strong>Category:</strong> {newTagData.category === "none" ? "No specific category" : newTagData.category}</div>
+                <div><strong>Name:</strong> {newTagData.name}</div>
+                <div className="text-xs text-gray-600">
+                  <strong>Auto-generated Code:</strong> {newTagData.type}_{newTagData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_####
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmCreateTag}
+              disabled={createTagMutation.isPending}
+              className="bg-carbon-blue hover:bg-carbon-blue/90"
+            >
+              {createTagMutation.isPending ? "Creating..." : "Create Tag"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
