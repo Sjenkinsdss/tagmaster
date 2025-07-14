@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -780,12 +781,20 @@ export default function TaggingInterface() {
                                     </h5>
                                     <div className="flex flex-wrap gap-1.5">
                                       {sortedTags.map((postTag: any) => (
-                                        <span
-                                          key={postTag.id}
-                                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
-                                        >
-                                          {postTag.tag.name}
-                                        </span>
+                                        <div key={postTag.id} className="inline-flex items-center">
+                                          {bulkEditMode && (
+                                            <Checkbox
+                                              checked={selectedTags.has(postTag.tag.id)}
+                                              onCheckedChange={(checked) => {
+                                                handleTagSelection(postTag.tag.id, checked as boolean);
+                                              }}
+                                              className="mr-2"
+                                            />
+                                          )}
+                                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            {postTag.tag.name}
+                                          </span>
+                                        </div>
                                       ))}
                                     </div>
                                   </div>
