@@ -732,10 +732,10 @@ export default function TaggingInterface() {
               <div className="space-y-6">
                 {/* Show Connected Tags for this Post - Grouped by Category */}
                 {enrichedSelectedPost.postTags && enrichedSelectedPost.postTags.length > 0 && (
-                  <div className="border rounded-lg p-4 bg-green-50 border-green-200">
+                  <div className="border rounded-lg p-4">
                     <div className="flex items-center space-x-2 mb-4">
-                      <Tags className="w-5 h-5 text-green-600" />
-                      <h3 className="font-medium text-green-800">Connected Tags ({enrichedSelectedPost.postTags.length})</h3>
+                      <Tags className="w-5 h-5" />
+                      <h3 className="font-medium">Connected Tags ({enrichedSelectedPost.postTags.length})</h3>
                     </div>
                     
                     {/* Group connected tags by type, then by category */}
@@ -761,8 +761,8 @@ export default function TaggingInterface() {
                         .sort(([a], [b]) => a.localeCompare(b))
                         .map(([typeName, categories]: [string, any]) => (
                           <div key={typeName} className="mb-4 last:mb-0">
-                            <h4 className="text-sm font-medium text-green-700 mb-3 capitalize">
-                              {typeName} ({Object.values(categories).flat().length})
+                            <h4 className="text-sm font-semibold mb-3 capitalize">
+                              {typeName} Types ({Object.values(categories).flat().length})
                             </h4>
                             
                             {/* Group by category within type */}
@@ -775,14 +775,14 @@ export default function TaggingInterface() {
                                 
                                 return (
                                   <div key={`${typeName}-${categoryName}`} className="mb-2 last:mb-0 ml-3">
-                                    <h5 className="text-xs font-medium text-green-600 mb-1">
+                                    <h5 className="text-xs font-medium text-gray-600 mb-1">
                                       {categoryName} ({sortedTags.length})
                                     </h5>
                                     <div className="flex flex-wrap gap-1.5">
                                       {sortedTags.map((postTag: any) => (
                                         <span
                                           key={postTag.id}
-                                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
                                         >
                                           {postTag.tag.name}
                                         </span>
