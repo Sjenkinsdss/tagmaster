@@ -275,12 +275,7 @@ export default function TagSection({
         </div>
       )}
       
-      {/* Add New Tag */}
-      <TagInput
-        pillar={pillar}
-        postId={post.id}
-        placeholder={`Add ${pillar} tag...`}
-      />
+
     </div>
   );
 }
