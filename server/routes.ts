@@ -594,6 +594,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Replit Database Write Operations
+  app.post("/api/tags/create", async (req, res) => {
+    try {
+      const { name, pillar, code, isAiGenerated } = req.body;
+      
+      if (!name || !pillar || !code) {
+        return res.status(400).json({
+          success: false,
+          message: "Name, pillar, and code are required"
+        });
+      }
+      
+      console.log("Creating new tag:", { name, pillar, code, isAiGenerated });
+      
+      const newTag = await storage.createNewTag({
+        name,
+        pillar,
+        code,
+        isAiGenerated: isAiGenerated || false
+      });
+      
+      res.json({
+        success: true,
+        tag: newTag,
+        message: "Tag created successfully"
+      });
+    } catch (error) {
+      console.error("Error creating new tag:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to create tag",
+        error: String(error)
+      });
+    }
+  });
+
+  app.post("/api/posts/:postId/tags/:tagId/replit", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const tagId = parseInt(req.params.tagId);
+      
+      console.log(`Adding tag ${tagId} to post ${postId} in Replit database`);
+      
+      const postTag = await storage.addTagToPostReplit(postId, tagId);
+      
+      res.json({
+        success: true,
+        postTag,
+        message: "Tag added to post successfully"
+      });
+    } catch (error) {
+      console.error("Error adding tag to post:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to add tag to post",
+        error: String(error)
+      });
+    }
+  });
+
+  app.delete("/api/posts/:postId/tags/:tagId/replit", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const tagId = parseInt(req.params.tagId);
+      
+      console.log(`Removing tag ${tagId} from post ${postId} in Replit database`);
+      
+      await storage.removeTagFromPostReplit(postId, tagId);
+      
+      res.json({
+        success: true,
+        message: "Tag removed from post successfully"
+      });
+    } catch (error) {
+      console.error("Error removing tag from post:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to remove tag from post",
+        error: String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

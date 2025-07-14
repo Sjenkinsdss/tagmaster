@@ -13,7 +13,7 @@ import {
   type InsertAdTag, 
   type PostWithTags 
 } from "@shared/schema";
-import { db } from "./db";
+import { db, prodDb, replitDb } from "./db";
 import { sql } from "drizzle-orm";
 
 export interface IStorage {
@@ -71,6 +71,11 @@ export interface IStorage {
   getTagCoOccurrenceData(): Promise<{ tagId1: number; tagId2: number; frequency: number }[]>;
   getContentSimilarTags(postContent: string, limit?: number): Promise<Tag[]>;
   getUserTaggingPatterns(userId?: number): Promise<{ tagId: number; frequency: number; pillar: string }[]>;
+
+  // Replit Database Write Methods
+  createNewTag(tag: InsertTag & { code: string }): Promise<Tag>;
+  addTagToPostReplit(postId: number, tagId: number): Promise<PostTag>;
+  removeTagFromPostReplit(postId: number, tagId: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1271,6 +1276,91 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error getting user tagging patterns:", error);
       return [];
+    }
+  }
+
+  // Replit Database Write Methods
+  async createNewTag(insertTag: InsertTag & { code: string }): Promise<Tag> {
+    try {
+      if (!replitDb) {
+        throw new Error("Replit database not available");
+      }
+      
+      console.log("Creating new tag in Replit database:", insertTag);
+      
+      // Import the tags table from schema
+      const { tags } = await import("@shared/schema");
+      
+      const [newTag] = await replitDb
+        .insert(tags)
+        .values({
+          name: insertTag.name,
+          code: insertTag.code,
+          pillar: insertTag.pillar,
+          isAiGenerated: insertTag.isAiGenerated || false
+        })
+        .returning();
+      
+      console.log("Successfully created new tag:", newTag);
+      return newTag;
+    } catch (error) {
+      console.error("Error creating new tag in Replit database:", error);
+      throw error;
+    }
+  }
+
+  async addTagToPostReplit(postId: number, tagId: number): Promise<PostTag> {
+    try {
+      if (!replitDb) {
+        throw new Error("Replit database not available");
+      }
+      
+      console.log(`Adding tag ${tagId} to post ${postId} in Replit database`);
+      
+      // Import the postTags table from schema
+      const { postTags } = await import("@shared/schema");
+      
+      const [newPostTag] = await replitDb
+        .insert(postTags)
+        .values({
+          postId,
+          tagId
+        })
+        .returning();
+      
+      console.log("Successfully added tag to post:", newPostTag);
+      return newPostTag;
+    } catch (error) {
+      console.error("Error adding tag to post in Replit database:", error);
+      throw error;
+    }
+  }
+
+  async removeTagFromPostReplit(postId: number, tagId: number): Promise<void> {
+    try {
+      if (!replitDb) {
+        throw new Error("Replit database not available");
+      }
+      
+      console.log(`Removing tag ${tagId} from post ${postId} in Replit database`);
+      
+      // Import the postTags table from schema
+      const { postTags } = await import("@shared/schema");
+      const { eq, and } = await import("drizzle-orm");
+      
+      await replitDb
+        .delete(postTags)
+        .where(
+          and(
+            eq(postTags.postId, postId),
+            eq(postTags.tagId, tagId)
+          )
+        );
+      
+      console.log("Successfully removed tag from post");
+    } catch (error) {
+      console.error("Error removing tag from post in Replit database:", error);
+      throw error;
     }
   }
 }

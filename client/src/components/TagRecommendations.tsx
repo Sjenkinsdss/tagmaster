@@ -38,10 +38,10 @@ export default function TagRecommendations({ selectedPost, onTagSelect }: TagRec
     refetchOnMount: true,
   });
 
-  // Add tag to post mutation
+  // Add tag to post mutation - using Replit database
   const addTagMutation = useMutation({
     mutationFn: async ({ postId, tagId }: { postId: number; tagId: number }) => {
-      const response = await apiRequest("POST", `/api/posts/${postId}/tags/${tagId}`, {});
+      const response = await apiRequest("POST", `/api/posts/${postId}/tags/${tagId}/replit`, {});
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to add tag");
@@ -55,17 +55,15 @@ export default function TagRecommendations({ selectedPost, onTagSelect }: TagRec
       
       const recommendation = recommendations?.find(r => r.tag.id === tagId);
       toast({
-        title: "Tag Added",
-        description: `Successfully added "${recommendation?.tag.name}" to the post.`,
+        title: "Tag Added Successfully",
+        description: `Added "${recommendation?.tag.name}" to the post in Replit database.`,
       });
     },
     onError: (error: any) => {
-      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
+      console.error("Error adding tag:", error);
       toast({
-        title: isReadOnlyError ? "Read-Only Database" : "Error",
-        description: isReadOnlyError 
-          ? "Cannot add tag: Connected to read-only production database."
-          : `Failed to add tag: ${error.message}`,
+        title: "Error Adding Tag",
+        description: `Failed to add tag: ${error.message}`,
         variant: "destructive",
       });
     },
