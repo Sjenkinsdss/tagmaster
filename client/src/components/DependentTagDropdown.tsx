@@ -87,7 +87,7 @@ export default function DependentTagDropdown({ onTagSelect, selectedPost }: Depe
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Layers className="w-5 h-5" />
-          <span>Add Tags by Category</span>
+          <span>Add Tags by</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
