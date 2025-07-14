@@ -14,7 +14,6 @@ import PostItem from "@/components/PostItem";
 import TagSection from "@/components/TagSection";
 import PaidAdItem from "@/components/PaidAdItem";
 import TagManagement from "@/components/TagManagement";
-import DependentTagDropdown from "@/components/DependentTagDropdown";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -826,18 +825,7 @@ export default function TaggingInterface() {
                   </div>
                 )}
                 
-                {/* Dependent Tag Dropdown Component */}
-                <DependentTagDropdown
-                  selectedPost={enrichedSelectedPost}
-                  onTagSelect={(tag) => {
-                    toast({
-                      title: "Tag Selected",
-                      description: `Selected "${tag.name}" from ${tag.categoryName} category`,
-                    });
-                    // Note: In read-only mode, this is just for demonstration
-                    // In a writable database, you would call the API to add the tag
-                  }}
-                />
+
               </div>
             ) : bulkPostMode && selectedPosts.size > 0 ? (
               <div className="space-y-6">
