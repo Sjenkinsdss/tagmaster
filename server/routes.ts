@@ -263,6 +263,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tag Categories and Dependent Dropdown routes
+  app.get("/api/tag-categories", async (req, res) => {
+    try {
+      const categoriesResult = await db.execute(sql`
+        SELECT 
+          ditt.id,
+          ditt.name as category_name,
+          COUNT(dit.id) as tag_count
+        FROM debra_influencertagtype ditt
+        LEFT JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
+        WHERE ditt.name IS NOT NULL 
+        AND ditt.name != ''
+        GROUP BY ditt.id, ditt.name
+        HAVING COUNT(dit.id) > 0
+        ORDER BY ditt.name
+      `);
+
+      const categories = categoriesResult.rows.map((row: any) => ({
+        id: row.id,
+        name: row.category_name,
+        tagCount: row.tag_count
+      }));
+
+      res.json({ success: true, categories });
+    } catch (error) {
+      console.error("Error fetching tag categories:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
+  app.get("/api/tags-by-category/:categoryId", async (req, res) => {
+    try {
+      const categoryId = parseInt(req.params.categoryId);
+      
+      const tagsResult = await db.execute(sql`
+        SELECT 
+          dit.id,
+          dit.name as tag_name,
+          dit.tag_type_id,
+          ditt.name as category_name
+        FROM debra_influencertag dit
+        JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+        WHERE dit.tag_type_id = ${categoryId}
+        AND dit.name IS NOT NULL 
+        AND dit.name != ''
+        AND TRIM(dit.name) != ''
+        ORDER BY dit.name
+      `);
+
+      const tags = tagsResult.rows.map((row: any) => ({
+        id: row.id,
+        name: row.tag_name,
+        categoryId: row.tag_type_id,
+        categoryName: row.category_name
+      }));
+
+      res.json({ success: true, tags, categoryId });
+    } catch (error) {
+      console.error("Error fetching tags by category:", error);
+      res.status(500).json({ success: false, error: String(error) });
+    }
+  });
+
   // Post-Tag relationship routes
   app.get("/api/posts/:postId/tags", async (req, res) => {
     try {
