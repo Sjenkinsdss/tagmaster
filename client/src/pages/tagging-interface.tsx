@@ -78,6 +78,13 @@ export default function TaggingInterface() {
     retryDelay: 1000,
   });
 
+  // Fetch tag categories for organization
+  const { data: categoriesData } = useQuery({
+    queryKey: ["/api/tag-categories"],
+    retry: 3,
+    retryDelay: 1000,
+  });
+
   // Fetch connected ads for the selected post
   const { data: connectedAds = [] } = useQuery({
     queryKey: ["/api/posts", selectedPost?.id, "ads"],
@@ -126,13 +133,32 @@ export default function TaggingInterface() {
     return campaignMatch && clientMatch && postIdMatch && searchMatch;
   });
 
-  // Group tags by the new pillar categories
-  const adTags = tags.filter((tag: any) => tag.pillar === "ad");
-  const campaignTags = tags.filter((tag: any) => tag.pillar === "campaign");
-  const clientTags = tags.filter((tag: any) => tag.pillar === "client");
-  const contentTags = tags.filter((tag: any) => tag.pillar === "post");
-  const aiTags = tags.filter((tag: any) => tag.pillar === "ai");
-  const influencerTags = tags.filter((tag: any) => tag.pillar === "influencer");
+  // Organize tags by production categories
+  const categories = categoriesData?.categories || [];
+  
+  // Create category-based tag groups
+  const getTagsForCategory = (categoryName: string) => {
+    return tags.filter((tag: any) => tag.categoryName === categoryName);
+  };
+
+  // Get the most relevant categories for display (limit to top 8 most common)
+  const displayCategories = categories
+    .sort((a: any, b: any) => parseInt(b.tagCount) - parseInt(a.tagCount))
+    .slice(0, 8);
+
+  // Create icon mapping for different category types
+  const getCategoryIcon = (categoryName: string) => {
+    const name = categoryName.toLowerCase();
+    if (name.includes('category') || name.includes('niche') || name.includes('topic')) {
+      return <Tags className="w-5 h-5 text-carbon-blue" />;
+    } else if (name.includes('client') || name.includes('brand')) {
+      return <ShoppingBag className="w-5 h-5 text-carbon-blue" />;
+    } else if (name.includes('influencer') || name.includes('people') || name.includes('audience')) {
+      return <Users className="w-5 h-5 text-carbon-blue" />;
+    } else {
+      return <Tags className="w-5 h-5 text-carbon-blue" />;
+    }
+  };
 
   const handleBulkEdit = () => {
     setBulkEditMode(!bulkEditMode);
@@ -703,72 +729,34 @@ export default function TaggingInterface() {
             </div>
 
             {enrichedSelectedPost ? (
-              <div className="space-y-8">
-                <TagSection
-                  title="Ad Tags"
-                  icon={<ShoppingBag className="w-5 h-5 text-carbon-blue" />}
-                  pillar="ad"
-                  post={enrichedSelectedPost}
-                  allTags={adTags}
-                  bulkEditMode={bulkEditMode}
-                  selectedTags={selectedTags}
-                  onTagSelection={handleTagSelection}
-                />
+              <div className="space-y-6">
+                {/* Display categories dynamically organized by production data */}
+                {displayCategories.map((category: any) => {
+                  const categoryTags = getTagsForCategory(category.name);
+                  if (categoryTags.length === 0) return null;
+                  
+                  return (
+                    <TagSection
+                      key={category.id}
+                      title={`${category.name} (${category.tagCount})`}
+                      icon={getCategoryIcon(category.name)}
+                      pillar={category.name.toLowerCase().replace(/\s+/g, '_')}
+                      post={enrichedSelectedPost}
+                      allTags={categoryTags}
+                      bulkEditMode={bulkEditMode}
+                      selectedTags={selectedTags}
+                      onTagSelection={handleTagSelection}
+                    />
+                  );
+                })}
                 
-                <TagSection
-                  title="Campaign Tags"
-                  icon={<Tags className="w-5 h-5 text-carbon-blue" />}
-                  pillar="campaign"
-                  post={enrichedSelectedPost}
-                  allTags={campaignTags}
-                  bulkEditMode={bulkEditMode}
-                  selectedTags={selectedTags}
-                  onTagSelection={handleTagSelection}
-                />
-                
-                <TagSection
-                  title="Client Tags"
-                  icon={<ShoppingBag className="w-5 h-5 text-carbon-blue" />}
-                  pillar="client"
-                  post={enrichedSelectedPost}
-                  allTags={clientTags}
-                  bulkEditMode={bulkEditMode}
-                  selectedTags={selectedTags}
-                  onTagSelection={handleTagSelection}
-                />
-                
-                <TagSection
-                  title="Post Tags"
-                  icon={<Tags className="w-5 h-5 text-carbon-blue" />}
-                  pillar="post"
-                  post={enrichedSelectedPost}
-                  allTags={contentTags}
-                  bulkEditMode={bulkEditMode}
-                  selectedTags={selectedTags}
-                  onTagSelection={handleTagSelection}
-                />
-                
-                <TagSection
-                  title="AI Tags"
-                  icon={<ShoppingBag className="w-5 h-5 text-carbon-blue" />}
-                  pillar="ai"
-                  post={enrichedSelectedPost}
-                  allTags={aiTags}
-                  bulkEditMode={bulkEditMode}
-                  selectedTags={selectedTags}
-                  onTagSelection={handleTagSelection}
-                />
-                
-                <TagSection
-                  title="Influencer Tags"
-                  icon={<Users className="w-5 h-5 text-carbon-blue" />}
-                  pillar="influencer"
-                  post={enrichedSelectedPost}
-                  allTags={influencerTags}
-                  bulkEditMode={bulkEditMode}
-                  selectedTags={selectedTags}
-                  onTagSelection={handleTagSelection}
-                />
+                {/* Show info if no categories are loaded yet */}
+                {displayCategories.length === 0 && (
+                  <div className="text-center text-carbon-gray-70 py-8">
+                    <Tags className="w-12 h-12 mx-auto mb-4 text-carbon-gray-30" />
+                    <p>Loading tag categories...</p>
+                  </div>
+                )}
                 
                 {/* Dependent Tag Dropdown Component */}
                 <DependentTagDropdown
@@ -800,34 +788,32 @@ export default function TaggingInterface() {
                 
                 {/* Bulk Tag Application Interface */}
                 <div className="space-y-4">
-                  {[
-                    { title: "Ad Tags", pillar: "ad", icon: <ShoppingBag className="w-5 h-5" />, tags: adTags },
-                    { title: "Campaign Tags", pillar: "campaign", icon: <Tags className="w-5 h-5" />, tags: campaignTags },
-                    { title: "Client Tags", pillar: "client", icon: <ShoppingBag className="w-5 h-5" />, tags: clientTags },
-                    { title: "Post Tags", pillar: "post", icon: <Tags className="w-5 h-5" />, tags: contentTags },
-                    { title: "AI Tags", pillar: "ai", icon: <ShoppingBag className="w-5 h-5" />, tags: aiTags },
-                    { title: "Influencer Tags", pillar: "influencer", icon: <Users className="w-5 h-5" />, tags: influencerTags }
-                  ].map((section) => (
-                    <Card key={section.pillar} className="p-4">
-                      <div className="flex items-center space-x-2 mb-3">
-                        <div className="text-carbon-blue">{section.icon}</div>
-                        <h4 className="font-medium text-carbon-gray-100">{section.title}</h4>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {section.tags.map((tag: any) => (
-                          <Button
-                            key={tag.id}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                            onClick={() => handleBulkTagApplication(tag.id, section.pillar)}
-                          >
-                            {tag.name}
-                          </Button>
-                        ))}
-                      </div>
-                    </Card>
-                  ))}
+                  {displayCategories.map((category: any) => {
+                    const categoryTags = getTagsForCategory(category.name);
+                    if (categoryTags.length === 0) return null;
+                    
+                    return (
+                      <Card key={category.id} className="p-4">
+                        <div className="flex items-center space-x-2 mb-3">
+                          <div className="text-carbon-blue">{getCategoryIcon(category.name)}</div>
+                          <h4 className="font-medium text-carbon-gray-100">{category.name} ({category.tagCount})</h4>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {categoryTags.map((tag: any) => (
+                            <Button
+                              key={tag.id}
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => handleBulkTagApplication(tag.id, category.name.toLowerCase().replace(/\s+/g, '_'))}
+                            >
+                              {tag.name}
+                            </Button>
+                          ))}
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             ) : (
