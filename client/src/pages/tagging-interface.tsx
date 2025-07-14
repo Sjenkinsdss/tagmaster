@@ -142,12 +142,7 @@ export default function TaggingInterface() {
   };
 
   // Get the most relevant categories for display (limit to top 8 most common)
-  // Filter out categories that have no actual tags available
   const displayCategories = categories
-    .filter((category: any) => {
-      const categoryTags = getTagsForCategory(category.name);
-      return categoryTags.length > 0 && parseInt(category.tagCount) > 0;
-    })
     .sort((a: any, b: any) => parseInt(b.tagCount) - parseInt(a.tagCount))
     .slice(0, 8);
 
