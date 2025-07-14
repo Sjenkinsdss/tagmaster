@@ -738,7 +738,7 @@ export default function TaggingInterface() {
                       <h3 className="font-medium text-green-800">Connected Tags ({enrichedSelectedPost.postTags.length})</h3>
                     </div>
                     
-                    {/* Group connected tags by category */}
+                    {/* Group connected tags by category and sort by type */}
                     {(() => {
                       const tagsByCategory = enrichedSelectedPost.postTags.reduce((acc: any, postTag: any) => {
                         const categoryName = postTag.tag.tag_type_name || postTag.tag.categoryName || 'Uncategorized';
@@ -749,23 +749,33 @@ export default function TaggingInterface() {
                         return acc;
                       }, {});
                       
-                      return Object.entries(tagsByCategory).map(([categoryName, categoryTags]: [string, any]) => (
-                        <div key={categoryName} className="mb-3 last:mb-0">
-                          <h4 className="text-sm font-medium text-green-700 mb-2">
-                            {categoryName} ({(categoryTags as any[]).length})
-                          </h4>
-                          <div className="flex flex-wrap gap-2">
-                            {(categoryTags as any[]).map((postTag: any) => (
-                              <span
-                                key={postTag.id}
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                              >
-                                {postTag.tag.name}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ));
+                      // Sort categories alphabetically and tags within each category by name
+                      return Object.entries(tagsByCategory)
+                        .sort(([a], [b]) => a.localeCompare(b))
+                        .map(([categoryName, categoryTags]: [string, any]) => {
+                          // Sort tags within category by name
+                          const sortedTags = (categoryTags as any[]).sort((a, b) => 
+                            a.tag.name.localeCompare(b.tag.name)
+                          );
+                          
+                          return (
+                            <div key={categoryName} className="mb-3 last:mb-0">
+                              <h4 className="text-sm font-medium text-green-700 mb-2">
+                                {categoryName} ({sortedTags.length})
+                              </h4>
+                              <div className="flex flex-wrap gap-2">
+                                {sortedTags.map((postTag: any) => (
+                                  <span
+                                    key={postTag.id}
+                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                                  >
+                                    {postTag.tag.name}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        });
                     })()}
                   </div>
                 )}
