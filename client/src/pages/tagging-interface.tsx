@@ -738,45 +738,45 @@ export default function TaggingInterface() {
                       <h3 className="font-medium text-green-800">Connected Tags ({enrichedSelectedPost.postTags.length})</h3>
                     </div>
                     
-                    {/* Group connected tags by category, then by type */}
+                    {/* Group connected tags by type, then by category */}
                     {(() => {
-                      // First group by category
-                      const tagsByCategory = enrichedSelectedPost.postTags.reduce((acc: any, postTag: any) => {
-                        const categoryName = postTag.tag.tag_type_name || postTag.tag.categoryName || 'Uncategorized';
-                        if (!acc[categoryName]) {
-                          acc[categoryName] = {};
+                      // First group by tag type/pillar
+                      const tagsByType = enrichedSelectedPost.postTags.reduce((acc: any, postTag: any) => {
+                        const tagType = postTag.tag.pillar || 'general';
+                        if (!acc[tagType]) {
+                          acc[tagType] = {};
                         }
                         
-                        // Then group by tag type/pillar within each category
-                        const tagType = postTag.tag.pillar || 'general';
-                        if (!acc[categoryName][tagType]) {
-                          acc[categoryName][tagType] = [];
+                        // Then group by category within each type
+                        const categoryName = postTag.tag.tag_type_name || postTag.tag.categoryName || 'Uncategorized';
+                        if (!acc[tagType][categoryName]) {
+                          acc[tagType][categoryName] = [];
                         }
-                        acc[categoryName][tagType].push(postTag);
+                        acc[tagType][categoryName].push(postTag);
                         return acc;
                       }, {});
                       
-                      // Sort categories alphabetically
-                      return Object.entries(tagsByCategory)
+                      // Sort types alphabetically
+                      return Object.entries(tagsByType)
                         .sort(([a], [b]) => a.localeCompare(b))
-                        .map(([categoryName, tagTypes]: [string, any]) => (
-                          <div key={categoryName} className="mb-4 last:mb-0">
-                            <h4 className="text-sm font-medium text-green-700 mb-3">
-                              {categoryName} ({Object.values(tagTypes).flat().length})
+                        .map(([typeName, categories]: [string, any]) => (
+                          <div key={typeName} className="mb-4 last:mb-0">
+                            <h4 className="text-sm font-medium text-green-700 mb-3 capitalize">
+                              {typeName} ({Object.values(categories).flat().length})
                             </h4>
                             
-                            {/* Group by type within category */}
-                            {Object.entries(tagTypes)
+                            {/* Group by category within type */}
+                            {Object.entries(categories)
                               .sort(([a], [b]) => a.localeCompare(b))
-                              .map(([typeName, typeTags]: [string, any]) => {
-                                const sortedTags = (typeTags as any[]).sort((a, b) => 
+                              .map(([categoryName, categoryTags]: [string, any]) => {
+                                const sortedTags = (categoryTags as any[]).sort((a, b) => 
                                   a.tag.name.localeCompare(b.tag.name)
                                 );
                                 
                                 return (
-                                  <div key={`${categoryName}-${typeName}`} className="mb-2 last:mb-0 ml-3">
-                                    <h5 className="text-xs font-medium text-green-600 mb-1 capitalize">
-                                      {typeName} ({sortedTags.length})
+                                  <div key={`${typeName}-${categoryName}`} className="mb-2 last:mb-0 ml-3">
+                                    <h5 className="text-xs font-medium text-green-600 mb-1">
+                                      {categoryName} ({sortedTags.length})
                                     </h5>
                                     <div className="flex flex-wrap gap-1.5">
                                       {sortedTags.map((postTag: any) => (
