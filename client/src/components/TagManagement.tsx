@@ -812,14 +812,16 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Tag Creation</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to create this new tag with the following details?
-              <div className="mt-3 p-3 bg-gray-50 rounded border space-y-2">
-                <div><strong>Type:</strong> {newTagData.type}</div>
-                <div><strong>Category:</strong> {newTagData.category === "none" ? "No specific category" : newTagData.category}</div>
-                <div><strong>Name:</strong> {newTagData.name}</div>
-                <div className="text-xs text-gray-600">
-                  <strong>Auto-generated Code:</strong> {newTagData.type}_{newTagData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_####
+            <AlertDialogDescription asChild>
+              <div>
+                Are you sure you want to create this new tag with the following details?
+                <div className="mt-3 p-3 bg-gray-50 rounded border space-y-2">
+                  <div><strong>Type:</strong> {newTagData.type}</div>
+                  <div><strong>Category:</strong> {newTagData.category === "none" ? "No specific category" : newTagData.category}</div>
+                  <div><strong>Name:</strong> {newTagData.name}</div>
+                  <div className="text-xs text-gray-600">
+                    <strong>Auto-generated Code:</strong> {newTagData.type}_{newTagData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_####
+                  </div>
                 </div>
               </div>
             </AlertDialogDescription>
