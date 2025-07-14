@@ -112,9 +112,6 @@ export default function TagSection({
           {icon}
           <span className="ml-2">{title}</span>
         </h3>
-        <Badge variant="secondary" className="text-carbon-gray-70 bg-carbon-gray-20">
-          {postTags.length}
-        </Badge>
       </div>
       
       {/* AI Generated Tags */}
