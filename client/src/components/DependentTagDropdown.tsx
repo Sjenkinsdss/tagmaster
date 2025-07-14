@@ -180,11 +180,7 @@ export default function DependentTagDropdown({ onTagSelect, selectedPost }: Depe
         )}
 
         {/* Categories Info */}
-        {categories.length > 0 && (
-          <div className="text-xs text-carbon-gray-70">
-            {categories.length} categories available with {categories.reduce((sum: number, cat: Category) => sum + cat.tagCount, 0)} total tags
-          </div>
-        )}
+
       </CardContent>
     </Card>
   );
