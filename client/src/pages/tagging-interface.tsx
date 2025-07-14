@@ -138,7 +138,7 @@ export default function TaggingInterface() {
   
   // Create category-based tag groups
   const getTagsForCategory = (categoryName: string) => {
-    return tags.filter((tag: any) => tag.categoryName === categoryName);
+    return tags.filter((tag: any) => tag.tag_type_name === categoryName);
   };
 
   // Get the most relevant categories for display (limit to top 8 most common)

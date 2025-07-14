@@ -532,6 +532,8 @@ export class DatabaseStorage implements IStorage {
         pillar: this.mapTagTypeToPillar(row.tag_type_name),
         isAiGenerated: row.tag_source === 'client' ? false : true,
         createdAt: new Date(),
+        tag_type_name: row.tag_type_name || 'general', // Include the category name for frontend filtering
+        categoryName: row.tag_type_name || 'general' // Also include as categoryName for consistency
       }));
     } catch (error) {
       console.error('Error fetching tags from production DB:', error);
