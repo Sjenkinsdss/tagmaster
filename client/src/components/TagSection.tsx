@@ -107,12 +107,7 @@ export default function TagSection({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-medium text-carbon-gray-100 flex items-center">
-          {icon}
-          <span className="ml-2">{title}</span>
-        </h3>
-      </div>
+
       
       {/* AI Generated Tags */}
       {aiTags.length > 0 && (
