@@ -498,6 +498,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Tag Recommendation Engine API Routes
+  app.get("/api/posts/:postId/tag-recommendations", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      
+      console.log(`Getting tag recommendations for post ${postId}`);
+      const recommendations = await storage.getTagRecommendations(postId, limit);
+      
+      res.json({
+        success: true,
+        postId,
+        recommendations,
+        total: recommendations.length
+      });
+    } catch (error) {
+      console.error("Error getting tag recommendations:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get tag recommendations",
+        error: String(error)
+      });
+    }
+  });
+
+  app.get("/api/tag-analytics/co-occurrence", async (req, res) => {
+    try {
+      console.log("Getting tag co-occurrence data");
+      const coOccurrenceData = await storage.getTagCoOccurrenceData();
+      
+      res.json({
+        success: true,
+        data: coOccurrenceData,
+        total: coOccurrenceData.length
+      });
+    } catch (error) {
+      console.error("Error getting co-occurrence data:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get tag co-occurrence data",
+        error: String(error)
+      });
+    }
+  });
+
+  app.post("/api/content/similar-tags", async (req, res) => {
+    try {
+      const { content, limit = 5 } = req.body;
+      
+      if (!content || typeof content !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: "Content text is required"
+        });
+      }
+      
+      console.log("Getting content-similar tags for:", content.substring(0, 100) + "...");
+      const similarTags = await storage.getContentSimilarTags(content, limit);
+      
+      res.json({
+        success: true,
+        tags: similarTags,
+        total: similarTags.length
+      });
+    } catch (error) {
+      console.error("Error getting content-similar tags:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get content-similar tags",
+        error: String(error)
+      });
+    }
+  });
+
+  app.get("/api/user/tagging-patterns", async (req, res) => {
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      
+      console.log("Getting user tagging patterns for user:", userId || "general");
+      const patterns = await storage.getUserTaggingPatterns(userId);
+      
+      res.json({
+        success: true,
+        patterns,
+        total: patterns.length
+      });
+    } catch (error) {
+      console.error("Error getting user tagging patterns:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to get user tagging patterns",
+        error: String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -61,6 +61,16 @@ export interface IStorage {
   // Ad-Tag relationship methods
   syncAdTagsWithPost(adId: number, postId: number): Promise<void>;
   getAdTags(adId: number): Promise<(AdTag & { tag: Tag })[]>;
+
+  // Tag Recommendation methods
+  getTagRecommendations(postId: number, limit?: number): Promise<{
+    tag: Tag;
+    score: number;
+    reasons: string[];
+  }[]>;
+  getTagCoOccurrenceData(): Promise<{ tagId1: number; tagId2: number; frequency: number }[]>;
+  getContentSimilarTags(postContent: string, limit?: number): Promise<Tag[]>;
+  getUserTaggingPatterns(userId?: number): Promise<{ tagId: number; frequency: number; pillar: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -902,6 +912,366 @@ export class DatabaseStorage implements IStorage {
         tag: tags[0],
       },
     ];
+  }
+
+  // Tag Recommendation Engine Implementation
+  async getTagRecommendations(postId: number, limit: number = 10): Promise<{
+    tag: Tag;
+    score: number;
+    reasons: string[];
+  }[]> {
+    try {
+      console.log(`Getting tag recommendations for post ${postId}`);
+      
+      // Get the current post and its content
+      const post = await this.getPost(postId);
+      if (!post) {
+        return [];
+      }
+      
+      // Get all tags and current post tags
+      const allTags = await this.getTags();
+      const currentTags = await this.getPostTags(postId);
+      const currentTagIds = new Set(currentTags.map(pt => pt.tagId));
+      
+      // Get available tags (not already applied to this post)
+      const availableTags = allTags.filter(tag => !currentTagIds.has(tag.id));
+      
+      // Calculate recommendations based on multiple factors
+      const recommendations = [];
+      
+      for (const tag of availableTags) {
+        const score = await this.calculateTagScore(post, tag, currentTags);
+        const reasons = await this.getTagRecommendationReasons(post, tag, currentTags);
+        
+        if (score > 0) {
+          recommendations.push({
+            tag,
+            score,
+            reasons
+          });
+        }
+      }
+      
+      // Sort by score and return top recommendations
+      return recommendations
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit);
+      
+    } catch (error) {
+      console.error("Error getting tag recommendations:", error);
+      return [];
+    }
+  }
+
+  private async calculateTagScore(post: any, tag: Tag, currentTags: any[]): Promise<number> {
+    let score = 0;
+    
+    // Content similarity score (30% weight)
+    const contentScore = await this.calculateContentSimilarityScore(post, tag);
+    score += contentScore * 0.3;
+    
+    // Co-occurrence score (25% weight)
+    const coOccurrenceScore = await this.calculateCoOccurrenceScore(tag, currentTags);
+    score += coOccurrenceScore * 0.25;
+    
+    // Pillar consistency score (20% weight)
+    const pillarScore = this.calculatePillarConsistencyScore(tag, currentTags);
+    score += pillarScore * 0.2;
+    
+    // Popularity score (15% weight)
+    const popularityScore = await this.calculatePopularityScore(tag);
+    score += popularityScore * 0.15;
+    
+    // Platform relevance score (10% weight)
+    const platformScore = this.calculatePlatformRelevanceScore(post, tag);
+    score += platformScore * 0.1;
+    
+    return Math.round(score * 100) / 100; // Round to 2 decimal places
+  }
+
+  private async calculateContentSimilarityScore(post: any, tag: Tag): Promise<number> {
+    try {
+      // Get post content for analysis
+      const postContent = (post.title || post.metadata?.content || '').toLowerCase();
+      const tagName = tag.name.toLowerCase();
+      
+      // Simple keyword matching (in production, this could use NLP/embedding similarity)
+      if (postContent.includes(tagName)) {
+        return 1.0; // Exact match
+      }
+      
+      // Check for partial matches and related terms
+      const tagWords = tagName.split(/[\s-_]+/);
+      let matchCount = 0;
+      
+      for (const word of tagWords) {
+        if (word.length > 2 && postContent.includes(word)) {
+          matchCount++;
+        }
+      }
+      
+      const partialScore = tagWords.length > 0 ? matchCount / tagWords.length : 0;
+      
+      // Additional content-based scoring
+      if (tag.pillar === 'product' && (postContent.includes('wear') || postContent.includes('outfit') || postContent.includes('fashion'))) {
+        return Math.max(partialScore, 0.6);
+      }
+      
+      if (tag.pillar === 'influencer' && (postContent.includes('collab') || postContent.includes('partnership'))) {
+        return Math.max(partialScore, 0.5);
+      }
+      
+      return partialScore;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  private async calculateCoOccurrenceScore(tag: Tag, currentTags: any[]): Promise<number> {
+    try {
+      if (currentTags.length === 0) return 0;
+      
+      // Query co-occurrence data from production database
+      const currentTagIds = currentTags.map(ct => ct.tagId);
+      
+      let coOccurrenceScore = 0;
+      let totalChecks = 0;
+      
+      for (const currentTagId of currentTagIds) {
+        const coOccurrenceResult = await db.execute(sql`
+          SELECT COUNT(*) as frequency
+          FROM debra_posts_influencer_tags pt1
+          JOIN debra_posts_influencer_tags pt2 ON pt1.post_id = pt2.post_id
+          WHERE pt1.influencertag_id = ${currentTagId}
+          AND pt2.influencertag_id = ${tag.id}
+          AND pt1.influencertag_id != pt2.influencertag_id
+        `);
+        
+        const frequency = parseInt(coOccurrenceResult.rows[0]?.frequency || '0');
+        if (frequency > 0) {
+          coOccurrenceScore += Math.min(frequency / 10, 1.0); // Normalize to 0-1
+        }
+        totalChecks++;
+      }
+      
+      return totalChecks > 0 ? coOccurrenceScore / totalChecks : 0;
+    } catch (error) {
+      console.error("Error calculating co-occurrence score:", error);
+      return 0;
+    }
+  }
+
+  private calculatePillarConsistencyScore(tag: Tag, currentTags: any[]): number {
+    if (currentTags.length === 0) return 0.5; // Neutral score for first tag
+    
+    const currentPillars = currentTags.map(ct => ct.tag.pillar);
+    const pillarCounts = currentPillars.reduce((acc, pillar) => {
+      acc[pillar] = (acc[pillar] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    // Prefer balanced tag distribution across pillars
+    const currentPillarCount = pillarCounts[tag.pillar] || 0;
+    const maxPillarCount = Math.max(...Object.values(pillarCounts));
+    
+    if (currentPillarCount === 0) {
+      return 0.8; // Encourage diversity
+    } else if (currentPillarCount < maxPillarCount) {
+      return 0.6; // Moderate preference for balancing
+    } else {
+      return 0.3; // Discourage over-concentration in one pillar
+    }
+  }
+
+  private async calculatePopularityScore(tag: Tag): Promise<number> {
+    try {
+      // Get tag usage frequency from production database
+      const usageResult = await db.execute(sql`
+        SELECT COUNT(*) as usage_count
+        FROM debra_posts_influencer_tags
+        WHERE influencertag_id = ${tag.id}
+      `);
+      
+      const usageCount = parseInt(usageResult.rows[0]?.usage_count || '0');
+      
+      // Normalize popularity score (log scale to prevent bias toward overly popular tags)
+      if (usageCount === 0) return 0.1;
+      if (usageCount < 5) return 0.3;
+      if (usageCount < 20) return 0.5;
+      if (usageCount < 100) return 0.7;
+      return 0.9;
+    } catch (error) {
+      return 0.5; // Default moderate score
+    }
+  }
+
+  private calculatePlatformRelevanceScore(post: any, tag: Tag): number {
+    const platform = post.platform?.toLowerCase() || '';
+    
+    // Platform-specific tag relevance
+    if (platform.includes('tiktok') && tag.name.toLowerCase().includes('tiktok')) return 1.0;
+    if (platform.includes('instagram') && tag.name.toLowerCase().includes('instagram')) return 1.0;
+    if (platform.includes('youtube') && tag.name.toLowerCase().includes('youtube')) return 1.0;
+    
+    // General social media relevance
+    if (tag.pillar === 'influencer') return 0.8;
+    if (tag.pillar === 'campaign') return 0.7;
+    if (tag.pillar === 'product') return 0.6;
+    
+    return 0.5; // Default moderate relevance
+  }
+
+  private async getTagRecommendationReasons(post: any, tag: Tag, currentTags: any[]): Promise<string[]> {
+    const reasons = [];
+    
+    // Content similarity reason
+    const contentScore = await this.calculateContentSimilarityScore(post, tag);
+    if (contentScore > 0.7) {
+      reasons.push("Strong content match");
+    } else if (contentScore > 0.4) {
+      reasons.push("Partial content relevance");
+    }
+    
+    // Co-occurrence reason
+    const coOccurrenceScore = await this.calculateCoOccurrenceScore(tag, currentTags);
+    if (coOccurrenceScore > 0.5) {
+      reasons.push("Frequently used with similar tags");
+    }
+    
+    // Popularity reason
+    const popularityScore = await this.calculatePopularityScore(tag);
+    if (popularityScore > 0.7) {
+      reasons.push("Popular tag");
+    }
+    
+    // Pillar balance reason
+    const pillarScore = this.calculatePillarConsistencyScore(tag, currentTags);
+    if (pillarScore > 0.7) {
+      reasons.push("Improves tag diversity");
+    }
+    
+    // Platform relevance reason
+    const platformScore = this.calculatePlatformRelevanceScore(post, tag);
+    if (platformScore > 0.7) {
+      reasons.push("Platform relevant");
+    }
+    
+    if (reasons.length === 0) {
+      reasons.push("General relevance");
+    }
+    
+    return reasons;
+  }
+
+  async getTagCoOccurrenceData(): Promise<{ tagId1: number; tagId2: number; frequency: number }[]> {
+    try {
+      const result = await db.execute(sql`
+        SELECT 
+          pt1.influencertag_id as tagId1,
+          pt2.influencertag_id as tagId2,
+          COUNT(*) as frequency
+        FROM debra_posts_influencer_tags pt1
+        JOIN debra_posts_influencer_tags pt2 ON pt1.post_id = pt2.post_id
+        WHERE pt1.influencertag_id < pt2.influencertag_id
+        GROUP BY pt1.influencertag_id, pt2.influencertag_id
+        HAVING COUNT(*) >= 2
+        ORDER BY frequency DESC
+        LIMIT 1000
+      `);
+      
+      return result.rows.map(row => ({
+        tagId1: parseInt(row.tagid1),
+        tagId2: parseInt(row.tagid2),
+        frequency: parseInt(row.frequency)
+      }));
+    } catch (error) {
+      console.error("Error getting co-occurrence data:", error);
+      return [];
+    }
+  }
+
+  async getContentSimilarTags(postContent: string, limit: number = 5): Promise<Tag[]> {
+    try {
+      const allTags = await this.getTags();
+      const contentLower = postContent.toLowerCase();
+      
+      const similarTags = allTags
+        .map(tag => {
+          const relevanceScore = this.calculateContentRelevance(contentLower, tag);
+          return { tag, score: relevanceScore };
+        })
+        .filter(item => item.score > 0.3)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(item => item.tag);
+      
+      return similarTags;
+    } catch (error) {
+      console.error("Error getting content similar tags:", error);
+      return [];
+    }
+  }
+
+  private calculateContentRelevance(content: string, tag: Tag): number {
+    const tagName = tag.name.toLowerCase();
+    const tagWords = tagName.split(/[\s-_]+/);
+    
+    let score = 0;
+    
+    // Exact name match
+    if (content.includes(tagName)) {
+      score += 1.0;
+    }
+    
+    // Partial word matches
+    let wordMatches = 0;
+    for (const word of tagWords) {
+      if (word.length > 2 && content.includes(word)) {
+        wordMatches++;
+      }
+    }
+    
+    if (tagWords.length > 0) {
+      score += (wordMatches / tagWords.length) * 0.7;
+    }
+    
+    // Semantic relevance based on pillar
+    if (tag.pillar === 'product') {
+      if (content.includes('product') || content.includes('wear') || content.includes('style')) {
+        score += 0.3;
+      }
+    }
+    
+    return Math.min(score, 1.0);
+  }
+
+  async getUserTaggingPatterns(userId?: number): Promise<{ tagId: number; frequency: number; pillar: string }[]> {
+    try {
+      // Since we don't have user-specific data, return general tagging patterns
+      const result = await db.execute(sql`
+        SELECT 
+          dit.id as tagId,
+          COUNT(dpit.post_id) as frequency,
+          COALESCE(ditt.name, 'general') as pillar
+        FROM debra_influencertag dit
+        LEFT JOIN debra_posts_influencer_tags dpit ON dit.id = dpit.influencertag_id
+        LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+        GROUP BY dit.id, ditt.name
+        HAVING COUNT(dpit.post_id) > 0
+        ORDER BY frequency DESC
+        LIMIT 100
+      `);
+      
+      return result.rows.map(row => ({
+        tagId: parseInt(row.tagid),
+        frequency: parseInt(row.frequency),
+        pillar: this.mapTagTypeToPillar(row.pillar || 'general')
+      }));
+    } catch (error) {
+      console.error("Error getting user tagging patterns:", error);
+      return [];
+    }
   }
 }
 

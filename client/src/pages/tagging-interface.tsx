@@ -16,6 +16,7 @@ import TagSection from "@/components/TagSection";
 import PaidAdItem from "@/components/PaidAdItem";
 import TagManagement from "@/components/TagManagement";
 import DependentTagDropdown from "@/components/DependentTagDropdown";
+import TagRecommendations from "@/components/TagRecommendations";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -806,6 +807,19 @@ export default function TaggingInterface() {
                     })()}
                   </div>
                 )}
+                
+                {/* AI Tag Recommendations */}
+                <TagRecommendations
+                  selectedPost={enrichedSelectedPost}
+                  onTagSelect={(tag) => {
+                    toast({
+                      title: "Tag Selected from AI",
+                      description: `AI recommended "${tag.name}" - adding to post`,
+                    });
+                    // Note: In read-only mode, this is just for demonstration
+                    // In a writable database, you would call the API to add the tag
+                  }}
+                />
                 
                 {/* Display categories dynamically organized by production data */}
                 {displayCategories.map((category: any) => {
