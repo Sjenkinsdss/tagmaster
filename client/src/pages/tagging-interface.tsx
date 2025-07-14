@@ -730,23 +730,43 @@ export default function TaggingInterface() {
 
             {enrichedSelectedPost ? (
               <div className="space-y-6">
-                {/* Show Connected Tags for this Post */}
+                {/* Show Connected Tags for this Post - Grouped by Category */}
                 {enrichedSelectedPost.postTags && enrichedSelectedPost.postTags.length > 0 && (
                   <div className="border rounded-lg p-4 bg-green-50 border-green-200">
-                    <div className="flex items-center space-x-2 mb-3">
+                    <div className="flex items-center space-x-2 mb-4">
                       <Tags className="w-5 h-5 text-green-600" />
                       <h3 className="font-medium text-green-800">Connected Tags ({enrichedSelectedPost.postTags.length})</h3>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {enrichedSelectedPost.postTags.map((postTag: any) => (
-                        <span
-                          key={postTag.id}
-                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
-                        >
-                          {postTag.tag.name}
-                        </span>
-                      ))}
-                    </div>
+                    
+                    {/* Group connected tags by category */}
+                    {(() => {
+                      const tagsByCategory = enrichedSelectedPost.postTags.reduce((acc: any, postTag: any) => {
+                        const categoryName = postTag.tag.tag_type_name || postTag.tag.categoryName || 'Uncategorized';
+                        if (!acc[categoryName]) {
+                          acc[categoryName] = [];
+                        }
+                        acc[categoryName].push(postTag);
+                        return acc;
+                      }, {});
+                      
+                      return Object.entries(tagsByCategory).map(([categoryName, categoryTags]: [string, any]) => (
+                        <div key={categoryName} className="mb-3 last:mb-0">
+                          <h4 className="text-sm font-medium text-green-700 mb-2">
+                            {categoryName} ({(categoryTags as any[]).length})
+                          </h4>
+                          <div className="flex flex-wrap gap-2">
+                            {(categoryTags as any[]).map((postTag: any) => (
+                              <span
+                                key={postTag.id}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"
+                              >
+                                {postTag.tag.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                    })()}
                   </div>
                 )}
                 
