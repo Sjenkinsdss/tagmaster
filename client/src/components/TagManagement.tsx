@@ -254,13 +254,24 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
     }));
   };
 
+  // Group tags by type (pillar) and then by category
   const groupedTags = tags.reduce((acc, tag) => {
-    if (!acc[tag.pillar]) {
-      acc[tag.pillar] = [];
+    const tagType = tag.pillar || 'general';
+    
+    if (!acc[tagType]) {
+      acc[tagType] = {};
     }
-    acc[tag.pillar].push(tag);
+    
+    // Get category name from tag (assuming it might have tag_type_name or categoryName)
+    const categoryName = (tag as any).tag_type_name || (tag as any).categoryName || 'Uncategorized';
+    
+    if (!acc[tagType][categoryName]) {
+      acc[tagType][categoryName] = [];
+    }
+    
+    acc[tagType][categoryName].push(tag);
     return acc;
-  }, {} as Record<string, TagType[]>);
+  }, {} as Record<string, Record<string, TagType[]>>);
 
   const selectedTagsList = tags.filter(tag => selectedTags.has(tag.id));
 
@@ -332,65 +343,84 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
         </CardContent>
       </Card>
 
-      {/* Tag List by Category */}
+      {/* Tag List by Type → Category */}
       <div className="space-y-4">
-        {Object.entries(groupedTags).map(([pillar, pillarTags]) => (
-          <Card key={pillar}>
-            <CardHeader>
-              <CardTitle className="capitalize">{pillar} Tags ({pillarTags.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {pillarTags.map((tag) => (
-                  <div
-                    key={tag.id}
-                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <input
-                        type="checkbox"
-                        checked={selectedTags.has(tag.id)}
-                        onChange={(e) => handleTagSelection(tag.id, e.target.checked)}
-                        className="rounded border-gray-300"
-                      />
-                      <div>
-                        <p className="font-medium text-carbon-gray-100">{tag.name}</p>
-                        <p className="text-xs text-carbon-gray-70">{tag.code}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center space-x-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(tag)}
-                        className="text-carbon-blue"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openSplitDialog(tag)}
-                        className="text-green-600"
-                      >
-                        <Split className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openDeleteDialog(tag)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+        {Object.entries(groupedTags)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([typeName, categories]) => {
+            const totalTags = Object.values(categories).flat().length;
+            
+            return (
+              <Card key={typeName}>
+                <CardHeader>
+                  <CardTitle className="capitalize">{typeName} Types ({totalTags})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {Object.entries(categories)
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([categoryName, categoryTags]) => (
+                        <div key={`${typeName}-${categoryName}`} className="border rounded-lg p-3">
+                          <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                            {categoryName} ({categoryTags.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {categoryTags
+                              .sort((a, b) => a.name.localeCompare(b.name))
+                              .map((tag) => (
+                                <div
+                                  key={tag.id}
+                                  className="flex items-center justify-between p-2 border rounded hover:bg-gray-50"
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedTags.has(tag.id)}
+                                      onChange={(e) => handleTagSelection(tag.id, e.target.checked)}
+                                      className="rounded border-gray-300"
+                                    />
+                                    <div>
+                                      <p className="font-medium text-carbon-gray-100">{tag.name}</p>
+                                      <p className="text-xs text-carbon-gray-70">{tag.code}</p>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex items-center space-x-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openEditDialog(tag)}
+                                      className="text-carbon-blue"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openSplitDialog(tag)}
+                                      className="text-green-600"
+                                    >
+                                      <Split className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => openDeleteDialog(tag)}
+                                      className="text-red-600"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      ))}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                </CardContent>
+              </Card>
+            );
+          })}
       </div>
 
       {/* Merge Dialog */}
