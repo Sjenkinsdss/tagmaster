@@ -523,6 +523,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Apply AI recommendation - creates tag in Replit DB and connects to post
+  app.post("/api/posts/:postId/apply-recommendation", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const { tagId } = req.body;
+      
+      console.log(`Applying AI recommendation: tag ${tagId} to post ${postId}`);
+      
+      // First, check if this is a production tag that needs to be recreated in Replit DB
+      const allTags = await storage.getTags();
+      const sourceTag = allTags.find(t => t.id === tagId);
+      
+      if (!sourceTag) {
+        return res.status(404).json({
+          success: false,
+          message: "Tag not found"
+        });
+      }
+      
+      let replitTagId = tagId;
+      
+      // If this is a production tag (ID < 100000), create it in Replit DB
+      if (tagId < 100000) {
+        console.log(`Creating production tag "${sourceTag.name}" in Replit database`);
+        
+        // Generate a new code for the Replit tag
+        const newCode = await storage.generateTagCode(sourceTag.pillar, sourceTag.name);
+        
+        // Create the tag in Replit DB
+        const newTag = await storage.createNewTag({
+          name: sourceTag.name,
+          pillar: sourceTag.pillar,
+          isAiGenerated: true,
+          code: newCode
+        });
+        
+        replitTagId = newTag.id;
+        console.log(`Created new tag in Replit DB with ID: ${replitTagId}`);
+      }
+      
+      // Add the tag to the post in Replit DB
+      const postTag = await storage.addTagToPostReplit(postId, replitTagId);
+      
+      res.json({
+        success: true,
+        postTag,
+        tagId: replitTagId,
+        message: "AI recommendation applied successfully"
+      });
+    } catch (error) {
+      console.error("Error applying AI recommendation:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to apply AI recommendation",
+        error: String(error)
+      });
+    }
+  });
+
   app.get("/api/tag-analytics/co-occurrence", async (req, res) => {
     try {
       console.log("Getting tag co-occurrence data");

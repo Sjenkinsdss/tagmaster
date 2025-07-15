@@ -38,32 +38,35 @@ export default function TagRecommendations({ selectedPost, onTagSelect }: TagRec
     refetchOnMount: true,
   });
 
-  // Add tag to post mutation - using Replit database
+  // Apply AI recommendation mutation - creates tag in Replit DB and connects to post
   const addTagMutation = useMutation({
     mutationFn: async ({ postId, tagId }: { postId: number; tagId: number }) => {
-      const response = await apiRequest("POST", `/api/posts/${postId}/tags/${tagId}/replit`, {});
+      const response = await apiRequest("POST", `/api/posts/${postId}/apply-recommendation`, {
+        tagId
+      });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to add tag");
+        throw new Error(errorData.message || "Failed to apply AI recommendation");
       }
       return response.json();
     },
-    onSuccess: (_, { tagId }) => {
+    onSuccess: (data, { tagId }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/posts", selectedPost?.id, "tags"] });
       queryClient.invalidateQueries({ queryKey: ["/api/posts", selectedPost?.id, "tag-recommendations"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
       
       const recommendation = recommendations?.find(r => r.tag.id === tagId);
       toast({
-        title: "Tag Added Successfully",
-        description: `Added "${recommendation?.tag.name}" to the post in Replit database.`,
+        title: "AI Recommendation Applied",
+        description: `Successfully created and added "${recommendation?.tag.name}" tag to the post.`,
       });
     },
     onError: (error: any) => {
-      console.error("Error adding tag:", error);
+      console.error("Error applying AI recommendation:", error);
       toast({
-        title: "Error Adding Tag",
-        description: `Failed to add tag: ${error.message}`,
+        title: "Error Applying Recommendation",
+        description: `Failed to apply AI recommendation: ${error.message}`,
         variant: "destructive",
       });
     },
