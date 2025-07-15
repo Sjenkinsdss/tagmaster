@@ -550,12 +550,13 @@ export class DatabaseStorage implements IStorage {
             .from(replitTagsTable);
           
           console.log(`Found ${replitTagsResult.length} tags in Replit database`);
+          console.log("Sample Replit tag raw data:", replitTagsResult[0]);
           
           replitTags = replitTagsResult.map((tag: any) => ({
             id: tag.id + 100000, // Offset to avoid ID conflicts with production
             name: tag.name,
             code: tag.code,
-            type: tag.type, // Include the new type field
+            type: tag.type || tag.pillar, // Include the new type field with fallback
             category: tag.category, // Include the new category field
             pillar: tag.pillar,
             isAiGenerated: tag.isAiGenerated,
