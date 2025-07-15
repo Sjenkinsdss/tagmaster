@@ -32,10 +32,17 @@ Preferred communication style: Simple, everyday language.
 The application uses a relational database with the following main entities:
 - **Users**: Basic user authentication (though not required for MVP)
 - **Posts**: Social media posts with platform, embed URLs, and metadata
-- **Tags**: Categorized tags with auto-generated codes (pillar_tagname_####)
+- **Tags**: Three-tier hierarchical tags with separate type, category, and name fields plus auto-generated codes (type_category_name_####)
 - **PostTags**: Many-to-many relationship between posts and tags
 - **PaidAds**: Advertisements linked to posts
 - **AdTags**: Many-to-many relationship between ads and tags
+
+#### Three-Tier Tag Hierarchy
+All tags must follow the mandatory three-tier structure:
+- **Type**: Primary classification (ad, campaign, client, post, ai, influencer)
+- **Category**: Secondary classification within type (Vertical, Creative, etc.)
+- **Name**: The actual tag identifier
+- **Code**: Auto-generated unique identifier (type_category_name_####)
 
 ### Connected Tags Organization System
 The interface displays tags connected to selected posts using a hierarchical Type → Category structure:
@@ -102,9 +109,10 @@ This system provides users with clear visibility into existing tag associations 
 - **TagInput**: Dynamic tag creation interface
 
 ### Backend Services
-- **Storage Layer**: Abstracted database operations through IStorage interface
-- **Route Handlers**: RESTful endpoints for posts, tags, and ads
-- **Database Connection**: Pooled connections with Neon serverless
+- **Storage Layer**: Abstracted database operations through IStorage interface with dual database support
+- **Route Handlers**: RESTful endpoints for posts, tags, and ads with three-tier tag support
+- **Database Connection**: Dual architecture with production (read-only) and Replit (writable) PostgreSQL databases
+- **Tag Management**: Complete CRUD operations with three-tier hierarchy validation
 
 ## Data Flow
 
@@ -114,7 +122,9 @@ This system provides users with clear visibility into existing tag associations 
 4. **Ad Linking**: Paid ads inherit tags from their linked posts by default but can be unlinked to break inheritance
 
 ### Tag Code Generation
-- Format: `pillar_tagname_####` (e.g., "product_shoes_0001")
+- **Three-Tier Format**: `type_category_name_####` (e.g., "ad_vertical_shoes_0001")
+- **Two-Tier Fallback**: `type_name_####` when no category specified
+- **Legacy Format**: `pillar_name_####` for backwards compatibility
 - Automatic generation ensures unique identification
 - Stable internal codes for database consistency
 
@@ -412,5 +422,5 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Production Data Compatibility**: System maintains backwards compatibility with existing production tags
 - **User Validation Complete**: User confirmed three-tier tag creation and display working correctly
 
-## MVP Status: ✅ Complete + Enhanced + Production Ready + Live Data + Combined Filtering + Pagination + Search + Bulk Operations + Advanced Tag Management + Client Integration + Performance Metrics + Dependent Dropdowns + Connected Tags Organization + UI Cleanup + Advanced Tag Creation + AI Recommendation Engine + Tag Management Synchronization + Create Tag Button Fixed
-The tagging interface MVP has been successfully delivered with comprehensive AI-powered tag recommendation engine and fully synchronized tag management system. All core features plus bulk editing, paid ad creation, combined campaign and client filtering, real-time production database integration, 6-category tag organization, working filter combinations, pagination system, universal search functionality, bulk post selection and tag operations, advanced tag management (merge, split, edit, delete), client tag integration from debra_brandjobpost, realistic ad performance metrics, dependent category-based tag selection system, hierarchical connected tags display with Type → Category organization, UI cleanup and simplification, advanced tag creation form with confirmation dialog, AI-powered tag recommendations with confidence scoring, dual database architecture for seamless read/write operations, and proper tag management synchronization across both databases are implemented and functioning correctly.
+## MVP Status: ✅ Complete + Enhanced + Production Ready + Live Data + Combined Filtering + Pagination + Search + Bulk Operations + Advanced Tag Management + Client Integration + Performance Metrics + Dependent Dropdowns + Connected Tags Organization + UI Cleanup + Advanced Tag Creation + AI Recommendation Engine + Tag Management Synchronization + Three-Tier Tag Hierarchy Complete
+The tagging interface MVP has been successfully delivered with comprehensive AI-powered tag recommendation engine, fully synchronized tag management system, and complete three-tier tag hierarchy implementation. All core features plus bulk editing, paid ad creation, combined campaign and client filtering, real-time production database integration, 6-category tag organization, working filter combinations, pagination system, universal search functionality, bulk post selection and tag operations, advanced tag management (merge, split, edit, delete), client tag integration from debra_brandjobpost, realistic ad performance metrics, dependent category-based tag selection system, hierarchical connected tags display with Type → Category organization, UI cleanup and simplification, advanced tag creation form with confirmation dialog, AI-powered tag recommendations with confidence scoring, dual database architecture for seamless read/write operations, proper tag management synchronization across both databases, and mandatory three-tier tag hierarchy (Type → Category → Name) with separate database storage and proper hierarchical display are implemented and functioning correctly.
