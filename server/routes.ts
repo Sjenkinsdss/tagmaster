@@ -217,17 +217,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate unique code
       const code = await storage.generateTagCode(tagData.pillar, tagData.name);
       
-      const tag = await storage.createTag({
+      // Use createNewTag to save to Replit database
+      const tag = await storage.createNewTag({
         ...tagData,
         code,
+        isAiGenerated: tagData.isAiGenerated || false
       });
       
       res.status(201).json(tag);
     } catch (error) {
+      console.error("Error creating tag:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid tag data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to create tag" });
+      res.status(500).json({ message: "Failed to create tag", error: String(error) });
     }
   });
 

@@ -1336,26 +1336,40 @@ export class DatabaseStorage implements IStorage {
   async createNewTag(insertTag: InsertTag & { code: string }): Promise<Tag> {
     try {
       if (!replitDb) {
+        console.error("Replit database not available");
         throw new Error("Replit database not available");
       }
       
       console.log("Creating new tag in Replit database:", insertTag);
+      console.log("Replit database connection status:", !!replitDb);
       
       // Import the tags table from schema
       const { tags } = await import("@shared/schema");
+      console.log("Tags schema imported successfully");
       
-      const [newTag] = await replitDb
-        .insert(tags)
-        .values({
-          name: insertTag.name,
-          code: insertTag.code,
-          pillar: insertTag.pillar,
-          isAiGenerated: insertTag.isAiGenerated || false
-        })
-        .returning();
-      
-      console.log("Successfully created new tag:", newTag);
-      return newTag;
+      try {
+        const result = await replitDb
+          .insert(tags)
+          .values({
+            name: insertTag.name,
+            code: insertTag.code,
+            pillar: insertTag.pillar,
+            isAiGenerated: insertTag.isAiGenerated || false
+          })
+          .returning();
+        
+        const newTag = result[0];
+        console.log("Successfully created new tag in database:", newTag);
+        
+        // Verify the tag was actually saved by querying it back
+        const verifyResult = await replitDb.select().from(tags).where(sql`id = ${newTag.id}`);
+        console.log("Verification query result:", verifyResult);
+        
+        return newTag;
+      } catch (dbError) {
+        console.error("Database insertion error:", dbError);
+        throw new Error(`Database insertion failed: ${dbError.message}`);
+      }
     } catch (error) {
       console.error("Error creating new tag in Replit database:", error);
       throw error;
