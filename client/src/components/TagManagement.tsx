@@ -258,8 +258,7 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       const response = await apiRequest("POST", "/api/tags", {
         name: newTagData.name.trim(),
         pillar: newTagData.type,
-        // Auto-generate code based on pillar and name
-        code: `${newTagData.type}_${newTagData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`
+        isAiGenerated: false
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -289,7 +288,10 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
   });
 
   const handleCreateTag = () => {
+    console.log("Create tag clicked with data:", newTagData);
+    
     if (!newTagData.type || !newTagData.name.trim()) {
+      console.log("Validation failed - missing type or name");
       toast({
         title: "Missing Information",
         description: "Please select a tag type and enter a tag name.",
@@ -297,10 +299,13 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       });
       return;
     }
+    
+    console.log("Opening confirmation dialog");
     setConfirmCreateDialogOpen(true);
   };
 
   const confirmCreateTag = () => {
+    console.log("Confirming tag creation for:", newTagData);
     createTagMutation.mutate();
   };
 
@@ -431,8 +436,8 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
           </div>
 
           <div className="flex justify-between items-center">
-            <p className="text-xs text-yellow-600 bg-yellow-50 p-2 rounded">
-              Note: Tag creation will show error message due to read-only database access.
+            <p className="text-xs text-green-600 bg-green-50 p-2 rounded">
+              Tags will be saved to the writable database.
             </p>
             <Button 
               onClick={handleCreateTag}
