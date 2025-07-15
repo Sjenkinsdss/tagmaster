@@ -406,7 +406,7 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
 
             {/* Tag Category Dropdown */}
             <div className="space-y-2">
-              <Label htmlFor="tag-category">Category (Optional)</Label>
+              <Label htmlFor="tag-category">Category</Label>
               <Select 
                 value={newTagData.category} 
                 onValueChange={(value) => setNewTagData(prev => ({ ...prev, category: value }))}
