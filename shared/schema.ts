@@ -23,8 +23,10 @@ export const posts = pgTable("posts", {
 export const tags = pgTable("tags", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  code: text("code").notNull().unique(), // pillar_tagname_####
-  pillar: text("pillar").notNull(), // product, influencer
+  code: text("code").notNull().unique(), // type_category_name_####
+  type: text("type"), // ad, campaign, client, post, ai, influencer
+  category: text("category"), // Vertical, Creative, etc.
+  pillar: text("pillar").notNull(), // Kept for backwards compatibility
   isAiGenerated: boolean("is_ai_generated").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -110,6 +112,8 @@ export const insertTagSchema = createInsertSchema(tags).omit({
   id: true,
   code: true,
   createdAt: true,
+}).extend({
+  category: z.string().optional(),
 });
 
 export const insertPaidAdSchema = createInsertSchema(paidAds).omit({

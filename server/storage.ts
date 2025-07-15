@@ -662,9 +662,23 @@ export class DatabaseStorage implements IStorage {
     console.log("Deleting tag:", id);
   }
 
-  async generateTagCode(pillar: string, name: string): Promise<string> {
+  async generateTagCode(pillar: string, name: string, type?: string, category?: string): Promise<string> {
     const cleanName = name.toLowerCase().replace(/\s+/g, '_');
     const randomNum = Math.floor(Math.random() * 9999) + 1;
+    
+    // Use three-tier format if type and category provided: type_category_name_####
+    if (type && category && category !== "none") {
+      const cleanCategory = category.toLowerCase().replace(/\s+/g, '_');
+      console.log(`Generating three-tier code: ${type}_${cleanCategory}_${cleanName}_####`);
+      return `${type.toLowerCase()}_${cleanCategory}_${cleanName}_${randomNum.toString().padStart(4, '0')}`;
+    }
+    
+    // Use type_name format if only type provided
+    if (type) {
+      return `${type.toLowerCase()}_${cleanName}_${randomNum.toString().padStart(4, '0')}`;
+    }
+    
+    // Fallback to original format for backwards compatibility
     return `${pillar}_${cleanName}_${randomNum.toString().padStart(4, '0')}`;
   }
 
@@ -1333,14 +1347,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Replit Database Write Methods
-  async createNewTag(insertTag: InsertTag & { code: string }): Promise<Tag> {
+  async createNewTag(insertTag: InsertTag & { code: string; type?: string; category?: string }): Promise<Tag> {
     try {
       if (!replitDb) {
         console.error("Replit database not available");
         throw new Error("Replit database not available");
       }
       
-      console.log("Creating new tag in Replit database:", insertTag);
+      console.log("Creating new tag in Replit database with three-tier hierarchy:", insertTag);
       console.log("Replit database connection status:", !!replitDb);
       
       // Import the tags table from schema
@@ -1353,6 +1367,8 @@ export class DatabaseStorage implements IStorage {
           .values({
             name: insertTag.name,
             code: insertTag.code,
+            type: insertTag.type,
+            category: insertTag.category,
             pillar: insertTag.pillar,
             isAiGenerated: insertTag.isAiGenerated || false
           })

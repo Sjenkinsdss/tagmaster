@@ -214,8 +214,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const tagData = insertTagSchema.parse(req.body);
       
-      // Generate unique code
-      const code = await storage.generateTagCode(tagData.pillar, tagData.name);
+      // Generate unique code using three-tier format if available
+      console.log("Generating code with params:", {
+        pillar: tagData.pillar,
+        name: tagData.name,
+        type: tagData.type,
+        category: tagData.category
+      });
+      const code = await storage.generateTagCode(
+        tagData.pillar, 
+        tagData.name, 
+        tagData.type, 
+        tagData.category
+      );
       
       // Use createNewTag to save to Replit database
       const tag = await storage.createNewTag({
