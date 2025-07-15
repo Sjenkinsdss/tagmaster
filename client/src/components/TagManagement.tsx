@@ -257,7 +257,7 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
     mutationFn: async () => {
       const response = await apiRequest("POST", "/api/tags", {
         name: newTagData.name.trim(),
-        pillar: newTagData.type,  // Always use the type as pillar
+        pillar: newTagData.category !== "none" ? newTagData.category.toLowerCase().replace(/\s+/g, '_') : newTagData.type,
         isAiGenerated: false
       });
       if (!response.ok) {
@@ -305,7 +305,8 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
   };
 
   const confirmCreateTag = () => {
-    console.log("Confirming tag creation for:", newTagData, "-> type:", newTagData.type, "category:", newTagData.category);
+    const pillar = newTagData.category !== "none" ? newTagData.category.toLowerCase().replace(/\s+/g, '_') : newTagData.type;
+    console.log("Confirming tag creation for:", newTagData, "-> using pillar:", pillar);
     createTagMutation.mutate();
   };
 
