@@ -332,16 +332,17 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
     }));
   };
 
-  // Group tags by type (pillar) and then by category
+  // Group tags by type and then by category (three-tier hierarchy)
   const groupedTags = tags.reduce((acc, tag) => {
-    const tagType = tag.pillar || 'general';
+    // Use the new 'type' field if available, fallback to 'pillar' for backwards compatibility
+    const tagType = (tag as any).type || tag.pillar || 'general';
     
     if (!acc[tagType]) {
       acc[tagType] = {};
     }
     
-    // Get category name from tag (assuming it might have tag_type_name or categoryName)
-    const categoryName = (tag as any).tag_type_name || (tag as any).categoryName || 'Uncategorized';
+    // Use the new 'category' field if available, otherwise fallback to existing fields
+    const categoryName = (tag as any).category || (tag as any).tag_type_name || (tag as any).categoryName || 'Uncategorized';
     
     if (!acc[tagType][categoryName]) {
       acc[tagType][categoryName] = [];

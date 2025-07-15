@@ -555,11 +555,13 @@ export class DatabaseStorage implements IStorage {
             id: tag.id + 100000, // Offset to avoid ID conflicts with production
             name: tag.name,
             code: tag.code,
+            type: tag.type, // Include the new type field
+            category: tag.category, // Include the new category field
             pillar: tag.pillar,
             isAiGenerated: tag.isAiGenerated,
             createdAt: tag.createdAt,
-            tag_type_name: tag.pillar,
-            categoryName: tag.pillar,
+            tag_type_name: tag.category || tag.pillar,
+            categoryName: tag.category || tag.pillar,
             tag_source: 'replit'
           }));
         } catch (replitError) {
