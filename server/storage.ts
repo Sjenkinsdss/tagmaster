@@ -538,18 +538,51 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      console.log(`Found ${allTags.length} total tags (${influencerTagsResult.rows.length} influencer + ${allTags.length - influencerTagsResult.rows.length} client)`);
+      // Also fetch tags from Replit database (AI recommendations and user-created tags)
+      let replitTags: any[] = [];
+      if (replitDb) {
+        try {
+          console.log("Fetching tags from Replit database...");
+          const { tags: replitTagsTable } = await import("@shared/schema");
+          
+          const replitTagsResult = await replitDb
+            .select()
+            .from(replitTagsTable);
+          
+          console.log(`Found ${replitTagsResult.length} tags in Replit database`);
+          
+          replitTags = replitTagsResult.map((tag: any) => ({
+            id: tag.id + 100000, // Offset to avoid ID conflicts with production
+            name: tag.name,
+            code: tag.code,
+            pillar: tag.pillar,
+            isAiGenerated: tag.isAiGenerated,
+            createdAt: tag.createdAt,
+            tag_type_name: tag.pillar,
+            categoryName: tag.pillar,
+            tag_source: 'replit'
+          }));
+        } catch (replitError) {
+          console.error("Error fetching Replit database tags:", replitError);
+        }
+      }
 
-      return allTags.map((row: any) => ({
+      const productionTags = allTags.map((row: any) => ({
         id: row.id,
         name: row.name,
         code: `${(row.tag_type_name || 'general').toLowerCase()}_${row.name.toLowerCase().replace(/\s+/g, '_')}_${String(row.id).padStart(4, '0')}`,
         pillar: this.mapTagTypeToPillar(row.tag_type_name),
         isAiGenerated: row.tag_source === 'client' ? false : true,
         createdAt: new Date(),
-        tag_type_name: row.tag_type_name || 'general', // Include the category name for frontend filtering
-        categoryName: row.tag_type_name || 'general' // Also include as categoryName for consistency
+        tag_type_name: row.tag_type_name || 'general',
+        categoryName: row.tag_type_name || 'general',
+        tag_source: 'production'
       }));
+
+      const combinedTags = [...productionTags, ...replitTags];
+      console.log(`Found ${combinedTags.length} total tags (${productionTags.length} production + ${replitTags.length} Replit)`);
+
+      return combinedTags;
     } catch (error) {
       console.error('Error fetching tags from production DB:', error);
       return [];
