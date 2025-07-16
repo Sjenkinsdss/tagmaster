@@ -17,6 +17,7 @@ import PaidAdItem from "@/components/PaidAdItem";
 import TagManagement from "@/components/TagManagement";
 import DependentTagDropdown from "@/components/DependentTagDropdown";
 import TagRecommendations from "@/components/TagRecommendations";
+import TypeTagSection from "@/components/TypeTagSection";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -821,46 +822,65 @@ export default function TaggingInterface() {
                   }}
                 />
                 
-                {/* Display categories dynamically organized by production data */}
-                {displayCategories.map((category: any) => {
-                  const categoryTags = getTagsForCategory(category.name);
-                  if (categoryTags.length === 0) return null;
-                  
-                  return (
-                    <TagSection
-                      key={category.id}
-                      title={`${category.name} (${category.tagCount})`}
-                      icon={getCategoryIcon(category.name)}
-                      pillar={category.name.toLowerCase().replace(/\s+/g, '_')}
-                      post={enrichedSelectedPost}
-                      allTags={categoryTags}
-                      bulkEditMode={bulkEditMode}
-                      selectedTags={selectedTags}
-                      onTagSelection={handleTagSelection}
+                {/* Display tags grouped by type */}
+                {(() => {
+                  const getTypeEmoji = (type: string): string => {
+                    const emojiMap: { [key: string]: string } = {
+                      ad: "📢",
+                      campaign: "🎯",
+                      client: "🏢",
+                      post: "📝",
+                      ai: "🤖",
+                      influencer: "👤",
+                      product: "🛍️",
+                      general: "🏷️"
+                    };
+                    return emojiMap[type.toLowerCase()] || "🏷️";
+                  };
+
+                  // Group tags by type first
+                  const tagsByType = tags.reduce((acc: any, tag: any) => {
+                    const tagType = tag.type || tag.pillar || 'general';
+                    if (!acc[tagType]) {
+                      acc[tagType] = [];
+                    }
+                    acc[tagType].push(tag);
+                    return acc;
+                  }, {});
+
+                  const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'];
+                  const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
+                    const aIndex = typeOrder.indexOf(a);
+                    const bIndex = typeOrder.indexOf(b);
+                    if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                    if (aIndex === -1) return 1;
+                    if (bIndex === -1) return -1;
+                    return aIndex - bIndex;
+                  });
+
+                  return sortedTypes.map(type => (
+                    <TypeTagSection
+                      key={type}
+                      type={type}
+                      emoji={getTypeEmoji(type)}
+                      tags={tagsByType[type]}
+                      selectedPost={enrichedSelectedPost}
+                      onTagAdded={() => {
+                        // Refresh posts and tags after adding a tag
+                        queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+                      }}
                     />
-                  );
-                })}
-                
-                {/* Show info if no categories are loaded yet */}
-                {displayCategories.length === 0 && (
+                  ));
+                })()}
+
+                {/* Show info if no tags are loaded yet */}
+                {tags.length === 0 && (
                   <div className="text-center text-carbon-gray-70 py-8">
                     <Tags className="w-12 h-12 mx-auto mb-4 text-carbon-gray-30" />
-                    <p>Loading tag categories...</p>
+                    <p>Loading tags...</p>
                   </div>
                 )}
-                
-                {/* Dependent Tag Dropdown Component */}
-                <DependentTagDropdown
-                  selectedPost={enrichedSelectedPost}
-                  onTagSelect={(tag) => {
-                    toast({
-                      title: "Tag Selected",
-                      description: `Selected "${tag.name}" from ${tag.categoryName} category`,
-                    });
-                    // Note: In read-only mode, this is just for demonstration
-                    // In a writable database, you would call the API to add the tag
-                  }}
-                />
 
               </div>
             ) : bulkPostMode && selectedPosts.size > 0 ? (

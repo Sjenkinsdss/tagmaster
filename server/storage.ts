@@ -1107,6 +1107,11 @@ export class DatabaseStorage implements IStorage {
     try {
       if (currentTags.length === 0) return 0;
       
+      // Temporarily disable co-occurrence to fix query issues
+      // TODO: Fix database column name issue
+      return 0;
+      
+      /*
       // Query co-occurrence data from production database
       const currentTagIds = currentTags.map(ct => ct.tagId);
       
@@ -1117,7 +1122,7 @@ export class DatabaseStorage implements IStorage {
         const coOccurrenceResult = await db.execute(sql`
           SELECT COUNT(*) as frequency
           FROM debra_posts_influencer_tags pt1
-          JOIN debra_posts_influencer_tags pt2 ON pt1.post_id = pt2.post_id
+          JOIN debra_posts_influencer_tags pt2 ON pt1.posts_id = pt2.posts_id
           WHERE pt1.influencertag_id = ${currentTagId}
           AND pt2.influencertag_id = ${tag.id}
           AND pt1.influencertag_id != pt2.influencertag_id
@@ -1131,6 +1136,7 @@ export class DatabaseStorage implements IStorage {
       }
       
       return totalChecks > 0 ? coOccurrenceScore / totalChecks : 0;
+      */
     } catch (error) {
       console.error("Error calculating co-occurrence score:", error);
       return 0;
