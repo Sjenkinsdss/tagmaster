@@ -631,10 +631,15 @@ export default function TaggingInterface() {
             
             <div className="space-y-6">
               {posts.map((post: PostWithTags, index: number) => {
-                // Create unique key that combines multiple identifiers to prevent collisions
+                // Create absolutely unique key using multiple factors to prevent any collisions
+                // Use a static seed based on post properties to avoid regenerating keys on every render
                 const postType = post.metadata?.ad_type || post.metadata?.type || 'post';
                 const timestamp = post.createdAt instanceof Date ? post.createdAt.getTime() : new Date(post.createdAt).getTime();
-                const uniqueKey = `${postType}-${post.id}-${post.platform}-${index}-${timestamp}`;
+                const hashSeed = `${post.id}_${post.platform}_${timestamp}`.split('').reduce((a, b) => {
+                  a = ((a << 5) - a) + b.charCodeAt(0);
+                  return a & a;
+                }, 0);
+                const uniqueKey = `post_${postType}_${post.id}_${index}_${currentPage}_${Math.abs(hashSeed)}`;
                 
                 return (
                   <PostItem
@@ -888,13 +893,20 @@ export default function TaggingInterface() {
 
             {selectedPost ? (
               <div className="space-y-4">
-                {connectedAds.map((ad) => (
-                  <PaidAdItem
-                    key={ad.id}
-                    ad={ad}
-                    post={enrichedSelectedPost}
-                  />
-                ))}
+                {connectedAds.map((ad, adIndex) => {
+                  // Create unique key for connected ads section - use different prefix than main posts
+                  const adHashSeed = `${ad.id}_${selectedPost?.id}_${adIndex}`.split('').reduce((a, b) => {
+                    a = ((a << 5) - a) + b.charCodeAt(0);
+                    return a & a;
+                  }, 0);
+                  return (
+                    <PaidAdItem
+                      key={`connectedAd_${ad.id}_${selectedPost?.id}_${adIndex}_${Math.abs(adHashSeed)}`}
+                      ad={ad}
+                      post={enrichedSelectedPost}
+                    />
+                  );
+                })}
                 
                 {connectedAds.length === 0 && (
                   <div className="text-center text-carbon-gray-70 mt-12">
