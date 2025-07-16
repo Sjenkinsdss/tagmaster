@@ -27,6 +27,8 @@ const platformColors = {
   youtube: "from-red-600 to-red-500",
 };
 
+
+
 export default function PostItem({ 
   post, 
   isSelected, 
@@ -47,6 +49,8 @@ export default function PostItem({
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     return `${Math.floor(diffInHours / 24)} days ago`;
   };
+
+
 
   const metadata = post.metadata as any;
 
@@ -102,56 +106,133 @@ export default function PostItem({
           </div>
         )}
 
-        {/* Embedded Media */}
+        {/* Interactive Embedded Media Player */}
         <div className="mb-4 relative rounded-lg overflow-hidden">
-          {post.embedUrl && post.embedUrl.includes('tiktok.com') ? (
-            <div className="w-full h-48 bg-black flex items-center justify-center relative">
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-purple-500 to-pink-500">
-                <div className="text-center text-white">
-                  <Play className="w-8 h-8 mx-auto mb-2" />
-                  <p className="text-sm">TikTok Video</p>
+          {(() => {
+            const embedUrl = post.embedUrl;
+            
+            if (!embedUrl) {
+              return post.thumbnailUrl ? (
+                <img
+                  src={post.thumbnailUrl}
+                  alt={post.title}
+                  className="w-full h-48 object-cover"
+                />
+              ) : (
+                <div className="w-full h-48 bg-carbon-gray-20 flex items-center justify-center">
+                  <span className="text-carbon-gray-50">No media available</span>
+                </div>
+              );
+            }
+
+            // TikTok embedded player
+            if (embedUrl.includes('tiktok.com')) {
+              const videoIdMatch = embedUrl.match(/\/video\/(\d+)/);
+              if (videoIdMatch) {
+                const videoId = videoIdMatch[1];
+                const embedSrc = `https://www.tiktok.com/embed/v2/${videoId}`;
+                
+                return (
+                  <iframe
+                    src={embedSrc}
+                    width="100%"
+                    height="400"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-96"
+                  />
+                );
+              }
+            }
+
+            // YouTube embedded player
+            if (embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be')) {
+              let videoId = '';
+              
+              if (embedUrl.includes('youtube.com/watch?v=')) {
+                videoId = embedUrl.split('v=')[1]?.split('&')[0];
+              } else if (embedUrl.includes('youtu.be/')) {
+                videoId = embedUrl.split('youtu.be/')[1]?.split('?')[0];
+              }
+              
+              if (videoId) {
+                return (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    width="100%"
+                    height="315"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="w-full h-80"
+                  />
+                );
+              }
+            }
+
+            // Instagram embedded player
+            if (embedUrl.includes('instagram.com')) {
+              return (
+                <div className="w-full h-48 bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center relative">
+                  <div className="text-center text-white">
+                    <Play className="w-12 h-12 mx-auto mb-2" />
+                    <p className="text-lg font-medium">Instagram Content</p>
+                    <p className="text-sm opacity-90">Click to view</p>
+                  </div>
+                  <div 
+                    className="absolute inset-0 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(embedUrl, '_blank');
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            // Generic video player for direct video URLs
+            if (embedUrl.includes('.mp4') || embedUrl.includes('.webm') || embedUrl.includes('.ogg')) {
+              return (
+                <video
+                  controls
+                  className="w-full h-48"
+                  preload="metadata"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <source src={embedUrl} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              );
+            }
+
+            // Fallback - show thumbnail with link button
+            return (
+              <div className="w-full h-48 bg-carbon-gray-20 flex items-center justify-center relative">
+                {post.thumbnailUrl && (
+                  <img
+                    src={post.thumbnailUrl}
+                    alt={post.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+                <div className="relative z-10 text-center bg-black bg-opacity-50 p-4 rounded-lg">
+                  <Play className="w-8 h-8 mx-auto mb-2 text-white" />
+                  <p className="text-white text-sm mb-2">Interactive Media</p>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(embedUrl, '_blank');
+                    }}
+                  >
+                    View Original
+                  </Button>
                 </div>
               </div>
-              <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(post.embedUrl, '_blank');
-                  }}
-                >
-                  <Play className="w-5 h-5 text-carbon-gray-80" />
-                </Button>
-              </div>
-            </div>
-          ) : post.thumbnailUrl ? (
-            <img
-              src={post.thumbnailUrl}
-              alt={post.title}
-              className="w-full h-48 object-cover"
-            />
-          ) : (
-            <div className="w-full h-48 bg-carbon-gray-20 flex items-center justify-center">
-              <span className="text-carbon-gray-50">
-                {post.embedUrl ? 'Interactive Media Available' : 'No thumbnail'}
-              </span>
-              {post.embedUrl && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="ml-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(post.embedUrl, '_blank');
-                  }}
-                >
-                  View Original
-                </Button>
-              )}
-            </div>
-          )}
+            );
+          })()}
         </div>
         
 
