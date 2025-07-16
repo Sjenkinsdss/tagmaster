@@ -422,9 +422,10 @@ export class DatabaseStorage implements IStorage {
 
   private convertAdsToPostFormat(adRows: any[]): PostWithTags[] {
     return adRows.map((row: any, index: number) => {
-      // Create a guaranteed unique ID using timestamp prefix and unique ad ID
-      const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-      const uniqueId = parseInt(`9${timestamp}${String(row.id).slice(-4).padStart(4, '0')}`);
+      // Create a guaranteed unique ID using a large offset + row index + ad ID
+      // This ensures no conflicts with production post IDs (which are typically < 2 billion)
+      const baseOffset = 9000000000; // 9 billion base offset
+      const uniqueId = baseOffset + (index * 100000) + parseInt(row.id);
       
       return {
         id: uniqueId,

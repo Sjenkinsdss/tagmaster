@@ -630,17 +630,24 @@ export default function TaggingInterface() {
             </div>
             
             <div className="space-y-6">
-              {posts.map((post: PostWithTags, index: number) => (
-                <PostItem
-                  key={`post-${post.id}-${post.platform}-${index}`}
-                  post={post}
-                  isSelected={selectedPost?.id === post.id}
-                  onSelect={() => !bulkPostMode && setSelectedPost(post)}
-                  bulkMode={bulkPostMode}
-                  isBulkSelected={selectedPosts.has(post.id)}
-                  onBulkSelect={(isSelected) => handlePostSelection(post.id, isSelected)}
-                />
-              ))}
+              {posts.map((post: PostWithTags, index: number) => {
+                // Create unique key that combines multiple identifiers to prevent collisions
+                const postType = post.metadata?.ad_type || post.metadata?.type || 'post';
+                const timestamp = post.createdAt instanceof Date ? post.createdAt.getTime() : new Date(post.createdAt).getTime();
+                const uniqueKey = `${postType}-${post.id}-${post.platform}-${index}-${timestamp}`;
+                
+                return (
+                  <PostItem
+                    key={uniqueKey}
+                    post={post}
+                    isSelected={selectedPost?.id === post.id}
+                    onSelect={() => !bulkPostMode && setSelectedPost(post)}
+                    bulkMode={bulkPostMode}
+                    isBulkSelected={selectedPosts.has(post.id)}
+                    onBulkSelect={(isSelected) => handlePostSelection(post.id, isSelected)}
+                  />
+                );
+              })}
 
               {/* Pagination Controls */}
               {pagination.totalPages > 1 && (
