@@ -23,15 +23,7 @@ interface TagManagementProps {
 export default function TagManagement({ tags, onClose }: TagManagementProps) {
   const { toast } = useToast();
 
-  // Fetch tag categories for new tag creation
-  const { data: categoriesData } = useQuery({
-    queryKey: ["/api/tag-categories"],
-    queryFn: async () => {
-      const response = await fetch("/api/tag-categories");
-      const data = await response.json();
-      return data;
-    },
-  });
+  // State declarations first
   const [selectedTags, setSelectedTags] = useState<Set<number>>(new Set());
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [splitDialogOpen, setSplitDialogOpen] = useState(false);
@@ -46,6 +38,30 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
     type: "",
     category: "none",
     name: "",
+    customCategory: "",
+  });
+  const [showCustomCategory, setShowCustomCategory] = useState(false);
+
+  // Fetch all tag categories for general use
+  const { data: categoriesData } = useQuery({
+    queryKey: ["/api/tag-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/tag-categories");
+      const data = await response.json();
+      return data;
+    },
+  });
+
+  // Fetch categories filtered by tag type for new tag creation
+  const { data: filteredCategoriesData } = useQuery({
+    queryKey: ["/api/tag-categories", newTagData.type],
+    queryFn: async () => {
+      if (!newTagData.type) return { categories: [] };
+      const response = await fetch(`/api/tag-categories?tagType=${newTagData.type}`);
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!newTagData.type,
   });
 
   // Merge operation state
@@ -255,10 +271,14 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
   // New tag creation mutation
   const createTagMutation = useMutation({
     mutationFn: async () => {
+      const finalCategory = showCustomCategory && newTagData.customCategory.trim() 
+        ? newTagData.customCategory.trim()
+        : newTagData.category !== "none" ? newTagData.category : undefined;
+
       const response = await apiRequest("POST", "/api/tags", {
         name: newTagData.name.trim(),
         type: newTagData.type,
-        category: newTagData.category !== "none" ? newTagData.category : undefined,
+        category: finalCategory,
         pillar: newTagData.type,  // Use type as pillar for backwards compatibility
         isAiGenerated: false
       });
@@ -271,7 +291,8 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
       setConfirmCreateDialogOpen(false);
-      setNewTagData({ type: "", category: "none", name: "" });
+      setNewTagData({ type: "", category: "none", name: "", customCategory: "" });
+      setShowCustomCategory(false);
       toast({
         title: "Tag Created",
         description: `Successfully created tag "${newTagData.name}".`,
@@ -297,6 +318,16 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       toast({
         title: "Missing Information",
         description: "Please select a tag type and enter a tag name.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (showCustomCategory && !newTagData.customCategory.trim()) {
+      console.log("Validation failed - missing custom category");
+      toast({
+        title: "Missing Information",
+        description: "Please enter a custom category name or select an existing one.",
         variant: "destructive",
       });
       return;
@@ -383,13 +414,16 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Tag Type Dropdown */}
             <div className="space-y-2">
               <Label htmlFor="tag-type">Tag Type</Label>
               <Select 
                 value={newTagData.type} 
-                onValueChange={(value) => setNewTagData(prev => ({ ...prev, type: value, category: "none" }))}
+                onValueChange={(value) => {
+                  setNewTagData(prev => ({ ...prev, type: value, category: "none", customCategory: "" }));
+                  setShowCustomCategory(false);
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select type" />
@@ -408,23 +442,45 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
             <div className="space-y-2">
               <Label htmlFor="tag-category">Category</Label>
               <Select 
-                value={newTagData.category} 
-                onValueChange={(value) => setNewTagData(prev => ({ ...prev, category: value }))}
+                value={showCustomCategory ? "custom" : newTagData.category} 
+                onValueChange={(value) => {
+                  if (value === "custom") {
+                    setShowCustomCategory(true);
+                    setNewTagData(prev => ({ ...prev, category: "none" }));
+                  } else {
+                    setShowCustomCategory(false);
+                    setNewTagData(prev => ({ ...prev, category: value, customCategory: "" }));
+                  }
+                }}
                 disabled={!newTagData.type}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={newTagData.type ? "Select category" : "Select type first"} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No specific category</SelectItem>
-                  {categories.map((category: any) => (
+                  {filteredCategoriesData?.categories?.map((category: any) => (
                     <SelectItem key={category.id} value={category.name}>
-                      {category.name}
+                      {category.name} ({category.tagCount})
                     </SelectItem>
                   ))}
+                  <SelectItem value="custom">+ Create new category</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Custom Category Input */}
+            {showCustomCategory && (
+              <div className="space-y-2">
+                <Label htmlFor="custom-category">New Category Name</Label>
+                <Input
+                  id="custom-category"
+                  value={newTagData.customCategory}
+                  onChange={(e) => setNewTagData(prev => ({ ...prev, customCategory: e.target.value }))}
+                  placeholder="Enter new category name"
+                />
+              </div>
+            )}
 
             {/* Tag Name Input */}
             <div className="space-y-2">
@@ -444,7 +500,12 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
             </p>
             <Button 
               onClick={handleCreateTag}
-              disabled={!newTagData.type || !newTagData.name.trim() || createTagMutation.isPending}
+              disabled={
+                !newTagData.type || 
+                !newTagData.name.trim() || 
+                (showCustomCategory && !newTagData.customCategory.trim()) ||
+                createTagMutation.isPending
+              }
               className="flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
@@ -825,10 +886,18 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
                 Are you sure you want to create this new tag with the following details?
                 <div className="mt-3 p-3 bg-gray-50 rounded border space-y-2">
                   <div><strong>Type:</strong> {newTagData.type}</div>
-                  <div><strong>Category:</strong> {newTagData.category === "none" ? "No specific category" : newTagData.category}</div>
+                  <div><strong>Category:</strong> {
+                    showCustomCategory && newTagData.customCategory 
+                      ? `${newTagData.customCategory} (new category)`
+                      : newTagData.category === "none" ? "No specific category" : newTagData.category
+                  }</div>
                   <div><strong>Name:</strong> {newTagData.name}</div>
                   <div className="text-xs text-gray-600">
-                    <strong>Auto-generated Code:</strong> {newTagData.type}_{newTagData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_####
+                    <strong>Auto-generated Code:</strong> {
+                      showCustomCategory && newTagData.customCategory
+                        ? `${newTagData.type}_${newTagData.customCategory.toLowerCase().replace(/[^a-z0-9]/g, '_')}_${newTagData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_####`
+                        : `${newTagData.type}_${newTagData.name.toLowerCase().replace(/[^a-z0-9]/g, '_')}_####`
+                    }
                   </div>
                 </div>
               </div>
