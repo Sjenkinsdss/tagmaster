@@ -252,50 +252,62 @@ export default function PostItem({
               );
             }
 
-            // Facebook/Meta interactive preview - check both embedUrl and url
+            // Facebook/Meta embedded content - check both embedUrl and url
             if ((embedUrl && (embedUrl.includes('facebook.com') || embedUrl.includes('fb.com'))) || 
                 (post.url && (post.url.includes('facebook.com') || post.url.includes('fb.com')))) {
               // Use url field if available, otherwise fall back to embedUrl
               const facebookUrl = post.url || embedUrl;
-              // Extract Facebook content type from URL
-              const isVideo = facebookUrl.includes('/videos/');
-              const isPost = facebookUrl.includes('/posts/') || facebookUrl.includes('permalink.php');
+              
+              // Create Facebook embed URL - handle different Facebook URL formats
+              let cleanFacebookUrl = facebookUrl;
+              
+              // Convert mobile URLs to desktop format
+              if (facebookUrl.includes('m.facebook.com')) {
+                cleanFacebookUrl = facebookUrl.replace('m.facebook.com', 'facebook.com');
+              }
+              
+              // Create Facebook embed URL
+              const embedFacebookUrl = `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(cleanFacebookUrl)}&width=500&show_text=true&height=500`;
               
               return (
-                <div className="w-full h-96 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                   <div className="flex items-center px-4 py-3 border-b border-gray-200">
                     <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
                       <div className="text-white font-bold text-sm">f</div>
                     </div>
                     <div className="flex-1">
-                      <div className="font-semibold text-sm">Facebook {isVideo ? 'Video' : 'Post'}</div>
-                      <div className="text-xs text-gray-500">Meta content</div>
+                      <div className="font-semibold text-sm">Facebook Post</div>
+                      <div className="text-xs text-gray-500">Embedded content</div>
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 h-64 flex items-center justify-center relative">
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                        {isVideo ? (
-                          <Play className="w-8 h-8 text-white" />
-                        ) : (
-                          <div className="text-white font-bold text-lg">f</div>
-                        )}
+                  {/* Facebook embedded iframe */}
+                  <div className="relative">
+                    <iframe
+                      src={embedFacebookUrl}
+                      width="100%"
+                      height="500"
+                      style={{ border: 'none', overflow: 'hidden' }}
+                      scrolling="no"
+                      frameBorder="0"
+                      allowTransparency={true}
+                      allow="encrypted-media"
+                      title="Facebook Post"
+                      className="w-full"
+                    />
+                    
+                    {/* Fallback if iframe fails to load */}
+                    <div 
+                      className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(facebookUrl, '_blank');
+                      }}
+                    >
+                      <div className="text-center bg-white/90 p-4 rounded-lg">
+                        <div className="text-blue-600 font-semibold mb-2">Open in Facebook</div>
+                        <div className="text-sm text-gray-600">Click to view original post</div>
                       </div>
-                      <h3 className="font-semibold text-gray-800 mb-2">
-                        Facebook {isVideo ? 'Video' : 'Content'}
-                      </h3>
-                      <p className="text-sm text-gray-600 mb-4">Click to view original {isVideo ? 'video' : 'post'}</p>
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white border-0"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(facebookUrl, '_blank');
-                        }}
-                      >
-                        View on Facebook
-                      </Button>
                     </div>
                   </div>
                   
