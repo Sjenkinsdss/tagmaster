@@ -79,7 +79,7 @@ export default function PostItem({
             <div className="flex-1">
               <h3 className="font-medium text-carbon-gray-100">{post.title}</h3>
               <p className="text-sm text-carbon-gray-70">
-                {formatTimestamp(post.createdAt)}
+                Post ID: {post.id} • {formatTimestamp(post.createdAt)}
               </p>
             </div>
           </div>
