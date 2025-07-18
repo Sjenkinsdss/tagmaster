@@ -173,13 +173,20 @@ export default function PostItem({
 
             // Instagram embedded player
             if (embedUrl.includes('instagram.com')) {
-              // Extract Instagram post ID from URL
+              console.log('Instagram URL detected:', embedUrl);
+              
+              // Extract Instagram post ID from URL - handle both http and https
               const postMatch = embedUrl.match(/instagram\.com\/p\/([^\/\?]+)/);
               const reelMatch = embedUrl.match(/instagram\.com\/reel\/([^\/\?]+)/);
+              
+              console.log('Post match:', postMatch);
+              console.log('Reel match:', reelMatch);
               
               if (postMatch || reelMatch) {
                 const postId = postMatch ? postMatch[1] : reelMatch[1];
                 const embedSrc = `https://www.instagram.com/p/${postId}/embed/captioned/`;
+                
+                console.log('Generated embed src:', embedSrc);
                 
                 return (
                   <iframe
