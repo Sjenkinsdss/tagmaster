@@ -241,7 +241,7 @@ export default function PostItem({
                     height="500"
                     frameBorder="0"
                     scrolling="no"
-                    allowTransparency={true}
+                    allowtransparency="true"
                     className="w-full h-96"
                     onClick={(e) => e.stopPropagation()}
                   />

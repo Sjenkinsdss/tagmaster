@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Instagram Embed Test</title>
+</head>
+<body>
+    <h2>Testing Instagram Embed for Post ID: C4V3kciuFN5</h2>
+    
+    <h3>Method 1: Direct Instagram Embed URL</h3>
+    <iframe
+        src="https://www.instagram.com/p/C4V3kciuFN5/embed/captioned/"
+        width="500"
+        height="500"
+        frameBorder="0"
+        scrolling="no"
+        allowtransparency="true"
+        style="border: 1px solid #ccc;"
+    ></iframe>
+    
+    <h3>Method 2: Using Instagram oEmbed API</h3>
+    <div id="oembed-result">Loading...</div>
+    
+    <script>
+        // Test Instagram oEmbed API
+        const instagramUrl = "http://instagram.com/p/C4V3kciuFN5";
+        const oembedUrl = `https://graph.facebook.com/v18.0/instagram_oembed?url=${encodeURIComponent(instagramUrl)}&access_token=YOUR_ACCESS_TOKEN`;
+        
+        console.log("Testing Instagram URL:", instagramUrl);
+        console.log("Direct embed URL:", "https://www.instagram.com/p/C4V3kciuFN5/embed/captioned/");
+        
+        // Show URL parsing results
+        document.addEventListener('DOMContentLoaded', function() {
+            const testUrl = "http://instagram.com/p/C4V3kciuFN5";
+            const postMatch = testUrl.match(/instagram\.com\/p\/([^\/\?]+)/);
+            
+            document.getElementById('oembed-result').innerHTML = `
+                <p><strong>Original URL:</strong> ${testUrl}</p>
+                <p><strong>Extracted Post ID:</strong> ${postMatch ? postMatch[1] : 'Not found'}</p>
+                <p><strong>Generated Embed URL:</strong> https://www.instagram.com/p/${postMatch ? postMatch[1] : 'ERROR'}/embed/captioned/</p>
+            `;
+        });
+    </script>
+</body>
+</html>
