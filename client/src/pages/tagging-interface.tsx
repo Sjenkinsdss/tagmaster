@@ -775,8 +775,9 @@ export default function TaggingInterface() {
                     return emojiMap[type.toLowerCase()] || "🏷️";
                   };
 
-                  // Group tags by type first
-                  const tagsByType = tags.reduce((acc: any, tag: any) => {
+                  // Group connected post tags by type first
+                  const tagsByType = postTags.reduce((acc: any, postTag: any) => {
+                    const tag = postTag.tag; // Extract the tag object from the postTag
                     const tagType = tag.type || tag.pillar || 'general';
                     if (!acc[tagType]) {
                       acc[tagType] = [];
@@ -811,11 +812,11 @@ export default function TaggingInterface() {
                   ));
                 })()}
 
-                {/* Show info if no tags are loaded yet */}
-                {tags.length === 0 && (
+                {/* Show info if no connected tags are loaded yet */}
+                {postTags.length === 0 && (
                   <div className="text-center text-carbon-gray-70 py-8">
                     <Tags className="w-12 h-12 mx-auto mb-4 text-carbon-gray-30" />
-                    <p>Loading tags...</p>
+                    <p>No tags connected to this post</p>
                   </div>
                 )}
 
