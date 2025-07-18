@@ -173,11 +173,87 @@ export default function PostItem({
 
             // Instagram embedded player
             if (embedUrl.includes('instagram.com')) {
+              // Extract Instagram post ID from URL
+              const postMatch = embedUrl.match(/instagram\.com\/p\/([^\/\?]+)/);
+              const reelMatch = embedUrl.match(/instagram\.com\/reel\/([^\/\?]+)/);
+              
+              if (postMatch || reelMatch) {
+                const postId = postMatch ? postMatch[1] : reelMatch[1];
+                const embedSrc = `https://www.instagram.com/p/${postId}/embed/captioned/`;
+                
+                return (
+                  <iframe
+                    src={embedSrc}
+                    width="100%"
+                    height="500"
+                    frameBorder="0"
+                    scrolling="no"
+                    allowtransparency="true"
+                    className="w-full h-96"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                );
+              }
+              
+              // Fallback for Instagram URLs that don't match expected patterns
               return (
                 <div className="w-full h-48 bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center relative">
                   <div className="text-center text-white">
                     <Play className="w-12 h-12 mx-auto mb-2" />
                     <p className="text-lg font-medium">Instagram Content</p>
+                    <p className="text-sm opacity-90">Click to view</p>
+                  </div>
+                  <div 
+                    className="absolute inset-0 cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      window.open(embedUrl, '_blank');
+                    }}
+                  />
+                </div>
+              );
+            }
+
+            // Facebook/Meta embedded player
+            if (embedUrl.includes('facebook.com') || embedUrl.includes('fb.com')) {
+              // Extract Facebook post ID from URL
+              const postMatch = embedUrl.match(/facebook\.com\/.*\/posts\/([^\/\?]+)/);
+              const videoMatch = embedUrl.match(/facebook\.com\/.*\/videos\/([^\/\?]+)/);
+              const permalinkMatch = embedUrl.match(/facebook\.com\/permalink\.php\?story_fbid=([^&]+)/);
+              
+              if (postMatch || videoMatch || permalinkMatch) {
+                let embedSrc = '';
+                
+                if (postMatch) {
+                  const postId = postMatch[1];
+                  embedSrc = `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(embedUrl)}&width=500&show_text=true&height=500&appId`;
+                } else if (videoMatch) {
+                  const videoId = videoMatch[1];
+                  embedSrc = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(embedUrl)}&width=500&show_text=false&height=400&appId`;
+                } else if (permalinkMatch) {
+                  embedSrc = `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(embedUrl)}&width=500&show_text=true&height=500&appId`;
+                }
+                
+                return (
+                  <iframe
+                    src={embedSrc}
+                    width="100%"
+                    height="500"
+                    frameBorder="0"
+                    scrolling="no"
+                    allowTransparency={true}
+                    className="w-full h-96"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                );
+              }
+              
+              // Fallback for Facebook URLs that don't match expected patterns
+              return (
+                <div className="w-full h-48 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center relative">
+                  <div className="text-center text-white">
+                    <Play className="w-12 h-12 mx-auto mb-2" />
+                    <p className="text-lg font-medium">Facebook Content</p>
                     <p className="text-sm opacity-90">Click to view</p>
                   </div>
                   <div 
