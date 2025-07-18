@@ -13,8 +13,8 @@ async function getPersonalizedCategories(tagType: string) {
     const categoryMappings = {
       'ad': [
         'creative', 'campaign', 'targeting', 'placement', 'optimization', 'performance', 
-        'brand', 'vertical', 'platform', 'boosted', 'paid', 'media', 'treatment', 
-        'app', 'store', 'optimization', 'partnership', 'miscellaneous'
+        'brand', 'platform', 'boosted', 'paid', 'media', 'treatment', 
+        'app', 'store', 'partnership', 'miscellaneous'
       ],
       'campaign': [
         'timing', 'seasonality', 'brand', 'campaign', 'optimization', 'targeting', 
@@ -99,9 +99,20 @@ async function getPersonalizedCategories(tagType: string) {
                    word.includes(keywordLower) || keywordLower.includes(word)
                  );
         });
+
+        // Apply tag type specific exclusions
+        const hasExclusions = (() => {
+          if (tagType.toLowerCase() === 'ad') {
+            // Exclude vertical categories from ad tags
+            return categoryName.toLowerCase().includes('vertical');
+          }
+          return false;
+        })();
+
+        const finalRelevant = isRelevant && !hasExclusions;
         
         // Calculate relevance score
-        const relevanceScore = isRelevant ? 1.0 : 0.0;
+        const relevanceScore = finalRelevant ? 1.0 : 0.0;
         
         // Calculate usage frequency (normalized by total categories)
         const usageFrequency = parseFloat(row.tag_count) / Math.max(allCategoriesResult.rows.length, 1);
@@ -115,7 +126,7 @@ async function getPersonalizedCategories(tagType: string) {
           tagCount: row.tag_count,
           relevanceScore: finalScore,
           usageFrequency: usageFrequency,
-          isRelevant: isRelevant,
+          isRelevant: finalRelevant,
           isRecommended: relevanceScore > 0.0
         };
       })
