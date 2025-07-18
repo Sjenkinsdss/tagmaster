@@ -44,10 +44,11 @@ async function getPersonalizedCategories(tagType: string) {
         return 'campaign';
       }
       
-      // Client related tags
-      if (lowerName.includes('client') || lowerName.includes('brand') || 
-          lowerName.includes('category') || lowerName.includes('industry') ||
-          lowerName.includes('business') || lowerName.includes('company')) {
+      // Client related tags (very specific to avoid generic categories)
+      if (lowerName.includes('client') || lowerName.includes("sam's") || 
+          lowerName.includes('sponsor') || lowerName.includes('advertiser') ||
+          lowerName.includes('retailer') || lowerName.includes('merchant') ||
+          (lowerName.includes('brand') && !lowerName.includes('branding'))) {
         return 'client';
       }
       
