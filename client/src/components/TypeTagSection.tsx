@@ -148,7 +148,13 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
 
   // Group tags by category
   const tagsByCategory = tags.reduce((acc: any, tag: any) => {
-    const categoryName = tag.tag_type_name || tag.categoryName || 'Uncategorized';
+    let categoryName = tag.tag_type_name || tag.categoryName || 'Uncategorized';
+    
+    // For client tag type, rename generic category names to be more specific
+    if (type === 'client' && (categoryName === 'Client' || categoryName === 'client')) {
+      categoryName = 'Client Companies';
+    }
+    
     if (!acc[categoryName]) {
       acc[categoryName] = [];
     }
