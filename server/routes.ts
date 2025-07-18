@@ -6,6 +6,142 @@ import { z } from "zod";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
+// Personalized category recommendation system
+async function getPersonalizedCategories(tagType: string) {
+  try {
+    // Define category mappings for different tag types
+    const categoryMappings = {
+      'ad': [
+        'Campaign Type', 'Ad Format', 'Marketing', 'Advertising', 'Promotion', 
+        'Brand', 'Creative', 'Media', 'Platform', 'Targeting'
+      ],
+      'campaign': [
+        'Campaign Type', 'Marketing', 'Brand', 'Season', 'Event', 
+        'Product Launch', 'Promotion', 'Strategy', 'Channel', 'Objective'
+      ],
+      'client': [
+        'Brand', 'Industry', 'Company', 'Business', 'Enterprise', 
+        'Corporate', 'Retail', 'E-commerce', 'Service', 'Organization'
+      ],
+      'post': [
+        'Content Type', 'Format', 'Media', 'Social', 'Engagement', 
+        'Platform', 'Style', 'Theme', 'Topic', 'Genre'
+      ],
+      'ai': [
+        'AI Model', 'Technology', 'Machine Learning', 'Automation', 
+        'Analytics', 'Intelligence', 'Algorithm', 'Data', 'Performance', 'Optimization'
+      ],
+      'influencer': [
+        'Creator', 'Influencer', 'Personality', 'Celebrity', 'Social', 
+        'Community', 'Audience', 'Demographic', 'Niche', 'Platform'
+      ]
+    };
+
+    const relevantKeywords = categoryMappings[tagType.toLowerCase()] || [];
+    
+    if (relevantKeywords.length === 0) {
+      // Fallback to all categories if tag type not found
+      const allCategoriesResult = await db.execute(sql`
+        SELECT 
+          ditt.id,
+          ditt.name as category_name,
+          COUNT(dit.id) as tag_count
+        FROM debra_influencertagtype ditt
+        LEFT JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
+        WHERE ditt.name IS NOT NULL 
+        AND ditt.name != ''
+        GROUP BY ditt.id, ditt.name
+        HAVING COUNT(dit.id) > 0
+        ORDER BY ditt.name
+      `);
+
+      return allCategoriesResult.rows.map((row: any) => ({
+        id: row.id,
+        name: row.category_name,
+        tagCount: row.tag_count,
+        relevanceScore: 0.5
+      }));
+    }
+
+    // Get all categories first
+    const allCategoriesResult = await db.execute(sql`
+      SELECT 
+        ditt.id,
+        ditt.name as category_name,
+        COUNT(dit.id) as tag_count
+      FROM debra_influencertagtype ditt
+      LEFT JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
+      WHERE ditt.name IS NOT NULL 
+      AND ditt.name != ''
+      GROUP BY ditt.id, ditt.name
+      HAVING COUNT(dit.id) > 0
+      ORDER BY ditt.name
+    `);
+
+    // Apply personalized scoring in JavaScript
+    const categories = allCategoriesResult.rows.map((row: any) => {
+      const categoryName = row.category_name.toLowerCase();
+      
+      // Check if category name matches any relevant keywords
+      const isRelevant = relevantKeywords.some(keyword => 
+        categoryName.includes(keyword.toLowerCase())
+      );
+      
+      // Calculate relevance score
+      const relevanceScore = isRelevant ? 1.0 : 0.3;
+      
+      // Calculate usage frequency (normalized by total categories)
+      const usageFrequency = parseFloat(row.tag_count) / Math.max(allCategoriesResult.rows.length, 1);
+      
+      // Calculate final score (70% relevance, 30% usage)
+      const finalScore = relevanceScore * 0.7 + usageFrequency * 0.3;
+      
+      return {
+        id: row.id,
+        name: row.category_name,
+        tagCount: row.tag_count,
+        relevanceScore: finalScore,
+        usageFrequency: usageFrequency,
+        isRecommended: relevanceScore > 0.5
+      };
+    });
+
+    // Sort by relevance and return top 20
+    const categoriesResult = {
+      rows: categories
+        .sort((a, b) => b.relevanceScore - a.relevanceScore)
+        .slice(0, 20)
+    };
+
+    return categoriesResult.rows;
+
+  } catch (error) {
+    console.error("Error in getPersonalizedCategories:", error);
+    // Fallback to basic query
+    const fallbackResult = await db.execute(sql`
+      SELECT 
+        ditt.id,
+        ditt.name as category_name,
+        COUNT(dit.id) as tag_count
+      FROM debra_influencertagtype ditt
+      LEFT JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
+      WHERE ditt.name IS NOT NULL 
+      AND ditt.name != ''
+      GROUP BY ditt.id, ditt.name
+      HAVING COUNT(dit.id) > 0
+      ORDER BY ditt.name
+      LIMIT 20
+    `);
+
+    return fallbackResult.rows.map((row: any) => ({
+      id: row.id,
+      name: row.category_name,
+      tagCount: row.tag_count,
+      relevanceScore: 0.5
+    }));
+  }
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Test route for direct database connection
   app.get("/api/test-db", async (req, res) => {
@@ -277,30 +413,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Tag Categories and Dependent Dropdown routes
+  // Enhanced Tag Categories with Personalized Recommendations
   app.get("/api/tag-categories", async (req, res) => {
     try {
-      const categoriesResult = await db.execute(sql`
-        SELECT 
-          ditt.id,
-          ditt.name as category_name,
-          COUNT(dit.id) as tag_count
-        FROM debra_influencertagtype ditt
-        LEFT JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
-        WHERE ditt.name IS NOT NULL 
-        AND ditt.name != ''
-        GROUP BY ditt.id, ditt.name
-        HAVING COUNT(dit.id) > 0
-        ORDER BY ditt.name
-      `);
+      const tagType = req.query.tagType as string;
+      
+      // If no tag type specified, return all categories (legacy behavior)
+      if (!tagType) {
+        const categoriesResult = await db.execute(sql`
+          SELECT 
+            ditt.id,
+            ditt.name as category_name,
+            COUNT(dit.id) as tag_count
+          FROM debra_influencertagtype ditt
+          LEFT JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
+          WHERE ditt.name IS NOT NULL 
+          AND ditt.name != ''
+          GROUP BY ditt.id, ditt.name
+          HAVING COUNT(dit.id) > 0
+          ORDER BY ditt.name
+        `);
 
-      const categories = categoriesResult.rows.map((row: any) => ({
-        id: row.id,
-        name: row.category_name,
-        tagCount: row.tag_count
-      }));
+        const categories = categoriesResult.rows.map((row: any) => ({
+          id: row.id,
+          name: row.category_name,
+          tagCount: row.tag_count
+        }));
 
-      res.json({ success: true, categories });
+        return res.json({ success: true, categories });
+      }
+
+      // Personalized category recommendations based on tag type
+      const personalizedCategories = await getPersonalizedCategories(tagType);
+      res.json({ success: true, categories: personalizedCategories, tagType });
     } catch (error) {
       console.error("Error fetching tag categories:", error);
       res.status(500).json({ success: false, error: String(error) });
