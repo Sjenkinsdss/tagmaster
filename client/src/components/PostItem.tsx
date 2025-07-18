@@ -184,8 +184,8 @@ export default function PostItem({
               if (postMatch || reelMatch) {
                 const postId = postMatch ? postMatch[1] : reelMatch[1];
                 
-                // Create Instagram embed URL
-                const embedInstagramUrl = `https://www.instagram.com/p/${postId}/embed/`;
+                // Create Instagram embed URL - using simpler approach for better compatibility
+                const embedInstagramUrl = `https://www.instagram.com/p/${postId}/embed/captioned/`;
                 
                 return (
                   <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
@@ -195,34 +195,36 @@ export default function PostItem({
                       </div>
                       <div className="flex-1">
                         <div className="font-semibold text-sm">Instagram Post</div>
-                        <div className="text-xs text-gray-500">Embedded content</div>
+                        <div className="text-xs text-gray-500">Embedded • Click content opens in Instagram</div>
                       </div>
                     </div>
                     
-                    {/* Instagram embedded iframe */}
-                    <div className="relative">
+                    {/* Instagram embedded iframe with sandbox for better control */}
+                    <div className="relative bg-gray-50">
                       <iframe
                         src={embedInstagramUrl}
                         width="100%"
-                        height="500"
+                        height="600"
                         frameBorder="0"
                         scrolling="no"
                         title="Instagram Post"
                         className="w-full"
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        referrerPolicy="strict-origin-when-cross-origin"
                       />
                       
-                      {/* Fallback if iframe fails to load */}
-                      <div 
-                        className="absolute inset-0 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(instagramUrl, '_blank');
-                        }}
-                      >
-                        <div className="text-center bg-white/90 p-4 rounded-lg">
-                          <div className="text-purple-600 font-semibold mb-2">Open in Instagram</div>
-                          <div className="text-sm text-gray-600">Click to view original post</div>
-                        </div>
+                      {/* Interactive overlay for better user experience */}
+                      <div className="absolute top-4 right-4">
+                        <button
+                          className="bg-white/90 hover:bg-white border border-gray-200 px-3 py-1 rounded-full text-xs font-medium text-gray-700 shadow-sm transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(instagramUrl, '_blank');
+                          }}
+                        >
+                          View Original
+                        </button>
                       </div>
                     </div>
                   </div>
