@@ -5,6 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Play, Heart, MessageCircle, Share } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PostWithTags } from "@shared/schema";
+import { InteractionTooltip, InteractionGuide } from './InteractionTooltip';
 
 interface PostItemProps {
   post: PostWithTags;
@@ -133,15 +134,22 @@ export default function PostItem({
                 const embedSrc = `https://www.tiktok.com/embed/v2/${videoId}`;
                 
                 return (
-                  <iframe
-                    src={embedSrc}
-                    width="100%"
-                    height="400"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-96"
-                  />
+                  <InteractionTooltip platform="tiktok">
+                    <div className="w-full bg-black rounded-lg overflow-hidden relative">
+                      <div className="absolute top-2 right-2 z-10">
+                        <InteractionGuide platform="tiktok" />
+                      </div>
+                      <iframe
+                        src={embedSrc}
+                        width="100%"
+                        height="400"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-96"
+                      />
+                    </div>
+                  </InteractionTooltip>
                 );
               }
             }
@@ -158,15 +166,22 @@ export default function PostItem({
               
               if (videoId) {
                 return (
-                  <iframe
-                    src={`https://www.youtube.com/embed/${videoId}`}
-                    width="100%"
-                    height="315"
-                    frameBorder="0"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="w-full h-80"
-                  />
+                  <InteractionTooltip platform="youtube">
+                    <div className="w-full bg-black rounded-lg overflow-hidden relative">
+                      <div className="absolute top-2 right-2 z-10">
+                        <InteractionGuide platform="youtube" />
+                      </div>
+                      <iframe
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                        width="100%"
+                        height="315"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-80"
+                      />
+                    </div>
+                  </InteractionTooltip>
                 );
               }
             }
@@ -188,46 +203,49 @@ export default function PostItem({
                 const embedInstagramUrl = `https://www.instagram.com/p/${postId}/embed/captioned/`;
                 
                 return (
-                  <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                    <div className="flex items-center px-4 py-3 border-b border-gray-200">
-                      <div className="w-8 h-8 bg-gradient-to-tr from-purple-400 via-pink-400 to-orange-400 rounded-full flex items-center justify-center mr-3">
-                        <div className="w-6 h-6 bg-white rounded-full"></div>
+                  <InteractionTooltip platform="instagram">
+                    <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                      <div className="flex items-center px-4 py-3 border-b border-gray-200">
+                        <div className="w-8 h-8 bg-gradient-to-tr from-purple-400 via-pink-400 to-orange-400 rounded-full flex items-center justify-center mr-3">
+                          <div className="w-6 h-6 bg-white rounded-full"></div>
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-semibold text-sm">Instagram Post</div>
+                          <div className="text-xs text-gray-500">Embedded • Click content opens in Instagram</div>
+                        </div>
+                        <InteractionGuide platform="instagram" className="ml-2" />
                       </div>
-                      <div className="flex-1">
-                        <div className="font-semibold text-sm">Instagram Post</div>
-                        <div className="text-xs text-gray-500">Embedded • Click content opens in Instagram</div>
-                      </div>
-                    </div>
-                    
-                    {/* Instagram embedded iframe with sandbox for better control */}
-                    <div className="relative bg-gray-50">
-                      <iframe
-                        src={embedInstagramUrl}
-                        width="100%"
-                        height="600"
-                        frameBorder="0"
-                        scrolling="no"
-                        title="Instagram Post"
-                        className="w-full"
-                        sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        referrerPolicy="strict-origin-when-cross-origin"
-                      />
                       
-                      {/* Interactive overlay for better user experience */}
-                      <div className="absolute top-4 right-4">
-                        <button
-                          className="bg-white/90 hover:bg-white border border-gray-200 px-3 py-1 rounded-full text-xs font-medium text-gray-700 shadow-sm transition-all"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(instagramUrl, '_blank');
-                          }}
-                        >
-                          View Original
-                        </button>
+                      {/* Instagram embedded iframe with sandbox for better control */}
+                      <div className="relative bg-gray-50">
+                        <iframe
+                          src={embedInstagramUrl}
+                          width="100%"
+                          height="600"
+                          frameBorder="0"
+                          scrolling="no"
+                          title="Instagram Post"
+                          className="w-full"
+                          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          referrerPolicy="strict-origin-when-cross-origin"
+                        />
+                        
+                        {/* Interactive overlay for better user experience */}
+                        <div className="absolute top-4 right-4">
+                          <button
+                            className="bg-white/90 hover:bg-white border border-gray-200 px-3 py-1 rounded-full text-xs font-medium text-gray-700 shadow-sm transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(instagramUrl, '_blank');
+                            }}
+                          >
+                            View Original
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </InteractionTooltip>
                 );
               }
               
@@ -268,16 +286,18 @@ export default function PostItem({
               const embedFacebookUrl = `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(cleanFacebookUrl)}&width=500&show_text=true&height=500`;
               
               return (
-                <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                  <div className="flex items-center px-4 py-3 border-b border-gray-200">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
-                      <div className="text-white font-bold text-sm">f</div>
+                <InteractionTooltip platform="facebook">
+                  <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                    <div className="flex items-center px-4 py-3 border-b border-gray-200">
+                      <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                        <div className="text-white font-bold text-sm">f</div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm">Facebook Post</div>
+                        <div className="text-xs text-gray-500">Embedded content</div>
+                      </div>
+                      <InteractionGuide platform="facebook" className="ml-2" />
                     </div>
-                    <div className="flex-1">
-                      <div className="font-semibold text-sm">Facebook Post</div>
-                      <div className="text-xs text-gray-500">Embedded content</div>
-                    </div>
-                  </div>
                   
                   {/* Facebook embedded iframe */}
                   <div className="relative">
@@ -324,50 +344,63 @@ export default function PostItem({
                       </div>
                     </div>
                   </div>
-                </div>
+                  </div>
+                </InteractionTooltip>
               );
             }
 
             // Generic video player for direct video URLs
             if (embedUrl.includes('.mp4') || embedUrl.includes('.webm') || embedUrl.includes('.ogg')) {
               return (
-                <video
-                  controls
-                  className="w-full h-48"
-                  preload="metadata"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <source src={embedUrl} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
+                <InteractionTooltip platform="video">
+                  <div className="w-full bg-black rounded-lg overflow-hidden relative">
+                    <div className="absolute top-2 right-2 z-10">
+                      <InteractionGuide platform="video" />
+                    </div>
+                    <video
+                      controls
+                      className="w-full h-48"
+                      preload="metadata"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <source src={embedUrl} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                </InteractionTooltip>
               );
             }
 
             // Fallback - show thumbnail with link button
             return (
-              <div className="w-full h-48 bg-carbon-gray-20 flex items-center justify-center relative">
-                {post.thumbnailUrl && (
-                  <img
-                    src={post.thumbnailUrl}
-                    alt={post.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                )}
-                <div className="relative z-10 text-center bg-black bg-opacity-50 p-4 rounded-lg">
-                  <Play className="w-8 h-8 mx-auto mb-2 text-white" />
-                  <p className="text-white text-sm mb-2">Interactive Media</p>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(embedUrl, '_blank');
-                    }}
-                  >
-                    View Original
-                  </Button>
+              <InteractionTooltip platform="default">
+                <div className="w-full h-48 bg-carbon-gray-20 flex items-center justify-center relative">
+                  {post.thumbnailUrl && (
+                    <img
+                      src={post.thumbnailUrl}
+                      alt={post.title}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  )}
+                  <div className="relative z-10 text-center bg-black bg-opacity-50 p-4 rounded-lg">
+                    <Play className="w-8 h-8 mx-auto mb-2 text-white" />
+                    <p className="text-white text-sm mb-2">Interactive Media</p>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        window.open(embedUrl, '_blank');
+                      }}
+                    >
+                      View Original
+                    </Button>
+                  </div>
+                  <div className="absolute top-2 right-2">
+                    <InteractionGuide platform="default" />
+                  </div>
                 </div>
-              </div>
+              </InteractionTooltip>
             );
           })()}
         </div>

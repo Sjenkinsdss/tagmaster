@@ -18,6 +18,8 @@ import TagManagement from "@/components/TagManagement";
 import DependentTagDropdown from "@/components/DependentTagDropdown";
 import TagRecommendations from "@/components/TagRecommendations";
 import TypeTagSection from "@/components/TypeTagSection";
+import { InteractionHelpPanel } from "@/components/InteractionHelpPanel";
+import { InteractionGuideNotification } from "@/components/InteractionGuideNotification";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -384,6 +386,7 @@ export default function TaggingInterface() {
                 <Settings className="w-4 h-4" />
                 <span>Tag Management</span>
               </Button>
+              <InteractionHelpPanel />
             </div>
             <div className="flex items-center space-x-4 text-sm text-carbon-gray-70">
               {/* Search Input */}
@@ -1009,6 +1012,9 @@ export default function TaggingInterface() {
           </div>
         </div>
       </div>
+      
+      {/* Interactive Content Guide Notification */}
+      <InteractionGuideNotification />
     </div>
   );
 }

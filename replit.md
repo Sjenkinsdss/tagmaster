@@ -509,18 +509,19 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Backend Validation**: Confirmed backend returns correct tag counts with proper pillar mapping
 - **User Validation**: Tag counts now match backend data exactly as expected
 
-### January 18, 2025 - Interactive Social Media Embedded Content Implementation Complete
+### January 18, 2025 - Social Media Embedded Content Implementation with Security Constraints Documentation
 - **Instagram Embedded Content**: Implemented true Instagram iframe embedding using Instagram's official embed API for direct in-app viewing
 - **Facebook Embedded Content**: Implemented true Facebook iframe embedding using Facebook's official embed API for direct in-app viewing
 - **Instagram URL Processing**: Added support for both /p/ (posts) and /reel/ (reels) URL formats with proper embed URL generation
 - **Facebook URL Processing**: Added mobile URL conversion (m.facebook.com → facebook.com) for proper embed compatibility
 - **Database URL Field Integration**: Added `url` field to posts schema and connected to `debra_posts.url` column for authentic URL detection
 - **Dual URL Support**: Frontend now checks both `embedUrl` and `url` fields to detect social media content from production database
-- **True Embedding**: Both Instagram and Facebook content now display as embedded iframes instead of preview cards with external links
+- **Security Constraint Understanding**: Instagram's embedded content redirects clicks to Instagram.com due to security policies - this is expected behavior
+- **User Experience Enhancement**: Added clear messaging "Embedded • Click content opens in Instagram" to set proper expectations
+- **Comprehensive Documentation**: Created EmbededInsta.md documenting Instagram embedding limitations, troubleshooting steps, and technical constraints
 - **Fallback System**: Added hover overlay fallback for embedded content that fails to load with platform-specific styling
 - **CSP Compliance**: Removed all external script dependencies and inline scripts to comply with Content Security Policy requirements
-- **Replit Banner Removal**: Eliminated Replit development banner script that was causing CSP violations
-- **Enhanced User Experience**: Replaced problematic iframe embeds with true social media embedding for Instagram and Facebook
+- **Enhanced Iframe Parameters**: Implemented Instagram's captioned embedding with proper sandbox controls and referrer policies
 - **Error-Free Implementation**: Completely resolved all console errors and CSP violations while maintaining full functionality
 - **Production Data Ready**: Social media embed system ready to display authentic content when available in production database
 
