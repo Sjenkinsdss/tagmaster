@@ -509,19 +509,20 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Backend Validation**: Confirmed backend returns correct tag counts with proper pillar mapping
 - **User Validation**: Tag counts now match backend data exactly as expected
 
-### January 18, 2025 - Interactive Social Media Preview Cards Implementation Complete
-- **Instagram Preview Cards**: Created professional Instagram-styled preview cards with gradient branding, post IDs, and "View on Instagram" buttons
+### January 18, 2025 - Interactive Social Media Embedded Content Implementation Complete
+- **Instagram Embedded Content**: Implemented true Instagram iframe embedding using Instagram's official embed API for direct in-app viewing
 - **Facebook Embedded Content**: Implemented true Facebook iframe embedding using Facebook's official embed API for direct in-app viewing
+- **Instagram URL Processing**: Added support for both /p/ (posts) and /reel/ (reels) URL formats with proper embed URL generation
 - **Facebook URL Processing**: Added mobile URL conversion (m.facebook.com → facebook.com) for proper embed compatibility
-- **Database URL Field Integration**: Added `url` field to posts schema and connected to `debra_posts.url` column for authentic Facebook URL detection
-- **Dual URL Support**: Frontend now checks both `embedUrl` and `url` fields to detect Facebook content from production database
-- **Embedded vs Preview**: Facebook content now displays as embedded iframe instead of preview card with external link
-- **Fallback System**: Added hover overlay fallback for embedded content that fails to load
+- **Database URL Field Integration**: Added `url` field to posts schema and connected to `debra_posts.url` column for authentic URL detection
+- **Dual URL Support**: Frontend now checks both `embedUrl` and `url` fields to detect social media content from production database
+- **True Embedding**: Both Instagram and Facebook content now display as embedded iframes instead of preview cards with external links
+- **Fallback System**: Added hover overlay fallback for embedded content that fails to load with platform-specific styling
 - **CSP Compliance**: Removed all external script dependencies and inline scripts to comply with Content Security Policy requirements
 - **Replit Banner Removal**: Eliminated Replit development banner script that was causing CSP violations
-- **Enhanced User Experience**: Replaced problematic iframe embeds with interactive, clickable preview cards and true Facebook embedding
+- **Enhanced User Experience**: Replaced problematic iframe embeds with true social media embedding for Instagram and Facebook
 - **Error-Free Implementation**: Completely resolved all console errors and CSP violations while maintaining full functionality
-- **Production Data Ready**: Facebook embed system ready to display authentic Facebook posts when available in `debra_posts.url` column
+- **Production Data Ready**: Social media embed system ready to display authentic content when available in production database
 
 ## MVP Status: ✅ Complete + Enhanced + Production Ready + Live Data + Combined Filtering + Pagination + Search + Bulk Operations + Advanced Tag Management + Client Integration + Performance Metrics + Dependent Dropdowns + Connected Tags Organization + UI Cleanup + Advanced Tag Creation + AI Recommendation Engine + Tag Management Synchronization + Three-Tier Tag Hierarchy Complete + Enhanced UI Structure Implementation Complete + Pre-Deployment QA Complete + Interactive Embedded Media Players Complete + Personalized Category Recommendations Complete
 The tagging interface MVP has been successfully delivered with comprehensive AI-powered tag recommendation engine, fully synchronized tag management system, complete three-tier tag hierarchy implementation, enhanced UI structure with type-based organization, interactive embedded media players, and intelligent personalized category recommendation system. All core features plus bulk editing, paid ad creation, combined campaign and client filtering, real-time production database integration, 6-category tag organization, working filter combinations, pagination system, universal search functionality, bulk post selection and tag operations, advanced tag management (merge, split, edit, delete), client tag integration from debra_brandjobpost, realistic ad performance metrics, dependent category-based tag selection system, hierarchical connected tags display with Type → Category organization, UI cleanup and simplification, advanced tag creation form with confirmation dialog, AI-powered tag recommendations with confidence scoring, dual database architecture for seamless read/write operations, proper tag management synchronization across both databases, mandatory three-tier tag hierarchy (Type → Category → Name) with separate database storage and proper hierarchical display, individual TypeTagSection components with gray boxes and emoji headers for each tag type, comprehensive regression testing, full deployment readiness documentation, interactive embedded media players for TikTok, YouTube, Instagram, and direct video files, and personalized category recommendation system with intelligent relevance scoring and visual indicators are implemented and functioning correctly.

@@ -171,61 +171,57 @@ export default function PostItem({
               }
             }
 
-            // Instagram interactive preview
-            if (embedUrl.includes('instagram.com')) {
+            // Instagram embedded content - check both embedUrl and url
+            if ((embedUrl && embedUrl.includes('instagram.com')) || 
+                (post.url && post.url.includes('instagram.com'))) {
+              // Use url field if available, otherwise fall back to embedUrl
+              const instagramUrl = post.url || embedUrl;
+              
               // Extract Instagram post ID from URL - handle both http and https
-              const postMatch = embedUrl.match(/instagram\.com\/p\/([^\/\?]+)/);
-              const reelMatch = embedUrl.match(/instagram\.com\/reel\/([^\/\?]+)/);
+              const postMatch = instagramUrl.match(/instagram\.com\/p\/([^\/\?]+)/);
+              const reelMatch = instagramUrl.match(/instagram\.com\/reel\/([^\/\?]+)/);
               
               if (postMatch || reelMatch) {
                 const postId = postMatch ? postMatch[1] : reelMatch[1];
                 
-                // Create an interactive Instagram-style preview
+                // Create Instagram embed URL
+                const embedInstagramUrl = `https://www.instagram.com/p/${postId}/embed/`;
+                
                 return (
-                  <div className="w-full h-96 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                  <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
                     <div className="flex items-center px-4 py-3 border-b border-gray-200">
                       <div className="w-8 h-8 bg-gradient-to-tr from-purple-400 via-pink-400 to-orange-400 rounded-full flex items-center justify-center mr-3">
                         <div className="w-6 h-6 bg-white rounded-full"></div>
                       </div>
                       <div className="flex-1">
                         <div className="font-semibold text-sm">Instagram Post</div>
-                        <div className="text-xs text-gray-500">{postId}</div>
+                        <div className="text-xs text-gray-500">Embedded content</div>
                       </div>
                     </div>
                     
-                    <div className="bg-gradient-to-br from-purple-100 to-pink-100 h-64 flex items-center justify-center relative">
-                      <div className="text-center">
-                        <div className="w-16 h-16 bg-gradient-to-tr from-purple-500 via-pink-500 to-orange-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
-                          <Play className="w-8 h-8 text-white" />
-                        </div>
-                        <h3 className="font-semibold text-gray-800 mb-2">Instagram Content</h3>
-                        <p className="text-sm text-gray-600 mb-4">Click to view original post</p>
-                        <Button
-                          size="sm"
-                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(embedUrl, '_blank');
-                          }}
-                        >
-                          View on Instagram
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="px-4 py-3 border-t border-gray-200">
-                      <div className="flex items-center space-x-4 text-gray-600">
-                        <div className="flex items-center space-x-1">
-                          <div className="w-4 h-4 border-2 border-gray-400 rounded-sm"></div>
-                          <span className="text-xs">Like</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-4 h-4 border-2 border-gray-400 rounded-full"></div>
-                          <span className="text-xs">Comment</span>
-                        </div>
-                        <div className="flex items-center space-x-1">
-                          <div className="w-4 h-4 border-2 border-gray-400 rounded-sm transform rotate-45"></div>
-                          <span className="text-xs">Share</span>
+                    {/* Instagram embedded iframe */}
+                    <div className="relative">
+                      <iframe
+                        src={embedInstagramUrl}
+                        width="100%"
+                        height="500"
+                        frameBorder="0"
+                        scrolling="no"
+                        title="Instagram Post"
+                        className="w-full"
+                      />
+                      
+                      {/* Fallback if iframe fails to load */}
+                      <div 
+                        className="absolute inset-0 bg-gradient-to-br from-purple-100 to-pink-100 flex items-center justify-center cursor-pointer opacity-0 hover:opacity-100 transition-opacity"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(instagramUrl, '_blank');
+                        }}
+                      >
+                        <div className="text-center bg-white/90 p-4 rounded-lg">
+                          <div className="text-purple-600 font-semibold mb-2">Open in Instagram</div>
+                          <div className="text-sm text-gray-600">Click to view original post</div>
                         </div>
                       </div>
                     </div>
@@ -245,7 +241,7 @@ export default function PostItem({
                     className="absolute inset-0 cursor-pointer"
                     onClick={(e) => {
                       e.stopPropagation();
-                      window.open(embedUrl, '_blank');
+                      window.open(instagramUrl, '_blank');
                     }}
                   />
                 </div>
@@ -290,7 +286,6 @@ export default function PostItem({
                       style={{ border: 'none', overflow: 'hidden' }}
                       scrolling="no"
                       frameBorder="0"
-                      allowTransparency={true}
                       allow="encrypted-media"
                       title="Facebook Post"
                       className="w-full"
