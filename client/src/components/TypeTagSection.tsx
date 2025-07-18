@@ -12,9 +12,6 @@ interface Category {
   id: number;
   name: string;
   tagCount: number;
-  relevanceScore?: number;
-  usageFrequency?: number;
-  isRecommended?: boolean;
 }
 
 interface TagByCategory {
@@ -203,20 +200,7 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
               </div>
             ))}
 
-          {/* Personalized recommendations info */}
-          {categoriesData?.tagType && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center space-x-2 mb-2">
-                <Badge variant="outline" className="bg-blue-100 text-blue-800 text-xs">
-                  ★ Personalized for {type} tags
-                </Badge>
-              </div>
-              <p className="text-sm text-blue-700">
-                Showing only categories relevant to {type} tags, ranked by relevance. 
-                All categories below are recommended for {type} content.
-              </p>
-            </div>
-          )}
+
 
           {/* Add new tag section */}
           <div className="border-t pt-4 mt-4">
@@ -233,37 +217,16 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
                   disabled={categoriesLoading}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder={categoriesLoading ? "Loading personalized categories..." : "Select category"} />
+                    <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
                   </SelectTrigger>
                   <SelectContent>
                     {categories
-                      .sort((a: Category, b: Category) => {
-                        // Sort by recommendation status first, then relevance score
-                        if (a.isRecommended && !b.isRecommended) return -1;
-                        if (!a.isRecommended && b.isRecommended) return 1;
-                        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
-                      })
+                      .sort((a: Category, b: Category) => a.name.localeCompare(b.name))
                       .map((category: Category) => (
                       <SelectItem key={category.id} value={category.id.toString()}>
                         <div className="flex items-center justify-between w-full">
-                          <div className="flex items-center space-x-2">
-                            {category.isRecommended && (
-                              <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs px-1 py-0">
-                                ★
-                              </Badge>
-                            )}
-                            <span className={category.isRecommended ? "font-medium" : ""}>
-                              {category.name}
-                            </span>
-                          </div>
-                          <div className="flex items-center space-x-2 text-xs text-gray-500">
-                            {category.relevanceScore && category.relevanceScore > 0.7 && (
-                              <Badge variant="outline" className="text-xs px-1 py-0">
-                                {Math.round(category.relevanceScore * 100)}%
-                              </Badge>
-                            )}
-                            <span>({category.tagCount} tags)</span>
-                          </div>
+                          <span>{category.name}</span>
+                          <span className="text-xs text-gray-500">({category.tagCount} tags)</span>
                         </div>
                       </SelectItem>
                     ))}

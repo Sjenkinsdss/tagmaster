@@ -111,23 +111,11 @@ async function getPersonalizedCategories(tagType: string) {
 
         const finalRelevant = isRelevant && !hasExclusions;
         
-        // Calculate relevance score
-        const relevanceScore = finalRelevant ? 1.0 : 0.0;
-        
-        // Calculate usage frequency (normalized by total categories)
-        const usageFrequency = parseFloat(row.tag_count) / Math.max(allCategoriesResult.rows.length, 1);
-        
-        // Calculate final score (80% relevance, 20% usage)
-        const finalScore = relevanceScore * 0.8 + usageFrequency * 0.2;
-        
         return {
           id: row.id,
           name: row.category_name,
           tagCount: row.tag_count,
-          relevanceScore: finalScore,
-          usageFrequency: usageFrequency,
-          isRelevant: finalRelevant,
-          isRecommended: relevanceScore > 0.0
+          isRelevant: finalRelevant
         };
       })
       // Only show categories that are relevant to the tag type
