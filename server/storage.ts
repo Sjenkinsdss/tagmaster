@@ -505,8 +505,21 @@ export class DatabaseStorage implements IStorage {
           WHERE client_id IS NOT NULL 
           AND client_id > 0
           AND (client_name IS NOT NULL AND client_name != '' AND TRIM(client_name) != '')
+          AND (
+            LOWER(client_name) LIKE '%sam%club%' OR
+            LOWER(client_name) LIKE '%member%mark%' OR
+            LOWER(client_name) LIKE '%walmart%' OR
+            LOWER(client_name) LIKE '%nike%' OR
+            LOWER(client_name) LIKE '%adidas%' OR
+            LOWER(client_name) LIKE '%target%' OR
+            LOWER(client_name) LIKE '%amazon%' OR
+            LOWER(client_name) LIKE '%h&m%' OR
+            LOWER(client_name) LIKE '%curology%' OR
+            LOWER(client_name) LIKE '%radpower%' OR
+            LENGTH(client_name) > 10
+          )
           ORDER BY name
-          LIMIT 50
+          LIMIT 15
         `);
         
         console.log(`Successfully found ${clientTagsResult.rows.length} client tags from debra_brandjobpost`);
@@ -528,8 +541,21 @@ export class DatabaseStorage implements IStorage {
             WHERE brand_client_id IS NOT NULL 
             AND brand_client_id > 0
             AND (client_name IS NOT NULL AND client_name != '' AND TRIM(client_name) != '')
+            AND (
+              LOWER(client_name) LIKE '%sam%club%' OR
+              LOWER(client_name) LIKE '%member%mark%' OR
+              LOWER(client_name) LIKE '%walmart%' OR
+              LOWER(client_name) LIKE '%nike%' OR
+              LOWER(client_name) LIKE '%adidas%' OR
+              LOWER(client_name) LIKE '%target%' OR
+              LOWER(client_name) LIKE '%amazon%' OR
+              LOWER(client_name) LIKE '%h&m%' OR
+              LOWER(client_name) LIKE '%curology%' OR
+              LOWER(client_name) LIKE '%radpower%' OR
+              LENGTH(client_name) > 10
+            )
             ORDER BY name
-            LIMIT 50
+            LIMIT 15
           `);
           
           console.log(`Successfully found ${brandClientTagsResult.rows.length} brand client tags from debra_brandjobpost`);
