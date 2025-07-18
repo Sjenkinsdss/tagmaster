@@ -171,7 +171,7 @@ export default function PostItem({
               }
             }
 
-            // Instagram embedded player
+            // Instagram interactive preview
             if (embedUrl.includes('instagram.com')) {
               // Extract Instagram post ID from URL - handle both http and https
               const postMatch = embedUrl.match(/instagram\.com\/p\/([^\/\?]+)/);
@@ -180,21 +180,55 @@ export default function PostItem({
               if (postMatch || reelMatch) {
                 const postId = postMatch ? postMatch[1] : reelMatch[1];
                 
-                // Use a simple iframe approach that's more reliable
+                // Create an interactive Instagram-style preview
                 return (
-                  <div className="w-full h-96 bg-gray-100 flex items-center justify-center relative">
-                    <iframe
-                      src={`https://www.instagram.com/p/${postId}/embed/`}
-                      width="100%"
-                      height="400"
-                      frameBorder="0"
-                      scrolling="no"
-                      allowtransparency="true"
-                      className="w-full h-full border-0"
-                      style={{ maxWidth: '540px' }}
-                      onLoad={() => console.log('Instagram embed loaded successfully')}
-                      onError={() => console.log('Instagram embed failed to load')}
-                    />
+                  <div className="w-full h-96 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                    <div className="flex items-center px-4 py-3 border-b border-gray-200">
+                      <div className="w-8 h-8 bg-gradient-to-tr from-purple-400 via-pink-400 to-orange-400 rounded-full flex items-center justify-center mr-3">
+                        <div className="w-6 h-6 bg-white rounded-full"></div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm">Instagram Post</div>
+                        <div className="text-xs text-gray-500">{postId}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-purple-100 to-pink-100 h-64 flex items-center justify-center relative">
+                      <div className="text-center">
+                        <div className="w-16 h-16 bg-gradient-to-tr from-purple-500 via-pink-500 to-orange-500 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                          <Play className="w-8 h-8 text-white" />
+                        </div>
+                        <h3 className="font-semibold text-gray-800 mb-2">Instagram Content</h3>
+                        <p className="text-sm text-gray-600 mb-4">Click to view original post</p>
+                        <Button
+                          size="sm"
+                          className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white border-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(embedUrl, '_blank');
+                          }}
+                        >
+                          View on Instagram
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    <div className="px-4 py-3 border-t border-gray-200">
+                      <div className="flex items-center space-x-4 text-gray-600">
+                        <div className="flex items-center space-x-1">
+                          <div className="w-4 h-4 border-2 border-gray-400 rounded-sm"></div>
+                          <span className="text-xs">Like</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-4 h-4 border-2 border-gray-400 rounded-full"></div>
+                          <span className="text-xs">Comment</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <div className="w-4 h-4 border-2 border-gray-400 rounded-sm transform rotate-45"></div>
+                          <span className="text-xs">Share</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 );
               }
@@ -218,55 +252,66 @@ export default function PostItem({
               );
             }
 
-            // Facebook/Meta embedded player
+            // Facebook/Meta interactive preview
             if (embedUrl.includes('facebook.com') || embedUrl.includes('fb.com')) {
-              // Extract Facebook post ID from URL
-              const postMatch = embedUrl.match(/facebook\.com\/.*\/posts\/([^\/\?]+)/);
-              const videoMatch = embedUrl.match(/facebook\.com\/.*\/videos\/([^\/\?]+)/);
-              const permalinkMatch = embedUrl.match(/facebook\.com\/permalink\.php\?story_fbid=([^&]+)/);
+              // Extract Facebook content type from URL
+              const isVideo = embedUrl.includes('/videos/');
+              const isPost = embedUrl.includes('/posts/') || embedUrl.includes('permalink.php');
               
-              if (postMatch || videoMatch || permalinkMatch) {
-                let embedSrc = '';
-                
-                if (postMatch) {
-                  const postId = postMatch[1];
-                  embedSrc = `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(embedUrl)}&width=500&show_text=true&height=500&appId`;
-                } else if (videoMatch) {
-                  const videoId = videoMatch[1];
-                  embedSrc = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(embedUrl)}&width=500&show_text=false&height=400&appId`;
-                } else if (permalinkMatch) {
-                  embedSrc = `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(embedUrl)}&width=500&show_text=true&height=500&appId`;
-                }
-                
-                return (
-                  <iframe
-                    src={embedSrc}
-                    width="100%"
-                    height="500"
-                    frameBorder="0"
-                    scrolling="no"
-                    allowtransparency="true"
-                    className="w-full h-96"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                );
-              }
-              
-              // Fallback for Facebook URLs that don't match expected patterns
               return (
-                <div className="w-full h-48 bg-gradient-to-r from-blue-600 to-blue-800 flex items-center justify-center relative">
-                  <div className="text-center text-white">
-                    <Play className="w-12 h-12 mx-auto mb-2" />
-                    <p className="text-lg font-medium">Facebook Content</p>
-                    <p className="text-sm opacity-90">Click to view</p>
+                <div className="w-full h-96 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                  <div className="flex items-center px-4 py-3 border-b border-gray-200">
+                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3">
+                      <div className="text-white font-bold text-sm">f</div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-sm">Facebook {isVideo ? 'Video' : 'Post'}</div>
+                      <div className="text-xs text-gray-500">Meta content</div>
+                    </div>
                   </div>
-                  <div 
-                    className="absolute inset-0 cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      window.open(embedUrl, '_blank');
-                    }}
-                  />
+                  
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 h-64 flex items-center justify-center relative">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4 mx-auto">
+                        {isVideo ? (
+                          <Play className="w-8 h-8 text-white" />
+                        ) : (
+                          <div className="text-white font-bold text-lg">f</div>
+                        )}
+                      </div>
+                      <h3 className="font-semibold text-gray-800 mb-2">
+                        Facebook {isVideo ? 'Video' : 'Content'}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-4">Click to view original {isVideo ? 'video' : 'post'}</p>
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white border-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(embedUrl, '_blank');
+                        }}
+                      >
+                        View on Facebook
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="px-4 py-3 border-t border-gray-200">
+                    <div className="flex items-center space-x-4 text-gray-600">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-4 h-4 text-blue-500">👍</div>
+                        <span className="text-xs">Like</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-4 h-4 text-gray-500">💬</div>
+                        <span className="text-xs">Comment</span>
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <div className="w-4 h-4 text-gray-500">↗️</div>
+                        <span className="text-xs">Share</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               );
             }
