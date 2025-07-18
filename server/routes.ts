@@ -6,128 +6,44 @@ import { z } from "zod";
 import { db } from "./db";
 import { sql } from "drizzle-orm";
 
-// Personalized category recommendation system
+// Get categories that actually exist in database for the specified tag type
 async function getPersonalizedCategories(tagType: string) {
   try {
-    // Define category mappings for different tag types
-    const categoryMappings = {
-      'ad': [
-        'creative', 'campaign', 'targeting', 'placement', 'optimization', 'performance', 
-        'brand', 'platform', 'boosted', 'paid', 'media', 'treatment', 
-        'app', 'store', 'partnership', 'miscellaneous'
-      ],
-      'campaign': [
-        'timing', 'seasonality', 'brand', 'campaign', 'optimization', 'targeting', 
-        'geography', 'vertical', 'holiday', 'season', 'name', 'client', 'brand'
-      ],
-      'client': [
-        'brand', 'vertical', 'category', 'client', 'partnership', 'collaboration', 
-        'avon', 'sams', 'subcategory'
-      ],
-      'post': [
-        'content', 'creative', 'style', 'production', 'niche', 'topics', 'audience', 
-        'engagement', 'length', 'humor', 'setting', 'trend', 'hook', 'location', 
-        'product', 'subject', 'timing', 'stylistic', 'energy', 'features', 
-        'people', 'pets', 'physical', 'diy', 'tactic'
-      ],
-      'ai': [
-        'automation', 'optimization', 'performance', 'targeting', 'analytics', 
-        'insights', 'behavior', 'features', 'treatment'
-      ],
-      'influencer': [
-        'niche', 'topics', 'audience', 'demographics', 'engagement', 'creative', 
-        'content', 'personality', 'influencer', 'age', 'type', 'schtick', 'profession', 
-        'race', 'ethnicity', 'size', 'people', 'pets', 'physical', 'sexual', 
-        'orientation', 'inclusivity', 'gender', 'negotiation'
-      ]
-    };
-
-    const relevantKeywords = categoryMappings[tagType.toLowerCase()] || [];
-    
-    if (relevantKeywords.length === 0) {
-      // Fallback to all categories if tag type not found
-      const allCategoriesResult = await db.execute(sql`
-        SELECT 
-          ditt.id,
-          ditt.name as category_name,
-          COUNT(dit.id) as tag_count
-        FROM debra_influencertagtype ditt
-        LEFT JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
-        WHERE ditt.name IS NOT NULL 
-        AND ditt.name != ''
-        GROUP BY ditt.id, ditt.name
-        HAVING COUNT(dit.id) > 0
-        ORDER BY ditt.name
-      `);
-
-      return allCategoriesResult.rows.map((row: any) => ({
-        id: row.id,
-        name: row.category_name,
-        tagCount: row.tag_count,
-        relevanceScore: 0.5
-      }));
-    }
-
-    // Get all categories first
-    const allCategoriesResult = await db.execute(sql`
+    // Query categories that actually have tags of the specified type in the database
+    const categoriesResult = await db.execute(sql`
       SELECT 
         ditt.id,
         ditt.name as category_name,
         COUNT(dit.id) as tag_count
       FROM debra_influencertagtype ditt
-      LEFT JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
-      WHERE ditt.name IS NOT NULL 
+      INNER JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
+      WHERE dit.pillar = ${tagType}
+      AND ditt.name IS NOT NULL 
       AND ditt.name != ''
       GROUP BY ditt.id, ditt.name
       HAVING COUNT(dit.id) > 0
       ORDER BY ditt.name
     `);
 
-    // Apply strict filtering and scoring for only relevant categories
-    const categories = allCategoriesResult.rows
-      .map((row: any) => {
+    // Apply tag type specific exclusions
+    const categories = categoriesResult.rows
+      .filter((row: any) => {
         const categoryName = row.category_name.toLowerCase();
         
-        // Check if category name matches any relevant keywords with better precision
-        const isRelevant = relevantKeywords.some(keyword => {
-          const keywordLower = keyword.toLowerCase();
-          const categoryLower = categoryName.toLowerCase();
-          
-          // More precise matching: word boundaries and partial matches
-          return categoryLower.includes(keywordLower) || 
-                 categoryLower.split(/[:\s\-_]+/).some(word => 
-                   word.includes(keywordLower) || keywordLower.includes(word)
-                 );
-        });
-
         // Apply tag type specific exclusions
-        const hasExclusions = (() => {
-          if (tagType.toLowerCase() === 'ad') {
-            // Exclude vertical categories from ad tags
-            return categoryName.toLowerCase().includes('vertical');
-          }
-          return false;
-        })();
-
-        const finalRelevant = isRelevant && !hasExclusions;
-        
-        return {
-          id: row.id,
-          name: row.category_name,
-          tagCount: row.tag_count,
-          isRelevant: finalRelevant
-        };
+        if (tagType.toLowerCase() === 'ad') {
+          // Exclude vertical categories from ad tags
+          return !categoryName.includes('vertical');
+        }
+        return true;
       })
-      // Only show categories that are relevant to the tag type
-      .filter(category => category.isRelevant);
+      .map((row: any) => ({
+        id: row.id,
+        name: row.category_name,
+        tagCount: row.tag_count
+      }));
 
-    // Sort by relevance and return all relevant categories (no limit)
-    const categoriesResult = {
-      rows: categories
-        .sort((a, b) => b.relevanceScore - a.relevanceScore)
-    };
-
-    return categoriesResult.rows;
+    return categories;
 
   } catch (error) {
     console.error("Error in getPersonalizedCategories:", error);
@@ -150,8 +66,7 @@ async function getPersonalizedCategories(tagType: string) {
     return fallbackResult.rows.map((row: any) => ({
       id: row.id,
       name: row.category_name,
-      tagCount: row.tag_count,
-      relevanceScore: 0.5
+      tagCount: row.tag_count
     }));
   }
 }
