@@ -173,32 +173,29 @@ export default function PostItem({
 
             // Instagram embedded player
             if (embedUrl.includes('instagram.com')) {
-              console.log('Instagram URL detected:', embedUrl);
-              
               // Extract Instagram post ID from URL - handle both http and https
               const postMatch = embedUrl.match(/instagram\.com\/p\/([^\/\?]+)/);
               const reelMatch = embedUrl.match(/instagram\.com\/reel\/([^\/\?]+)/);
               
-              console.log('Post match:', postMatch);
-              console.log('Reel match:', reelMatch);
-              
               if (postMatch || reelMatch) {
                 const postId = postMatch ? postMatch[1] : reelMatch[1];
-                const embedSrc = `https://www.instagram.com/p/${postId}/embed/captioned/`;
                 
-                console.log('Generated embed src:', embedSrc);
-                
+                // Use a simple iframe approach that's more reliable
                 return (
-                  <iframe
-                    src={embedSrc}
-                    width="100%"
-                    height="500"
-                    frameBorder="0"
-                    scrolling="no"
-                    allowtransparency="true"
-                    className="w-full h-96"
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                  <div className="w-full h-96 bg-gray-100 flex items-center justify-center relative">
+                    <iframe
+                      src={`https://www.instagram.com/p/${postId}/embed/`}
+                      width="100%"
+                      height="400"
+                      frameBorder="0"
+                      scrolling="no"
+                      allowtransparency="true"
+                      className="w-full h-full border-0"
+                      style={{ maxWidth: '540px' }}
+                      onLoad={() => console.log('Instagram embed loaded successfully')}
+                      onError={() => console.log('Instagram embed failed to load')}
+                    />
+                  </div>
                 );
               }
               
