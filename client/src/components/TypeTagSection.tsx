@@ -212,8 +212,8 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
                 </Badge>
               </div>
               <p className="text-sm text-blue-700">
-                Categories shown below are ranked by relevance to {type} content. 
-                Starred categories (★) are highly recommended for your {type} tags.
+                Showing only categories relevant to {type} tags, ranked by relevance. 
+                All categories below are recommended for {type} content.
               </p>
             </div>
           )}

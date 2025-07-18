@@ -12,28 +12,33 @@ async function getPersonalizedCategories(tagType: string) {
     // Define category mappings for different tag types
     const categoryMappings = {
       'ad': [
-        'Campaign Type', 'Ad Format', 'Marketing', 'Advertising', 'Promotion', 
-        'Brand', 'Creative', 'Media', 'Platform', 'Targeting'
+        'creative', 'campaign', 'targeting', 'placement', 'optimization', 'performance', 
+        'brand', 'vertical', 'platform', 'boosted', 'paid', 'media', 'treatment', 
+        'app', 'store', 'optimization', 'partnership', 'miscellaneous'
       ],
       'campaign': [
-        'Campaign Type', 'Marketing', 'Brand', 'Season', 'Event', 
-        'Product Launch', 'Promotion', 'Strategy', 'Channel', 'Objective'
+        'timing', 'seasonality', 'brand', 'campaign', 'optimization', 'targeting', 
+        'geography', 'vertical', 'holiday', 'season', 'name', 'client', 'brand'
       ],
       'client': [
-        'Brand', 'Industry', 'Company', 'Business', 'Enterprise', 
-        'Corporate', 'Retail', 'E-commerce', 'Service', 'Organization'
+        'brand', 'vertical', 'category', 'client', 'partnership', 'collaboration', 
+        'avon', 'sams', 'subcategory'
       ],
       'post': [
-        'Content Type', 'Format', 'Media', 'Social', 'Engagement', 
-        'Platform', 'Style', 'Theme', 'Topic', 'Genre'
+        'content', 'creative', 'style', 'production', 'niche', 'topics', 'audience', 
+        'engagement', 'length', 'humor', 'setting', 'trend', 'hook', 'location', 
+        'product', 'subject', 'timing', 'stylistic', 'energy', 'features', 
+        'people', 'pets', 'physical', 'diy', 'tactic'
       ],
       'ai': [
-        'AI Model', 'Technology', 'Machine Learning', 'Automation', 
-        'Analytics', 'Intelligence', 'Algorithm', 'Data', 'Performance', 'Optimization'
+        'automation', 'optimization', 'performance', 'targeting', 'analytics', 
+        'insights', 'behavior', 'features', 'treatment'
       ],
       'influencer': [
-        'Creator', 'Influencer', 'Personality', 'Celebrity', 'Social', 
-        'Community', 'Audience', 'Demographic', 'Niche', 'Platform'
+        'niche', 'topics', 'audience', 'demographics', 'engagement', 'creative', 
+        'content', 'personality', 'influencer', 'age', 'type', 'schtick', 'profession', 
+        'race', 'ethnicity', 'size', 'people', 'pets', 'physical', 'sexual', 
+        'orientation', 'inclusivity', 'gender', 'negotiation'
       ]
     };
 
@@ -78,39 +83,49 @@ async function getPersonalizedCategories(tagType: string) {
       ORDER BY ditt.name
     `);
 
-    // Apply personalized scoring in JavaScript
-    const categories = allCategoriesResult.rows.map((row: any) => {
-      const categoryName = row.category_name.toLowerCase();
-      
-      // Check if category name matches any relevant keywords
-      const isRelevant = relevantKeywords.some(keyword => 
-        categoryName.includes(keyword.toLowerCase())
-      );
-      
-      // Calculate relevance score
-      const relevanceScore = isRelevant ? 1.0 : 0.3;
-      
-      // Calculate usage frequency (normalized by total categories)
-      const usageFrequency = parseFloat(row.tag_count) / Math.max(allCategoriesResult.rows.length, 1);
-      
-      // Calculate final score (70% relevance, 30% usage)
-      const finalScore = relevanceScore * 0.7 + usageFrequency * 0.3;
-      
-      return {
-        id: row.id,
-        name: row.category_name,
-        tagCount: row.tag_count,
-        relevanceScore: finalScore,
-        usageFrequency: usageFrequency,
-        isRecommended: relevanceScore > 0.5
-      };
-    });
+    // Apply strict filtering and scoring for only relevant categories
+    const categories = allCategoriesResult.rows
+      .map((row: any) => {
+        const categoryName = row.category_name.toLowerCase();
+        
+        // Check if category name matches any relevant keywords with better precision
+        const isRelevant = relevantKeywords.some(keyword => {
+          const keywordLower = keyword.toLowerCase();
+          const categoryLower = categoryName.toLowerCase();
+          
+          // More precise matching: word boundaries and partial matches
+          return categoryLower.includes(keywordLower) || 
+                 categoryLower.split(/[:\s\-_]+/).some(word => 
+                   word.includes(keywordLower) || keywordLower.includes(word)
+                 );
+        });
+        
+        // Calculate relevance score
+        const relevanceScore = isRelevant ? 1.0 : 0.0;
+        
+        // Calculate usage frequency (normalized by total categories)
+        const usageFrequency = parseFloat(row.tag_count) / Math.max(allCategoriesResult.rows.length, 1);
+        
+        // Calculate final score (80% relevance, 20% usage)
+        const finalScore = relevanceScore * 0.8 + usageFrequency * 0.2;
+        
+        return {
+          id: row.id,
+          name: row.category_name,
+          tagCount: row.tag_count,
+          relevanceScore: finalScore,
+          usageFrequency: usageFrequency,
+          isRelevant: isRelevant,
+          isRecommended: relevanceScore > 0.0
+        };
+      })
+      // Only show categories that are relevant to the tag type
+      .filter(category => category.isRelevant);
 
-    // Sort by relevance and return top 20
+    // Sort by relevance and return all relevant categories (no limit)
     const categoriesResult = {
       rows: categories
         .sort((a, b) => b.relevanceScore - a.relevanceScore)
-        .slice(0, 20)
     };
 
     return categoriesResult.rows;
