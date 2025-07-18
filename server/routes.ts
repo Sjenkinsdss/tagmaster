@@ -9,7 +9,7 @@ import { sql } from "drizzle-orm";
 // Get categories that actually exist in database for the specified tag type
 async function getPersonalizedCategories(tagType: string) {
   try {
-    // Query categories that actually have tags of the specified type in the database
+    // Query all categories with their tags, then filter by mapped pillar
     const categoriesResult = await db.execute(sql`
       SELECT 
         ditt.id,
@@ -17,18 +17,70 @@ async function getPersonalizedCategories(tagType: string) {
         COUNT(dit.id) as tag_count
       FROM debra_influencertagtype ditt
       INNER JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
-      WHERE dit.pillar = ${tagType}
-      AND ditt.name IS NOT NULL 
+      WHERE ditt.name IS NOT NULL 
       AND ditt.name != ''
       GROUP BY ditt.id, ditt.name
       HAVING COUNT(dit.id) > 0
       ORDER BY ditt.name
     `);
 
-    // Apply tag type specific exclusions
+    // Helper function to map tag type to pillar (same as in storage.ts)
+    function mapTagTypeToPillar(tagTypeName: string): string {
+      if (!tagTypeName) return 'post';
+      
+      const lowerName = tagTypeName.toLowerCase();
+      
+      // Ad related tags
+      if (lowerName.includes('ad') || lowerName.includes('advertisement') || 
+          lowerName.includes('creative') || lowerName.includes('format') ||
+          lowerName.includes('placement')) {
+        return 'ad';
+      }
+      
+      // Campaign related tags
+      if (lowerName.includes('campaign') || lowerName.includes('objective') || 
+          lowerName.includes('strategy') || lowerName.includes('goal') ||
+          lowerName.includes('performance') || lowerName.includes('metric')) {
+        return 'campaign';
+      }
+      
+      // Client related tags
+      if (lowerName.includes('client') || lowerName.includes('brand') || 
+          lowerName.includes('category') || lowerName.includes('industry') ||
+          lowerName.includes('business') || lowerName.includes('company')) {
+        return 'client';
+      }
+      
+      // AI related tags
+      if (lowerName.includes('ai') || lowerName.includes('artificial') || 
+          lowerName.includes('generated') || lowerName.includes('automated') ||
+          lowerName.includes('algorithm') || lowerName.includes('machine')) {
+        return 'ai';
+      }
+      
+      // Influencer related tags
+      if (lowerName.includes('influencer') || lowerName.includes('creator') || 
+          lowerName.includes('audience') || lowerName.includes('demographic') ||
+          lowerName.includes('behavior') || lowerName.includes('lifestyle') ||
+          lowerName.includes('interest') || lowerName.includes('age') ||
+          lowerName.includes('gender') || lowerName.includes('location')) {
+        return 'influencer';
+      }
+      
+      // Post/Content related (default for content, style, topic tags)
+      return 'post';
+    }
+
+    // Filter categories by mapped pillar and apply exclusions
     const categories = categoriesResult.rows
       .filter((row: any) => {
         const categoryName = row.category_name.toLowerCase();
+        const mappedPillar = mapTagTypeToPillar(row.category_name);
+        
+        // Only include categories that map to the requested tag type
+        if (mappedPillar !== tagType.toLowerCase()) {
+          return false;
+        }
         
         // Apply tag type specific exclusions
         if (tagType.toLowerCase() === 'ad') {
