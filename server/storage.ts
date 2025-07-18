@@ -102,6 +102,7 @@ export class DatabaseStorage implements IStorage {
           dp.content as title,
           dp.platform_name as platform,
           dp.url as embed_url,
+          dp.url as original_url,
           dp.post_image as thumbnail_url,
           CASE 
             WHEN LOWER(dp.content) LIKE '%sam%club%' OR LOWER(dp.content) LIKE '%sams%' THEN 'Sam''s Club Campaign'
@@ -277,6 +278,7 @@ export class DatabaseStorage implements IStorage {
           dp.content as title,
           dp.platform_name as platform,
           dp.url as embed_url,
+          dp.url as original_url,
           dp.post_image as thumbnail_url,
           CASE 
             WHEN LOWER(dp.content) LIKE '%sam%club%' OR LOWER(dp.content) LIKE '%sams%' THEN 'Sam''s Club Campaign'
@@ -401,6 +403,7 @@ export class DatabaseStorage implements IStorage {
       title: (row.title || '').substring(0, 100) + (row.title?.length > 100 ? '...' : ''),
       platform: row.platform || 'TikTok',
       embedUrl: row.embed_url || '',
+      url: row.original_url || '', // Use original_url field from database
       thumbnailUrl: row.thumbnail_url || 'https://picsum.photos/400/400?random=' + row.id,
       campaignName: row.campaign_name || 'General Content',
       createdAt: new Date(row.created_at || Date.now()),

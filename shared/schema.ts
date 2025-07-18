@@ -14,6 +14,7 @@ export const posts = pgTable("posts", {
   title: text("title").notNull(),
   platform: text("platform").notNull(), // instagram, tiktok, youtube
   embedUrl: text("embed_url").notNull(),
+  url: text("url"), // Original URL from debra_posts.url column
   thumbnailUrl: text("thumbnail_url"),
   campaignName: text("campaign_name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),

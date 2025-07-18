@@ -252,11 +252,14 @@ export default function PostItem({
               );
             }
 
-            // Facebook/Meta interactive preview
-            if (embedUrl.includes('facebook.com') || embedUrl.includes('fb.com')) {
+            // Facebook/Meta interactive preview - check both embedUrl and url
+            if ((embedUrl && (embedUrl.includes('facebook.com') || embedUrl.includes('fb.com'))) || 
+                (post.url && (post.url.includes('facebook.com') || post.url.includes('fb.com')))) {
+              // Use url field if available, otherwise fall back to embedUrl
+              const facebookUrl = post.url || embedUrl;
               // Extract Facebook content type from URL
-              const isVideo = embedUrl.includes('/videos/');
-              const isPost = embedUrl.includes('/posts/') || embedUrl.includes('permalink.php');
+              const isVideo = facebookUrl.includes('/videos/');
+              const isPost = facebookUrl.includes('/posts/') || facebookUrl.includes('permalink.php');
               
               return (
                 <div className="w-full h-96 bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
@@ -288,7 +291,7 @@ export default function PostItem({
                         className="bg-blue-600 hover:bg-blue-700 text-white border-0"
                         onClick={(e) => {
                           e.stopPropagation();
-                          window.open(embedUrl, '_blank');
+                          window.open(facebookUrl, '_blank');
                         }}
                       >
                         View on Facebook
