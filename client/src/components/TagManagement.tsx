@@ -42,6 +42,16 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
   });
   const [showCustomCategory, setShowCustomCategory] = useState(false);
 
+  // Merge operation state
+  const [mergeData, setMergeData] = useState({
+    targetTagName: "",
+    newTagName: "",
+    type: "post" as string,
+    category: "none" as string,
+    customCategory: "",
+  });
+  const [mergeShowCustomCategory, setMergeShowCustomCategory] = useState(false);
+
   // Fetch all tag categories for general use
   const { data: categoriesData } = useQuery({
     queryKey: ["/api/tag-categories"],
@@ -64,11 +74,16 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
     enabled: !!newTagData.type,
   });
 
-  // Merge operation state
-  const [mergeData, setMergeData] = useState({
-    targetTagName: "",
-    newTagName: "",
-    pillar: "post" as string,
+  // Fetch categories filtered by tag type for merge operation
+  const { data: mergeCategoriesData } = useQuery({
+    queryKey: ["/api/tag-categories", mergeData.type, "merge"],
+    queryFn: async () => {
+      if (!mergeData.type) return { categories: [] };
+      const response = await fetch(`/api/tag-categories?tagType=${mergeData.type}`);
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!mergeData.type,
   });
 
   // Split operation state
@@ -134,11 +149,17 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
   const mergeMutation = useMutation({
     mutationFn: async () => {
       const selectedTagIds = Array.from(selectedTags);
+      const finalCategory = mergeShowCustomCategory && mergeData.customCategory.trim() 
+        ? mergeData.customCategory.trim()
+        : mergeData.category !== "none" ? mergeData.category : undefined;
+
       const response = await apiRequest("POST", "/api/tags/merge", {
         sourceTagIds: selectedTagIds,
         targetTagName: mergeData.targetTagName || mergeData.newTagName,
         newTagName: mergeData.newTagName,
-        pillar: mergeData.pillar,
+        type: mergeData.type,
+        category: finalCategory,
+        pillar: mergeData.type,  // Use type as pillar for backwards compatibility
       });
       if (!response.ok) {
         const errorData = await response.json();
@@ -150,7 +171,8 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
       setMergeDialogOpen(false);
       setSelectedTags(new Set());
-      setMergeData({ targetTagName: "", newTagName: "", pillar: "post" });
+      setMergeData({ targetTagName: "", newTagName: "", type: "post", category: "none", customCategory: "" });
+      setMergeShowCustomCategory(false);
       toast({
         title: "Tags Merged",
         description: "Successfully merged selected tags.",
@@ -659,42 +681,105 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
           <div className="space-y-4">
             <div>
               <Label>Selected Tags ({selectedTags.size})</Label>
-              <div className="mt-1 p-2 border rounded bg-gray-50 text-sm">
-                {selectedTagsList.map(tag => tag.name).join(", ")}
+              <div className="mt-1 p-2 border rounded bg-gray-50 text-sm space-y-1">
+                {selectedTagsList.map(tag => (
+                  <div key={tag.id} className="flex items-center justify-between py-1 border-b border-gray-200 last:border-b-0">
+                    <div className="flex-1">
+                      <div className="font-medium">{tag.name}</div>
+                      <div className="text-xs text-gray-500">
+                        Type: {tag.type || tag.pillar} • Category: {tag.category || "None"} • Code: {tag.code}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
             
-            <div>
-              <Label htmlFor="newTagName">New Tag Name</Label>
-              <Input
-                id="newTagName"
-                value={mergeData.newTagName}
-                onChange={(e) => setMergeData(prev => ({ ...prev, newTagName: e.target.value }))}
-                placeholder="Enter name for merged tag"
-              />
-            </div>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="mergeType">Tag Type</Label>
+                <Select 
+                  value={mergeData.type} 
+                  onValueChange={(value) => {
+                    setMergeData(prev => ({ ...prev, type: value, category: "none", customCategory: "" }));
+                    setMergeShowCustomCategory(false);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tagTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div>
-              <Label htmlFor="mergePillar">Category</Label>
-              <Select value={mergeData.pillar} onValueChange={(value) => setMergeData(prev => ({ ...prev, pillar: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ad">Ad</SelectItem>
-                  <SelectItem value="campaign">Campaign</SelectItem>
-                  <SelectItem value="client">Client</SelectItem>
-                  <SelectItem value="post">Post</SelectItem>
-                  <SelectItem value="ai">AI</SelectItem>
-                  <SelectItem value="influencer">Influencer</SelectItem>
-                </SelectContent>
-              </Select>
+              <div>
+                <Label htmlFor="mergeCategory">Category</Label>
+                <Select 
+                  value={mergeShowCustomCategory ? "custom" : mergeData.category} 
+                  onValueChange={(value) => {
+                    if (value === "custom") {
+                      setMergeShowCustomCategory(true);
+                      setMergeData(prev => ({ ...prev, category: "none" }));
+                    } else {
+                      setMergeShowCustomCategory(false);
+                      setMergeData(prev => ({ ...prev, category: value, customCategory: "" }));
+                    }
+                  }}
+                  disabled={!mergeData.type}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder={mergeData.type ? "Select category" : "Select type first"} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No specific category</SelectItem>
+                    {mergeCategoriesData?.categories?.map((category: any) => (
+                      <SelectItem key={category.id} value={category.name}>
+                        {category.name} ({category.tagCount})
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">+ Create new category</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {mergeShowCustomCategory && (
+                <div>
+                  <Label htmlFor="mergeCustomCategory">New Category Name</Label>
+                  <Input
+                    id="mergeCustomCategory"
+                    value={mergeData.customCategory}
+                    onChange={(e) => setMergeData(prev => ({ ...prev, customCategory: e.target.value }))}
+                    placeholder="Enter new category name"
+                  />
+                </div>
+              )}
+
+              <div>
+                <Label htmlFor="newTagName">Tag Name</Label>
+                <Input
+                  id="newTagName"
+                  value={mergeData.newTagName}
+                  onChange={(e) => setMergeData(prev => ({ ...prev, newTagName: e.target.value }))}
+                  placeholder="Enter name for merged tag"
+                />
+              </div>
             </div>
 
             <div className="flex space-x-2">
               <Button
                 onClick={() => mergeMutation.mutate()}
-                disabled={!mergeData.newTagName || mergeMutation.isPending}
+                disabled={
+                  !mergeData.type || 
+                  !mergeData.newTagName || 
+                  (mergeShowCustomCategory && !mergeData.customCategory.trim()) ||
+                  mergeMutation.isPending
+                }
                 className="flex-1"
               >
                 {mergeMutation.isPending ? "Merging..." : "Merge Tags"}
