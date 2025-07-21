@@ -20,6 +20,9 @@ import TagRecommendations from "@/components/TagRecommendations";
 import TypeTagSection from "@/components/TypeTagSection";
 import { InteractionHelpPanel } from "@/components/InteractionHelpPanel";
 import { InteractionGuideNotification } from "@/components/InteractionGuideNotification";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import LoadingOverlay from "@/components/LoadingOverlay";
+import SkeletonLoader from "@/components/SkeletonLoader";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -339,8 +342,24 @@ export default function TaggingInterface() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-carbon-gray-10 flex items-center justify-center">
-        <div className="text-carbon-gray-70">Loading...</div>
+      <div className="min-h-screen bg-carbon-gray-10">
+        <LoadingOverlay 
+          isLoading={true}
+          variant="influencer"
+          message="Loading social media content and tags..."
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 p-6">
+            <div className="lg:col-span-1">
+              <SkeletonLoader variant="post" count={3} />
+            </div>
+            <div className="lg:col-span-1">
+              <SkeletonLoader variant="tag" count={6} />
+            </div>
+            <div className="lg:col-span-1">
+              <SkeletonLoader variant="ad" count={4} />
+            </div>
+          </div>
+        </LoadingOverlay>
       </div>
     );
   }

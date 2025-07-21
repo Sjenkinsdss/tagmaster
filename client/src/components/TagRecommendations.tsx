@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, Plus, Info, TrendingUp, Users, Target, Lightbulb } from "lucide-react";
+import LoadingSpinner from "./LoadingSpinner";
 import type { Tag as TagType, PostWithTags } from "@shared/schema";
 
 interface TagRecommendation {
@@ -121,23 +122,30 @@ export default function TagRecommendations({ selectedPost, onTagSelect }: TagRec
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
+            <Sparkles className="w-5 h-5 text-purple-600 animate-pulse" />
             <span>AI Tag Recommendations</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                    <div className="w-24 h-4 bg-gray-200 rounded"></div>
+          <div className="flex flex-col items-center justify-center py-8">
+            <LoadingSpinner 
+              variant="ai" 
+              size="lg" 
+              message="Analyzing content with AI..."
+            />
+            <div className="mt-6 space-y-3 w-full">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="flex items-center justify-between p-3 border rounded-lg bg-gradient-to-r from-purple-50 to-pink-50">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-4 h-4 bg-purple-200 rounded animate-bounce" style={{ animationDelay: `${i * 100}ms` }} />
+                      <div className="w-24 h-4 bg-purple-200 rounded" />
+                    </div>
+                    <div className="w-12 h-6 bg-gradient-to-r from-purple-200 to-pink-200 rounded" />
                   </div>
-                  <div className="w-12 h-6 bg-gray-200 rounded"></div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -263,8 +271,17 @@ export default function TagRecommendations({ selectedPost, onTagSelect }: TagRec
                     disabled={addTagMutation.isPending}
                     className="flex items-center space-x-1"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>Add</span>
+                    {addTagMutation.isPending ? (
+                      <>
+                        <LoadingSpinner variant="ai" size="sm" />
+                        <span>Adding...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="w-4 h-4" />
+                        <span>Add</span>
+                      </>
+                    )}
                   </Button>
                 </div>
                 

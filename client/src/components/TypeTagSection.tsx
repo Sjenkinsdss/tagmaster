@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface Category {
   id: number;
@@ -215,44 +216,58 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
               </div>
               
               <div className="space-y-2">
-                <Select 
-                  value={selectedCategoryId} 
-                  onValueChange={handleCategoryChange}
-                  disabled={categoriesLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories
-                      .sort((a: Category, b: Category) => a.name.localeCompare(b.name))
-                      .map((category: Category) => (
-                      <SelectItem key={category.id} value={category.id.toString()}>
-                        <div className="flex items-center justify-between w-full">
-                          <span>{category.name}</span>
-                          <span className="text-xs text-gray-500">({category.tagCount} tags)</span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Select 
+                    value={selectedCategoryId} 
+                    onValueChange={handleCategoryChange}
+                    disabled={categoriesLoading}
+                  >
+                    <SelectTrigger>
+                      <div className="flex items-center space-x-2 w-full">
+                        {categoriesLoading && (
+                          <LoadingSpinner variant="pulse" size="sm" />
+                        )}
+                        <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories
+                        .sort((a: Category, b: Category) => a.name.localeCompare(b.name))
+                        .map((category: Category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{category.name}</span>
+                            <span className="text-xs text-gray-500">({category.tagCount} tags)</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-                <Select 
-                  value={selectedTagId} 
-                  onValueChange={handleTagChange}
-                  disabled={!selectedCategoryId || tagsLoading}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tag" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableTags.map((tag: TagByCategory) => (
-                      <SelectItem key={tag.id} value={tag.id.toString()}>
-                        {tag.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="relative">
+                  <Select 
+                    value={selectedTagId} 
+                    onValueChange={handleTagChange}
+                    disabled={!selectedCategoryId || tagsLoading}
+                  >
+                    <SelectTrigger>
+                      <div className="flex items-center space-x-2 w-full">
+                        {tagsLoading && selectedCategoryId && (
+                          <LoadingSpinner variant="content" size="sm" />
+                        )}
+                        <SelectValue placeholder={tagsLoading && selectedCategoryId ? "Loading tags..." : "Select tag"} />
+                      </div>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTags.map((tag: TagByCategory) => (
+                        <SelectItem key={tag.id} value={tag.id.toString()}>
+                          {tag.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
                 <Button 
                   onClick={handleAddTag}
@@ -260,7 +275,14 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
                   className="w-full"
                   size="sm"
                 >
-                  {addTagMutation.isPending ? "Adding..." : "Add Tag"}
+                  {addTagMutation.isPending ? (
+                    <div className="flex items-center space-x-2">
+                      <LoadingSpinner variant="ai" size="sm" />
+                      <span>Adding Tag...</span>
+                    </div>
+                  ) : (
+                    "Add Tag"
+                  )}
                 </Button>
               </div>
             </div>

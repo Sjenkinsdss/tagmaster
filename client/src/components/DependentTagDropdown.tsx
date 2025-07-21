@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tag, Plus, Layers } from "lucide-react";
+import LoadingSpinner from "./LoadingSpinner";
 
 interface Category {
   id: number;
@@ -108,7 +109,12 @@ export default function DependentTagDropdown({ onTagSelect, selectedPost }: Depe
             disabled={!selectedPost || categoriesLoading}
           >
             <SelectTrigger className="w-full">
-              <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Choose a category"} />
+              <div className="flex items-center space-x-2 w-full">
+                {categoriesLoading && (
+                  <LoadingSpinner variant="content" size="sm" />
+                )}
+                <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Choose a category"} />
+              </div>
             </SelectTrigger>
             <SelectContent>
               {categories.map((category: Category) => (
@@ -136,15 +142,20 @@ export default function DependentTagDropdown({ onTagSelect, selectedPost }: Depe
             disabled={!selectedCategoryId || tagsLoading}
           >
             <SelectTrigger className="w-full">
-              <SelectValue 
-                placeholder={
-                  !selectedCategoryId 
-                    ? "Select a category first" 
-                    : tagsLoading 
-                      ? "Loading tags..." 
-                      : `Choose from ${selectedCategory?.name || ""} tags`
-                } 
-              />
+              <div className="flex items-center space-x-2 w-full">
+                {tagsLoading && selectedCategoryId && (
+                  <LoadingSpinner variant="influencer" size="sm" />
+                )}
+                <SelectValue 
+                  placeholder={
+                    !selectedCategoryId 
+                      ? "Select a category first" 
+                      : tagsLoading 
+                        ? "Loading tags..." 
+                        : `Choose from ${selectedCategory?.name || ""} tags`
+                  } 
+                />
+              </div>
             </SelectTrigger>
             <SelectContent>
               {tags.map((tag: TagByCategory) => (
