@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings, TrendingUp, Menu, ChevronDown, ChevronUp } from "lucide-react";
+import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings, TrendingUp, Menu, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
@@ -25,6 +25,7 @@ import LoadingOverlay from "@/components/LoadingOverlay";
 import SkeletonLoader from "@/components/SkeletonLoader";
 import EngagementHeatMap from "@/components/EngagementHeatMap";
 import MoodAnalytics from "@/components/MoodAnalytics";
+import PlatformAnalyticsDashboard from "@/components/PlatformAnalyticsDashboard";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -52,7 +53,7 @@ export default function TaggingInterface() {
   const [heatMapVariant, setHeatMapVariant] = useState<'grid' | 'timeline' | 'compact'>('grid');
   const [heatMapTab, setHeatMapTab] = useState<'heatmap' | 'analytics'>('heatmap');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarContent, setSidebarContent] = useState<'tags' | 'heatmap' | null>(null);
+  const [sidebarContent, setSidebarContent] = useState<'tags' | 'heatmap' | 'analytics' | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -186,7 +187,7 @@ export default function TaggingInterface() {
     setSelectedPost(null);
   };
 
-  const openSidebar = (content: 'tags' | 'heatmap') => {
+  const openSidebar = (content: 'tags' | 'heatmap' | 'analytics') => {
     setSidebarContent(content);
     setSidebarOpen(true);
     if (content === 'tags') {
@@ -195,6 +196,9 @@ export default function TaggingInterface() {
     } else if (content === 'heatmap') {
       setShowHeatMap(true);
       setShowTagManagement(false);
+    } else if (content === 'analytics') {
+      setShowTagManagement(false);
+      setShowHeatMap(false);
     }
   };
 
@@ -451,6 +455,21 @@ export default function TaggingInterface() {
                     >
                       <TrendingUp className="w-4 h-4 mr-2" />
                       Heat Map
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (sidebarContent === 'analytics' && sidebarOpen) {
+                          closeSidebar();
+                        } else {
+                          openSidebar('analytics');
+                        }
+                      }}
+                      className={`w-full justify-start text-sm ${sidebarContent === 'analytics' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Platform Analytics
                     </Button>
                     <Button
                       variant="ghost"
@@ -1233,6 +1252,141 @@ export default function TaggingInterface() {
           </div>
         </div>
       </div>
+      
+      {/* Sidebar */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={closeSidebar}
+          />
+          
+          {/* Sidebar Content */}
+          <div 
+            className="absolute right-0 top-0 h-full w-96 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out overflow-hidden"
+            style={{ transform: sidebarOpen ? 'translateX(0)' : 'translateX(100%)' }}
+          >
+            <div className="flex flex-col h-full">
+              {/* Sidebar Header */}
+              <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {sidebarContent === 'tags' && 'Tag Management'}
+                  {sidebarContent === 'heatmap' && 'Heat Map & Analytics'}
+                  {sidebarContent === 'analytics' && 'Platform Analytics'}
+                </h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={closeSidebar}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Sidebar Content */}
+              <div className="flex-1 overflow-y-auto">
+                {sidebarContent === 'tags' && showTagManagement && (
+                  <div className="p-4">
+                    <TagManagement 
+                      posts={filteredPosts}
+                      selectedPost={selectedPost}
+                      onTagUpdate={() => {
+                        queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+                        if (selectedPost) {
+                          queryClient.invalidateQueries({ 
+                            queryKey: [`/api/posts/${selectedPost.id}/tags`] 
+                          });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+                
+                {sidebarContent === 'heatmap' && showHeatMap && (
+                  <div className="p-4">
+                    {heatMapTab === 'heatmap' ? (
+                      <EngagementHeatMap 
+                        posts={filteredPosts} 
+                        variant={heatMapVariant}
+                      />
+                    ) : (
+                      <MoodAnalytics 
+                        posts={filteredPosts}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {sidebarContent === 'analytics' && (
+                  <div className="p-4">
+                    <PlatformAnalyticsDashboard posts={filteredPosts} />
+                  </div>
+                )}
+              </div>
+
+              {/* Sidebar Footer */}
+              {sidebarContent === 'heatmap' && (
+                <div className="border-t bg-gray-50 p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex bg-white rounded-lg p-1 border">
+                      <Button
+                        variant={heatMapTab === 'heatmap' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setHeatMapTab('heatmap')}
+                        className="text-xs px-3 py-1"
+                      >
+                        📊 Heat Map
+                      </Button>
+                      <Button
+                        variant={heatMapTab === 'analytics' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setHeatMapTab('analytics')}
+                        className="text-xs px-3 py-1"
+                      >
+                        🎯 Analytics
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {heatMapTab === 'heatmap' && (
+                    <div className="flex justify-center">
+                      <div className="flex bg-white rounded-lg p-1 border">
+                        <Button
+                          variant={heatMapVariant === 'grid' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setHeatMapVariant('grid')}
+                          className="text-xs px-2 py-1"
+                        >
+                          Grid
+                        </Button>
+                        <Button
+                          variant={heatMapVariant === 'timeline' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setHeatMapVariant('timeline')}
+                          className="text-xs px-2 py-1"
+                        >
+                          Timeline
+                        </Button>
+                        <Button
+                          variant={heatMapVariant === 'compact' ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setHeatMapVariant('compact')}
+                          className="text-xs px-2 py-1"
+                        >
+                          Compact
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Interactive Content Guide Notification */}
       <InteractionGuideNotification />
