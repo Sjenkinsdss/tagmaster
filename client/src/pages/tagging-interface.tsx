@@ -241,9 +241,9 @@ export default function TaggingInterface() {
   // Bulk tag application mutation
   const bulkTagApplicationMutation = useMutation({
     mutationFn: async ({ tagId, postIds }: { tagId: number; postIds: number[] }) => {
-      // Apply tag to all selected posts
+      // Apply tag to all selected posts using Replit database endpoint
       for (const postId of postIds) {
-        const response = await apiRequest("POST", `/api/posts/${postId}/tags`, { tagId });
+        const response = await apiRequest("POST", `/api/posts/${postId}/tags/${tagId}/replit`, {});
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || "Failed to apply tag");
@@ -253,18 +253,19 @@ export default function TaggingInterface() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+      // Invalidate selected post tags if we have one selected
+      if (selectedPost) {
+        queryClient.invalidateQueries({ queryKey: ["/api/posts", selectedPost.id, "tags"] });
+      }
       toast({
         title: "Tags applied",
-        description: `Tag has been applied to ${selectedPosts.size} posts.`,
+        description: `Tag has been applied to ${selectedPosts.size} posts in Replit database.`,
       });
     },
     onError: (error: any) => {
-      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
       toast({
-        title: isReadOnlyError ? "Read-Only Database" : "Error",
-        description: isReadOnlyError 
-          ? "Cannot modify data: Connected to read-only production database for safety."
-          : `Failed to apply tag to selected posts: ${error.message}`,
+        title: "Error",
+        description: `Failed to apply tag to selected posts: ${error.message}`,
         variant: "destructive",
       });
     },

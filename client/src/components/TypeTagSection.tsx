@@ -78,15 +78,13 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
   // Add tag mutation
   const addTagMutation = useMutation({
     mutationFn: async ({ tagId, postId }: { tagId: number; postId: number }) => {
-      const response = await apiRequest("POST", `/api/posts/${postId}/tags`, {
-        tagId: tagId,
-      });
+      const response = await apiRequest("POST", `/api/posts/${postId}/tags/${tagId}/replit`, {});
       return response.json();
     },
     onSuccess: (data, variables) => {
       const selectedTag = tagsData?.tags?.find((tag: TagByCategory) => tag.id === variables.tagId);
       
-      console.log("✅ Tag added successfully:", {
+      console.log("✅ Tag added successfully to Replit database:", {
         tagName: selectedTag?.name || "Unknown",
         categoryName: selectedTag?.categoryName || "Unknown",
         type: selectedTag?.type || type,
@@ -98,7 +96,7 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
       
       toast({
         title: "Tag added",
-        description: `Added "${selectedTag?.name}" to post`,
+        description: `Added "${selectedTag?.name}" to post in Replit database`,
       });
       
       // Reset selections
@@ -113,7 +111,7 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
       console.error("❌ Error adding tag:", error);
       toast({
         title: "Error",
-        description: "Failed to add tag. Read-only database access.",
+        description: `Failed to add tag: ${error.message}`,
         variant: "destructive",
       });
     },
