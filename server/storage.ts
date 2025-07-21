@@ -1460,12 +1460,10 @@ export class DatabaseStorage implements IStorage {
         await replitDb.insert(posts).values({
           id: postId,
           title: productionPost.title || `Post ${postId}`,
-          content: productionPost.content || "",
-          embedUrl: productionPost.embedUrl || null,
-          url: productionPost.url || null,
           platform: productionPost.platform || "unknown",
+          embedUrl: productionPost.embedUrl || "",
+          url: productionPost.url || null,
           campaignName: productionPost.campaignName || "Unknown Campaign",
-          clientName: productionPost.clientName || "Unknown Client",
           createdAt: productionPost.createdAt || new Date()
         });
         
