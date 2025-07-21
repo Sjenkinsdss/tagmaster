@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings, TrendingUp } from "lucide-react";
+import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings, TrendingUp, Menu, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
@@ -51,6 +51,8 @@ export default function TaggingInterface() {
   const [showHeatMap, setShowHeatMap] = useState(false);
   const [heatMapVariant, setHeatMapVariant] = useState<'grid' | 'timeline' | 'compact'>('grid');
   const [heatMapTab, setHeatMapTab] = useState<'heatmap' | 'analytics'>('heatmap');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarContent, setSidebarContent] = useState<'tags' | 'heatmap' | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -182,6 +184,25 @@ export default function TaggingInterface() {
     setBulkPostMode(!bulkPostMode);
     setSelectedPosts(new Set());
     setSelectedPost(null);
+  };
+
+  const openSidebar = (content: 'tags' | 'heatmap') => {
+    setSidebarContent(content);
+    setSidebarOpen(true);
+    if (content === 'tags') {
+      setShowTagManagement(true);
+      setShowHeatMap(false);
+    } else if (content === 'heatmap') {
+      setShowHeatMap(true);
+      setShowTagManagement(false);
+    }
+  };
+
+  const closeSidebar = () => {
+    setSidebarOpen(false);
+    setSidebarContent(null);
+    setShowTagManagement(false);
+    setShowHeatMap(false);
   };
 
   const handlePostSelection = (postId: number, isSelected: boolean) => {
@@ -402,24 +423,53 @@ export default function TaggingInterface() {
               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
                 Read-Only Production
               </Badge>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowTagManagement(true)}
-                className="flex items-center space-x-1"
-              >
-                <Settings className="w-4 h-4" />
-                <span>Tag Management</span>
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowHeatMap(!showHeatMap)}
-                className={`flex items-center space-x-1 ${showHeatMap ? 'bg-blue-50 text-blue-600 border-blue-300' : ''}`}
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span>Heat Map</span>
-              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`flex items-center space-x-1 ${sidebarOpen ? 'bg-blue-50 text-blue-600 border-blue-300' : ''}`}
+                  >
+                    <Menu className="w-4 h-4" />
+                    <span>Tools</span>
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-48" align="end">
+                  <div className="space-y-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (sidebarContent === 'heatmap' && sidebarOpen) {
+                          closeSidebar();
+                        } else {
+                          openSidebar('heatmap');
+                        }
+                      }}
+                      className={`w-full justify-start text-sm ${sidebarContent === 'heatmap' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Heat Map
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (sidebarContent === 'tags' && sidebarOpen) {
+                          closeSidebar();
+                        } else {
+                          openSidebar('tags');
+                        }
+                      }}
+                      className={`w-full justify-start text-sm ${sidebarContent === 'tags' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                    >
+                      <Settings className="w-4 h-4 mr-2" />
+                      Tag Management
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
               <InteractionHelpPanel />
             </div>
             <div className="flex items-center space-x-4 text-sm text-carbon-gray-70">
@@ -628,65 +678,89 @@ export default function TaggingInterface() {
         </div>
       )}
 
-      {/* Engagement Heat Map Section */}
-      {showHeatMap && (
-        <div className="bg-white border-b border-carbon-gray-20 p-6">
-          {/* Tab Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+      {/* Main Content with Sidebar */}
+      <div className={`${(campaignFilter !== "All Posts" || clientFilter !== "All Clients" || postIdFilter || searchQuery) ? "h-[calc(100vh-115px)]" : "h-[calc(100vh-73px)]"} flex relative`}>
+        
+        {/* Sidebar */}
+        {sidebarOpen && (
+          <div className="absolute top-0 right-0 w-96 h-full bg-white border-l border-carbon-gray-20 shadow-lg z-10 overflow-hidden">
+            {/* Sidebar Header */}
+            <div className="flex items-center justify-between p-4 border-b border-carbon-gray-20">
+              <h3 className="text-lg font-semibold text-carbon-gray-100">
+                {sidebarContent === 'heatmap' ? '📊 Heat Map & Analytics' : '⚙️ Tag Management'}
+              </h3>
               <Button
-                variant={heatMapTab === 'heatmap' ? 'default' : 'ghost'}
+                variant="ghost"
                 size="sm"
-                onClick={() => setHeatMapTab('heatmap')}
-                className="text-sm px-4"
+                onClick={closeSidebar}
+                className="text-carbon-gray-50 hover:text-carbon-gray-100"
               >
-                📊 Heat Map
-              </Button>
-              <Button
-                variant={heatMapTab === 'analytics' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setHeatMapTab('analytics')}
-                className="text-sm px-4"
-              >
-                🎯 Analytics
+                <X className="w-4 h-4" />
               </Button>
             </div>
-            
-            {heatMapTab === 'heatmap' && (
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-600">View:</span>
-                <Select value={heatMapVariant} onValueChange={(value: 'grid' | 'timeline' | 'compact') => setHeatMapVariant(value)}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="grid">Grid</SelectItem>
-                    <SelectItem value="timeline">Timeline</SelectItem>
-                    <SelectItem value="compact">Compact</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+
+            {/* Sidebar Content */}
+            <div className="h-[calc(100%-4rem)] overflow-y-auto">
+              {sidebarContent === 'heatmap' ? (
+                <div className="p-4">
+                  {/* Heat Map Tab Navigation */}
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+                      <Button
+                        variant={heatMapTab === 'heatmap' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setHeatMapTab('heatmap')}
+                        className="text-sm px-4"
+                      >
+                        📊 Heat Map
+                      </Button>
+                      <Button
+                        variant={heatMapTab === 'analytics' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setHeatMapTab('analytics')}
+                        className="text-sm px-4"
+                      >
+                        🎯 Analytics
+                      </Button>
+                    </div>
+                    
+                    {heatMapTab === 'heatmap' && (
+                      <Select value={heatMapVariant} onValueChange={(value: 'grid' | 'timeline' | 'compact') => setHeatMapVariant(value)}>
+                        <SelectTrigger className="w-24">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="grid">Grid</SelectItem>
+                          <SelectItem value="timeline">Timeline</SelectItem>
+                          <SelectItem value="compact">Compact</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+
+                  {/* Heat Map Content */}
+                  {heatMapTab === 'heatmap' ? (
+                    <EngagementHeatMap 
+                      posts={posts}
+                      selectedPost={selectedPost}
+                      onPostSelect={setSelectedPost}
+                      variant={heatMapVariant}
+                    />
+                  ) : (
+                    <MoodAnalytics posts={posts} />
+                  )}
+                </div>
+              ) : (
+                <div className="p-4">
+                  {showTagManagement && <TagManagement onClose={() => setShowTagManagement(false)} />}
+                </div>
+              )}
+            </div>
           </div>
+        )}
 
-          {/* Tab Content */}
-          {heatMapTab === 'heatmap' ? (
-            <EngagementHeatMap 
-              posts={posts}
-              selectedPost={selectedPost}
-              onPostSelect={setSelectedPost}
-              variant={heatMapVariant}
-            />
-          ) : (
-            <MoodAnalytics posts={posts} />
-          )}
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className={`${showHeatMap ? "h-[calc(100vh-180px)]" : (campaignFilter !== "All Posts" || clientFilter !== "All Clients" || postIdFilter || searchQuery) ? "h-[calc(100vh-115px)]" : "h-[calc(100vh-73px)]"} flex`}>
         {/* Content Column */}
-        <div className="w-1/3 bg-white border-r border-carbon-gray-20 overflow-y-auto">
+        <div className={`${sidebarOpen ? 'w-[calc(100%-384px)]' : 'w-1/3'} bg-white border-r border-carbon-gray-20 overflow-y-auto transition-all duration-300`}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-carbon-gray-100">Content</h2>
@@ -802,7 +876,7 @@ export default function TaggingInterface() {
         </div>
 
         {/* Tagging Column */}
-        <div className="w-1/3 bg-white border-r border-carbon-gray-20 overflow-y-auto">
+        <div className={`${sidebarOpen ? 'w-[calc(50%-192px)]' : 'w-1/3'} bg-white border-r border-carbon-gray-20 overflow-y-auto transition-all duration-300`}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-carbon-gray-100">Tags</h2>
@@ -1026,7 +1100,7 @@ export default function TaggingInterface() {
         </div>
 
         {/* Connected Paid Ads Column */}
-        <div className="w-1/3 bg-white overflow-y-auto">
+        <div className={`${sidebarOpen ? 'w-[calc(50%-192px)]' : 'w-1/3'} bg-white overflow-y-auto transition-all duration-300`}>
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-carbon-gray-100">Connected Paid Ads</h2>
