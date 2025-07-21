@@ -88,6 +88,12 @@ async function getPersonalizedCategories(tagType: string) {
           // Exclude vertical categories from ad tags
           return !categoryName.includes('vertical');
         }
+        
+        if (tagType.toLowerCase() === 'post') {
+          // Exclude generic "Category" category from post tags
+          return !(categoryName === 'category' || row.category_name === 'Category');
+        }
+        
         return true;
       })
       .map((row: any) => ({
