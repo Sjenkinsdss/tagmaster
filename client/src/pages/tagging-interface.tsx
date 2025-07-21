@@ -1290,7 +1290,7 @@ export default function TaggingInterface() {
                 {sidebarContent === 'tags' && showTagManagement && (
                   <div className="p-4">
                     <TagManagement 
-                      posts={filteredPosts}
+                      posts={posts}
                       selectedPost={selectedPost}
                       onTagUpdate={() => {
                         queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
@@ -1309,12 +1309,12 @@ export default function TaggingInterface() {
                   <div className="p-4">
                     {heatMapTab === 'heatmap' ? (
                       <EngagementHeatMap 
-                        posts={filteredPosts} 
+                        posts={posts} 
                         variant={heatMapVariant}
                       />
                     ) : (
                       <MoodAnalytics 
-                        posts={filteredPosts}
+                        posts={posts}
                       />
                     )}
                   </div>
@@ -1322,7 +1322,7 @@ export default function TaggingInterface() {
 
                 {sidebarContent === 'analytics' && (
                   <div className="p-4">
-                    <PlatformAnalyticsDashboard posts={filteredPosts} />
+                    <PlatformAnalyticsDashboard posts={posts} />
                   </div>
                 )}
               </div>
