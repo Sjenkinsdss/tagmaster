@@ -1440,9 +1440,55 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Adding tag ${tagId} to post ${postId} in Replit database`);
       
-      // Import the postTags table from schema
-      const { postTags } = await import("@shared/schema");
+      // Import schema components
+      const { postTags, posts } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
       
+      // First, check if the post exists in Replit database
+      const existingPost = await replitDb.select().from(posts).where(eq(posts.id, postId)).limit(1);
+      
+      if (existingPost.length === 0) {
+        console.log(`Post ${postId} doesn't exist in Replit database, creating basic entry...`);
+        
+        // Get post info from production database to create it in Replit
+        const productionPost = await this.getPostById(postId);
+        if (!productionPost) {
+          throw new Error(`Post ${postId} not found in production database`);
+        }
+        
+        // Create basic post entry in Replit database
+        await replitDb.insert(posts).values({
+          id: postId,
+          title: productionPost.title || `Post ${postId}`,
+          content: productionPost.content || "",
+          embedUrl: productionPost.embedUrl || null,
+          url: productionPost.url || null,
+          platform: productionPost.platform || "unknown",
+          campaignName: productionPost.campaignName || "Unknown Campaign",
+          clientName: productionPost.clientName || "Unknown Client",
+          createdAt: productionPost.createdAt || new Date()
+        });
+        
+        console.log(`Created post ${postId} in Replit database`);
+      }
+      
+      // Check if this tag-post relationship already exists
+      const { and } = await import("drizzle-orm");
+      const existingPostTag = await replitDb
+        .select()
+        .from(postTags)
+        .where(and(
+          eq(postTags.postId, postId),
+          eq(postTags.tagId, tagId)
+        ))
+        .limit(1);
+      
+      if (existingPostTag.length > 0) {
+        console.log(`Tag ${tagId} already associated with post ${postId}`);
+        return existingPostTag[0];
+      }
+      
+      // Add the tag-post relationship
       const [newPostTag] = await replitDb
         .insert(postTags)
         .values({
