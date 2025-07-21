@@ -1441,10 +1441,38 @@ export class DatabaseStorage implements IStorage {
       console.log(`Adding tag ${tagId} to post ${postId} in Replit database`);
       
       // Import schema components
-      const { postTags, posts } = await import("@shared/schema");
+      const { postTags, posts, tags } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
       
-      // First, check if the post exists in Replit database
+      // First, check if the tag exists in Replit database
+      const existingTag = await replitDb.select().from(tags).where(eq(tags.id, tagId)).limit(1);
+      
+      if (existingTag.length === 0) {
+        console.log(`Tag ${tagId} doesn't exist in Replit database, creating entry...`);
+        
+        // Get tag info from production database to create it in Replit
+        const allTags = await this.getTags();
+        const productionTag = allTags.find(t => t.id === tagId);
+        if (!productionTag) {
+          throw new Error(`Tag ${tagId} not found in production database`);
+        }
+        
+        // Create tag entry in Replit database
+        await replitDb.insert(tags).values({
+          id: tagId,
+          name: productionTag.name,
+          code: productionTag.code,
+          type: productionTag.type || null,
+          category: productionTag.category || null,
+          pillar: productionTag.pillar,
+          isAiGenerated: productionTag.isAiGenerated || false,
+          createdAt: new Date()
+        });
+        
+        console.log(`Created tag ${tagId} in Replit database`);
+      }
+      
+      // Next, check if the post exists in Replit database
       const existingPost = await replitDb.select().from(posts).where(eq(posts.id, postId)).limit(1);
       
       if (existingPost.length === 0) {
