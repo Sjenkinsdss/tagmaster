@@ -1451,7 +1451,7 @@ export class DatabaseStorage implements IStorage {
         console.log(`Post ${postId} doesn't exist in Replit database, creating basic entry...`);
         
         // Get post info from production database to create it in Replit
-        const productionPost = await this.getPostById(postId);
+        const productionPost = await this.getPost(postId);
         if (!productionPost) {
           throw new Error(`Post ${postId} not found in production database`);
         }
