@@ -204,44 +204,47 @@ export default function PostItem({
                 
                 return (
                   <InteractionTooltip platform="instagram">
-                    <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                    <div className="w-full bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           window.open(instagramUrl, '_blank');
+                         }}>
                       <div className="flex items-center px-4 py-3 border-b border-gray-200">
                         <div className="w-8 h-8 bg-gradient-to-tr from-purple-400 via-pink-400 to-orange-400 rounded-full flex items-center justify-center mr-3">
                           <div className="w-6 h-6 bg-white rounded-full"></div>
                         </div>
                         <div className="flex-1">
                           <div className="font-semibold text-sm">Instagram Post</div>
-                          <div className="text-xs text-gray-500">Embedded • Click content opens in Instagram</div>
+                          <div className="text-xs text-gray-500">Click to view on Instagram</div>
                         </div>
                         <InteractionGuide platform="instagram" className="ml-2" />
                       </div>
                       
-                      {/* Instagram embedded iframe with sandbox for better control */}
-                      <div className="relative bg-gray-50">
-                        <iframe
-                          src={embedInstagramUrl}
-                          width="100%"
-                          height="600"
-                          frameBorder="0"
-                          scrolling="no"
-                          title="Instagram Post"
-                          className="w-full"
-                          sandbox="allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          referrerPolicy="strict-origin-when-cross-origin"
-                        />
+                      {/* Instagram image preview */}
+                      <div className="relative bg-gray-50 h-80 flex items-center justify-center">
+                        {post.thumbnailUrl ? (
+                          <img
+                            src={post.thumbnailUrl}
+                            alt="Instagram post preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-center text-gray-500">
+                            <div className="w-16 h-16 bg-gradient-to-tr from-purple-400 via-pink-400 to-orange-400 rounded-lg mx-auto mb-3 flex items-center justify-center">
+                              <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
+                                <div className="w-8 h-8 bg-gradient-to-tr from-purple-400 via-pink-400 to-orange-400 rounded"></div>
+                              </div>
+                            </div>
+                            <p className="font-medium">Instagram Content</p>
+                            <p className="text-sm">Click to view post</p>
+                          </div>
+                        )}
                         
-                        {/* Interactive overlay for better user experience */}
-                        <div className="absolute top-4 right-4">
-                          <button
-                            className="bg-white/90 hover:bg-white border border-gray-200 px-3 py-1 rounded-full text-xs font-medium text-gray-700 shadow-sm transition-all"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(instagramUrl, '_blank');
-                            }}
-                          >
-                            View Original
-                          </button>
+                        {/* Hover overlay */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all flex items-center justify-center">
+                          <div className="bg-white/90 hover:bg-white border border-gray-200 px-4 py-2 rounded-full text-sm font-medium text-gray-700 shadow-sm transition-all opacity-0 hover:opacity-100">
+                            View on Instagram
+                          </div>
                         </div>
                       </div>
                     </div>
