@@ -835,39 +835,97 @@ export default function TaggingInterface() {
                   <p className="text-sm text-carbon-gray-70 mb-2">
                     Apply tags to {selectedPosts.size} selected posts
                   </p>
-                  <p className="text-xs text-yellow-600 mb-6 bg-yellow-50 p-2 rounded">
-                    Note: Connected to read-only production database. Tag operations will show error message.
+                  <p className="text-xs text-green-600 mb-6 bg-green-50 p-2 rounded">
+                    Note: Bulk operations save to Replit database for testing purposes.
                   </p>
                 </div>
                 
-                {/* Bulk Tag Application Interface */}
+                {/* Bulk Tag Application Interface with Three-Tier Hierarchy */}
                 <div className="space-y-4">
-                  {displayCategories.map((category: any) => {
-                    const categoryTags = getTagsForCategory(category.name);
-                    if (categoryTags.length === 0) return null;
-                    
-                    return (
-                      <Card key={category.id} className="p-4">
-                        <div className="flex items-center space-x-2 mb-3">
-                          <div className="text-carbon-blue">{getCategoryIcon(category.name)}</div>
-                          <h4 className="font-medium text-carbon-gray-100">{category.name} ({category.tagCount})</h4>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {categoryTags.map((tag: any) => (
-                            <Button
-                              key={tag.id}
-                              variant="outline"
-                              size="sm"
-                              className="text-xs"
-                              onClick={() => handleBulkTagApplication(tag.id, category.name.toLowerCase().replace(/\s+/g, '_'))}
-                            >
-                              {tag.name}
-                            </Button>
-                          ))}
-                        </div>
-                      </Card>
-                    );
-                  })}
+                  {(() => {
+                    // Group all tags by type first (using the same logic as connected tags)
+                    const tagsByType = tags.reduce((acc: any, tag: any) => {
+                      const tagType = tag.type || tag.pillar || 'general';
+                      if (!acc[tagType]) {
+                        acc[tagType] = {};
+                      }
+                      
+                      // Group by category within type
+                      const tagCategory = tag.category || tag.tag_type_name || 'Uncategorized';
+                      if (!acc[tagType][tagCategory]) {
+                        acc[tagType][tagCategory] = [];
+                      }
+                      acc[tagType][tagCategory].push(tag);
+                      return acc;
+                    }, {});
+
+                    const getTypeEmoji = (type: string) => {
+                      const emojiMap: { [key: string]: string } = {
+                        ad: "📢",
+                        campaign: "🎯", 
+                        client: "🏢",
+                        post: "📝",
+                        ai: "🤖",
+                        influencer: "👤",
+                        product: "🛍️",
+                        general: "🏷️"
+                      };
+                      return emojiMap[type.toLowerCase()] || "🏷️";
+                    };
+
+                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'];
+                    const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
+                      const aIndex = typeOrder.indexOf(a);
+                      const bIndex = typeOrder.indexOf(b);
+                      if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+                      if (aIndex === -1) return 1;
+                      if (bIndex === -1) return -1;
+                      return aIndex - bIndex;
+                    });
+
+                    return sortedTypes.map(type => {
+                      const typeCategories = tagsByType[type];
+                      const typeTotalTags = Object.values(typeCategories).flat().length;
+                      
+                      return (
+                        <Card key={type} className="p-4 bg-gray-50">
+                          <div className="flex items-center space-x-2 mb-4">
+                            <div className="text-xl">{getTypeEmoji(type)}</div>
+                            <h3 className="font-semibold text-carbon-gray-100 capitalize">
+                              {type} Tags ({typeTotalTags})
+                            </h3>
+                          </div>
+                          
+                          <div className="space-y-3 ml-6">
+                            {Object.entries(typeCategories)
+                              .sort(([a], [b]) => a.localeCompare(b))
+                              .map(([categoryName, categoryTags]: [string, any]) => (
+                                <div key={categoryName}>
+                                  <h4 className="font-medium text-sm text-carbon-gray-80 mb-2">
+                                    {categoryName} ({categoryTags.length})
+                                  </h4>
+                                  <div className="flex flex-wrap gap-2 ml-4">
+                                    {categoryTags
+                                      .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                                      .map((tag: any) => (
+                                        <Button
+                                          key={tag.id}
+                                          variant="outline"
+                                          size="sm"
+                                          className="text-xs h-7 px-2 bg-white hover:bg-green-50 hover:border-green-300"
+                                          onClick={() => handleBulkTagApplication(tag.id, type)}
+                                        >
+                                          {tag.name}
+                                        </Button>
+                                      ))}
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </Card>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             ) : (
