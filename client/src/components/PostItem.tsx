@@ -2,7 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Play, Heart, MessageCircle, Share } from "lucide-react";
+import { Play, Heart, MessageCircle, Share, Instagram, Youtube, Facebook, Twitter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PostWithTags } from "@shared/schema";
 import { InteractionTooltip, InteractionGuide } from './InteractionTooltip';
@@ -16,16 +16,13 @@ interface PostItemProps {
   onBulkSelect?: (isSelected: boolean) => void;
 }
 
-const platformIcons = {
-  instagram: "fab fa-instagram",
-  tiktok: "fab fa-tiktok", 
-  youtube: "fab fa-youtube",
-};
-
 const platformColors = {
-  instagram: "from-purple-500 to-pink-500",
-  tiktok: "from-red-500 to-pink-500",
-  youtube: "from-red-600 to-red-500",
+  Instagram: "from-purple-500 to-pink-500",
+  TikTok: "from-black to-red-500",
+  YouTube: "from-red-600 to-red-500",
+  Facebook: "from-blue-600 to-blue-500",
+  Twitter: "from-blue-400 to-blue-500",
+  Snapchat: "from-yellow-400 to-yellow-500",
 };
 
 
@@ -39,7 +36,6 @@ export default function PostItem({
   onBulkSelect 
 }: PostItemProps) {
   const platformColor = platformColors[post.platform as keyof typeof platformColors] || "from-blue-500 to-blue-600";
-  const platformIcon = platformIcons[post.platform as keyof typeof platformIcons] || "fab fa-share-square";
 
   const formatTimestamp = (timestamp: string | Date) => {
     const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
@@ -75,7 +71,13 @@ export default function PostItem({
               />
             )}
             <div className={cn("w-8 h-8 rounded-full bg-gradient-to-br flex items-center justify-center", platformColor)}>
-              <i className={cn(platformIcon, "text-white text-sm")} />
+              {post.platform === 'Instagram' && <Instagram className="w-4 h-4 text-white" />}
+              {post.platform === 'TikTok' && <Play className="w-4 h-4 text-white" />}
+              {post.platform === 'YouTube' && <Youtube className="w-4 h-4 text-white" />}
+              {post.platform === 'Facebook' && <Facebook className="w-4 h-4 text-white" />}
+              {post.platform === 'Twitter' && <Twitter className="w-4 h-4 text-white" />}
+              {post.platform === 'Snapchat' && <MessageCircle className="w-4 h-4 text-white" />}
+              {!['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Twitter', 'Snapchat'].includes(post.platform) && <Share className="w-4 h-4 text-white" />}
             </div>
             <div className="flex-1">
               <h3 className="font-medium text-carbon-gray-100">{post.title}</h3>
