@@ -175,11 +175,11 @@ export default function TaggingInterface() {
   });
 
   // Organize tags by production categories
-  const categories = categoriesData?.categories || [];
+  const categories = (categoriesData as any)?.categories || [];
   
   // Create category-based tag groups
   const getTagsForCategory = (categoryName: string) => {
-    return tags.filter((tag: any) => tag.tag_type_name === categoryName);
+    return (tags as any[]).filter((tag: any) => tag.tag_type_name === categoryName);
   };
 
   // Get the most relevant categories for display (limit to top 8 most common)
@@ -212,7 +212,7 @@ export default function TaggingInterface() {
     setSelectedPost(null);
   };
 
-  const openSidebar = (content: 'tags' | 'heatmap' | 'analytics') => {
+  const openSidebar = (content: 'tags' | 'heatmap' | 'analytics' | 'themes') => {
     setSidebarContent(content);
     setSidebarOpen(true);
     if (content === 'tags') {
@@ -222,6 +222,9 @@ export default function TaggingInterface() {
       setShowHeatMap(true);
       setShowTagManagement(false);
     } else if (content === 'analytics') {
+      setShowTagManagement(false);
+      setShowHeatMap(false);
+    } else if (content === 'themes') {
       setShowTagManagement(false);
       setShowHeatMap(false);
     }
@@ -248,7 +251,7 @@ export default function TaggingInterface() {
     if (selectedPosts.size === posts.length) {
       setSelectedPosts(new Set());
     } else {
-      setSelectedPosts(new Set(posts.map(post => post.id)));
+      setSelectedPosts(new Set(posts.map((post: any) => post.id)));
     }
   };
 
@@ -432,7 +435,7 @@ export default function TaggingInterface() {
       <div className="min-h-screen bg-carbon-gray-10">
         <div className="p-6">
           <TagManagement 
-            tags={tags} 
+            tags={tags as any[]} 
             onClose={() => setShowTagManagement(false)} 
           />
         </div>
@@ -597,7 +600,7 @@ export default function TaggingInterface() {
                           </div>
                         </CommandEmpty>
                         <CommandGroup>
-                          {campaignOptions.map((campaign) => (
+                          {campaignOptions.map((campaign: any) => (
                             <CommandItem
                               key={campaign}
                               value={campaign}
@@ -648,7 +651,7 @@ export default function TaggingInterface() {
                           </div>
                         </CommandEmpty>
                         <CommandGroup>
-                          {clientOptions.map((client) => (
+                          {clientOptions.map((client: any) => (
                             <CommandItem
                               key={client}
                               value={client}
@@ -811,8 +814,8 @@ export default function TaggingInterface() {
                   {heatMapTab === 'heatmap' ? (
                     <EngagementHeatMap 
                       posts={posts}
-                      selectedPost={selectedPost}
-                      onPostSelect={setSelectedPost}
+                      selectedPost={selectedPost as any}
+                      onPostSelect={(post: any) => setSelectedPost(post)}
                       variant={heatMapVariant}
                     />
                   ) : (
@@ -821,7 +824,7 @@ export default function TaggingInterface() {
                 </div>
               ) : (
                 <div className="p-4">
-                  {showTagManagement && <TagManagement onClose={() => setShowTagManagement(false)} />}
+                  {showTagManagement && <TagManagement tags={tags as any[]} onClose={() => setShowTagManagement(false)} />}
                 </div>
               )}
             </div>
@@ -870,7 +873,7 @@ export default function TaggingInterface() {
               {posts.map((post: PostWithTags, index: number) => {
                 // Create absolutely unique key using multiple factors to prevent any collisions
                 // Use a static seed based on post properties to avoid regenerating keys on every render
-                const postType = post.metadata?.ad_type || post.metadata?.type || 'post';
+                const postType = (post.metadata as any)?.ad_type || (post.metadata as any)?.type || 'post';
                 const timestamp = post.createdAt instanceof Date ? post.createdAt.getTime() : new Date(post.createdAt).getTime();
                 const hashSeed = `${post.id}_${post.platform}_${timestamp}`.split('').reduce((a, b) => {
                   a = ((a << 5) - a) + b.charCodeAt(0);
@@ -1081,7 +1084,7 @@ export default function TaggingInterface() {
                 <div className="space-y-4">
                   {(() => {
                     // Group all tags by type first (using the same logic as connected tags)
-                    const tagsByType = tags.reduce((acc: any, tag: any) => {
+                    const tagsByType = (tags as any[]).reduce((acc: any, tag: any) => {
                       const tagType = tag.type || tag.pillar || 'general';
                       if (!acc[tagType]) {
                         acc[tagType] = {};
@@ -1182,10 +1185,10 @@ export default function TaggingInterface() {
               {selectedPost && (
                 <div className="flex items-center space-x-2">
                   <Badge variant="outline" className="text-carbon-green bg-carbon-green bg-opacity-10">
-                    {connectedAds.filter(ad => ad.isLinked).length} linked
+                    {connectedAds.filter((ad: any) => ad.isLinked).length} linked
                   </Badge>
                   <Badge variant="outline" className="text-carbon-yellow bg-carbon-yellow bg-opacity-10">
-                    {connectedAds.filter(ad => !ad.isLinked).length} unlinked
+                    {connectedAds.filter((ad: any) => !ad.isLinked).length} unlinked
                   </Badge>
                 </div>
               )}
@@ -1193,7 +1196,7 @@ export default function TaggingInterface() {
 
             {selectedPost ? (
               <div className="space-y-4">
-                {connectedAds.map((ad, adIndex) => {
+                {connectedAds.map((ad: any, adIndex: any) => {
                   // Create unique key for connected ads section - use different prefix than main posts
                   const adHashSeed = `${ad.id}_${selectedPost?.id}_${adIndex}`.split('').reduce((a, b) => {
                     a = ((a << 5) - a) + b.charCodeAt(0);
@@ -1203,7 +1206,7 @@ export default function TaggingInterface() {
                     <PaidAdItem
                       key={`connectedAd_${ad.id}_${selectedPost?.id}_${adIndex}_${Math.abs(adHashSeed)}`}
                       ad={ad}
-                      post={enrichedSelectedPost}
+                      post={enrichedSelectedPost!}
                     />
                   );
                 })}
@@ -1347,17 +1350,8 @@ export default function TaggingInterface() {
                 {sidebarContent === 'tags' && showTagManagement && (
                   <div className="p-4">
                     <TagManagement 
-                      posts={posts}
-                      selectedPost={selectedPost}
-                      onTagUpdate={() => {
-                        queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-                        queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
-                        if (selectedPost) {
-                          queryClient.invalidateQueries({ 
-                            queryKey: [`/api/posts/${selectedPost.id}/tags`] 
-                          });
-                        }
-                      }}
+                      tags={tags as any[]}
+                      onClose={closeSidebar}
                     />
                   </div>
                 )}
