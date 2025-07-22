@@ -102,10 +102,16 @@ export default function TaggingInterface() {
     hasPreviousPage: false,
   };
 
-  // Generate campaign options dynamically from actual API data
+  // Fetch all campaigns from database
+  const { data: allCampaigns } = useQuery({
+    queryKey: ["/api/campaigns"],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Generate campaign options from all available campaigns in database
   const campaignOptions = [
     "All Posts",
-    ...Array.from(new Set(allPosts.map((post: any) => post.campaignName).filter(Boolean))).sort()
+    ...(allCampaigns?.campaigns?.map((c: any) => c.campaign_name).filter(Boolean).sort() || [])
   ];
 
   // Generate client options dynamically from actual API data
