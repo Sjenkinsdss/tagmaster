@@ -16,11 +16,13 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Palette
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ThemeCustomizer from "@/components/ThemeCustomizer";
 
 interface ToolConfig {
   id: string;
@@ -72,6 +74,14 @@ const AdminPanel: React.FC = () => {
       icon: <Shield className="w-5 h-5" />,
       enabled: true,
       category: 'content'
+    },
+    {
+      id: 'theme-customizer',
+      name: 'Theme Customizer',
+      description: 'Customize interface colors, generate palettes, and manage themes',
+      icon: <Palette className="w-5 h-5" />,
+      enabled: true,
+      category: 'management'
     }
   ]);
 
@@ -317,6 +327,22 @@ const AdminPanel: React.FC = () => {
                 )}
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* Theme Customizer Section */}
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <Palette className="w-6 h-6 text-purple-600" />
+              Theme Customizer
+            </CardTitle>
+            <p className="text-sm text-gray-600">
+              Customize the interface colors and manage theme palettes for all users
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ThemeCustomizer />
           </CardContent>
         </Card>
 
