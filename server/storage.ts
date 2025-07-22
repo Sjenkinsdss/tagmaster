@@ -1363,6 +1363,20 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  getPlatformFromUrl(url: string): string {
+    if (!url) return 'TikTok';
+    
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('tiktok.com')) return 'TikTok';
+    if (lowerUrl.includes('instagram.com')) return 'Instagram';
+    if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) return 'YouTube';
+    if (lowerUrl.includes('facebook.com')) return 'Facebook';
+    if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) return 'Twitter';
+    if (lowerUrl.includes('snapchat.com')) return 'Snapchat';
+    
+    return 'TikTok'; // Default fallback
+  }
+
   async getAllPostsFromProduction(): Promise<any[]> {
     try {
       console.log('Fetching comprehensive posts from production database');
@@ -1374,9 +1388,8 @@ export class DatabaseStorage implements IStorage {
           dp.id,
           dp.content,
           dp.title,
-          dcd.post_url
+          dp.url as post_url
         FROM debra_posts dp
-        LEFT JOIN debra_campaignpostdraft dcd ON dp.id = dcd.post_id
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
         ORDER BY dp.id DESC
@@ -1387,7 +1400,7 @@ export class DatabaseStorage implements IStorage {
       
       // Count how many have URLs
       const postsWithUrls = postsQuery.rows.filter(post => post.post_url && post.post_url.trim() !== '');
-      console.log(`Found ${postsWithUrls.length} posts with valid post_url from debra_campaignpostdraft`);
+      console.log(`Found ${postsWithUrls.length} posts with valid URLs from debra_posts.url`);
       
       // Map posts with embed URLs 
       const mappedPosts = postsQuery.rows.map(post => ({
