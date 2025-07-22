@@ -114,10 +114,16 @@ export default function TaggingInterface() {
     ...(allCampaigns?.campaigns?.map((c: any) => c.campaign_name).filter(Boolean).sort() || [])
   ];
 
-  // Generate client options dynamically from actual API data
+  // Fetch all clients from database
+  const { data: allClients } = useQuery({
+    queryKey: ["/api/clients"],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Generate client options from all available clients in database
   const clientOptions = [
     "All Clients",
-    ...Array.from(new Set(allPosts.map((post: any) => post.metadata?.clientName).filter(Boolean))).sort()
+    ...(allClients?.clients?.map((c: any) => c.client_name).filter(Boolean).sort() || [])
   ];
 
   const { data: tags = [], error: tagsError } = useQuery({

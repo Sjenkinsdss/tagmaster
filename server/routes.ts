@@ -108,11 +108,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ORDER BY post_count DESC
       `);
       
-      // Add the default campaign
-      const campaigns = [
-        { campaign_name: '2025 Annual: Weekday', post_count: 50 },
-        ...campaignResult.rows
-      ];
+      // Use only database campaigns, no hardcoded duplicates
+      const campaigns = campaignResult.rows;
       
       res.json({ success: true, campaigns });
     } catch (error) {
@@ -972,6 +969,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: false, 
         message: "Failed to fetch health metrics" 
       });
+    }
+  });
+
+  // Get all client data from debra_brandjobpost client_name column
+  app.get("/api/clients", async (req, res) => {
+    try {
+      // Get client names from debra_brandjobpost client_name column
+      const clientResult = await db.execute(sql`
+        SELECT 
+          client_name,
+          COUNT(*) as post_count
+        FROM debra_brandjobpost 
+        WHERE client_name IS NOT NULL 
+        AND client_name != ''
+        AND TRIM(client_name) != ''
+        GROUP BY client_name
+        ORDER BY post_count DESC
+      `);
+      
+      res.json({ success: true, clients: clientResult.rows });
+    } catch (error) {
+      console.error("Client query error:", error);
+      res.status(500).json({ success: false, error: String(error) });
     }
   });
 
