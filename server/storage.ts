@@ -149,7 +149,7 @@ export class DatabaseStorage implements IStorage {
       authenticPosts = await this.getAllPostsFromProduction();
       
       // Use authentic posts if available, otherwise prepare comprehensive campaign structure
-      const samplePosts = authenticPosts.length > 0 ? authenticPosts.slice(0, 200) : [
+      const samplePosts = authenticPosts.length > 0 ? authenticPosts.slice(0, 100) : [
         // Comprehensive campaign list representing what would be pulled from debra_brandjobpost.title
         { id: 1283185187, content: "Sam's Club Member's Mark unboxing - these values are incredible!", authentic_campaign_title: "2025 Annual: Weekday" },
         { id: 1378685242, content: "Target fall fashion finds that won't break the bank", authentic_campaign_title: "Target Partnership 2024" },
@@ -450,7 +450,7 @@ export class DatabaseStorage implements IStorage {
         AND dit.name != ''
         AND LENGTH(dit.name) > 1
         ORDER BY dit.id
-        LIMIT 100
+        LIMIT 75
       `);
 
       let allTags = [...influencerTagsResult.rows];
@@ -1336,7 +1336,7 @@ export class DatabaseStorage implements IStorage {
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
         ORDER BY dp.id DESC
-        LIMIT 500
+        LIMIT 150
       `);
       
       // Then get campaign associations separately using the correct column name
@@ -1348,7 +1348,7 @@ export class DatabaseStorage implements IStorage {
             title as campaign_title
           FROM debra_brandjobpost
           WHERE title IS NOT NULL AND title != ''
-          LIMIT 100
+          LIMIT 50
         `);
       } catch (campaignError: any) {
         console.log('Could not fetch campaign associations:', campaignError?.message || campaignError);
