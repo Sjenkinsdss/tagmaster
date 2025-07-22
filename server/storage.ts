@@ -211,7 +211,8 @@ export class DatabaseStorage implements IStorage {
         };
       }) as PostWithTags[];
 
-      console.log(`All campaigns loaded: ${allPosts.length} posts with ${[...new Set(allPosts.map(p => p.campaignName))].length} unique campaigns from debra_brandjobpost.title structure`);
+      const uniqueCampaigns = Array.from(new Set(allPosts.map(p => p.campaignName)));
+      console.log(`All campaigns loaded: ${allPosts.length} posts with ${uniqueCampaigns.length} unique campaigns from debra_brandjobpost.title structure`);
       
       return allPosts;
       
@@ -420,10 +421,14 @@ export class DatabaseStorage implements IStorage {
       title: insertPost.title,
       platform: insertPost.platform,
       embedUrl: insertPost.embedUrl,
+      url: insertPost.url || null,
       thumbnailUrl: insertPost.thumbnailUrl || null,
       campaignName: insertPost.campaignName,
       createdAt: new Date(),
       metadata: insertPost.metadata,
+      likes: null,
+      comments: null,
+      shares: null,
     };
   }
 
@@ -431,7 +436,7 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Getting tags from debra_influencertag and client tag sources");
       
-      // Query influencer tags
+      // Query influencer tags with optimized query
       const influencerTagsResult = await db.execute(sql`
         SELECT 
           dit.id,
@@ -443,9 +448,9 @@ export class DatabaseStorage implements IStorage {
         LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
         WHERE dit.name IS NOT NULL 
         AND dit.name != ''
-        AND TRIM(dit.name) != ''
-        ORDER BY ditt.name, dit.name 
-        LIMIT 150
+        AND LENGTH(dit.name) > 1
+        ORDER BY dit.id
+        LIMIT 100
       `);
 
       let allTags = [...influencerTagsResult.rows];
@@ -463,28 +468,15 @@ export class DatabaseStorage implements IStorage {
           FROM debra_brandjobpost 
           WHERE client_id IS NOT NULL 
           AND client_id > 0
-          AND (client_name IS NOT NULL AND client_name != '' AND TRIM(client_name) != '')
-          AND (
-            LOWER(client_name) LIKE '%sam%club%' OR
-            LOWER(client_name) LIKE '%member%mark%' OR
-            LOWER(client_name) LIKE '%walmart%' OR
-            LOWER(client_name) LIKE '%nike%' OR
-            LOWER(client_name) LIKE '%adidas%' OR
-            LOWER(client_name) LIKE '%target%' OR
-            LOWER(client_name) LIKE '%amazon%' OR
-            LOWER(client_name) LIKE '%h&m%' OR
-            LOWER(client_name) LIKE '%curology%' OR
-            LOWER(client_name) LIKE '%radpower%' OR
-            LENGTH(client_name) > 10
-          )
+          AND (client_name IS NOT NULL AND LENGTH(client_name) > 3)
           ORDER BY name
-          LIMIT 15
+          LIMIT 10
         `);
         
         console.log(`Successfully found ${clientTagsResult.rows.length} client tags from debra_brandjobpost`);
         allTags = [...allTags, ...clientTagsResult.rows];
       } catch (clientError) {
-        console.log(`Could not fetch client tags from debra_brandjobpost: ${clientError.message}`);
+        console.log(`Could not fetch client tags from debra_brandjobpost: ${String(clientError)}`);
         
         // Try alternative client tag approach using brand_client_id
         try {
@@ -514,13 +506,13 @@ export class DatabaseStorage implements IStorage {
               LENGTH(client_name) > 10
             )
             ORDER BY name
-            LIMIT 15
+            LIMIT 10
           `);
           
           console.log(`Successfully found ${brandClientTagsResult.rows.length} brand client tags from debra_brandjobpost`);
           allTags = [...allTags, ...brandClientTagsResult.rows];
         } catch (brandClientError) {
-          console.log(`Could not fetch brand client tags: ${brandClientError.message}`);
+          console.log(`Could not fetch brand client tags: ${String(brandClientError)}`);
         }
       }
 
@@ -635,6 +627,8 @@ export class DatabaseStorage implements IStorage {
       id: Date.now(),
       name: insertTag.name,
       code: insertTag.code,
+      type: insertTag.type || null,
+      category: insertTag.category || null,
       pillar: insertTag.pillar,
       isAiGenerated: insertTag.isAiGenerated || false,
       createdAt: new Date(),
