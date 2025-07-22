@@ -1621,6 +1621,13 @@ export class DatabaseStorage implements IStorage {
           description: 'AI-powered tag suggestions with confidence scoring',
           enabled: true,
           category: 'content'
+        },
+        {
+          id: 'theme-customizer',
+          name: 'Theme Customizer',
+          description: 'Customize interface colors and generate new theme palettes',
+          enabled: true,
+          category: 'content'
         }
       ];
     } catch (error) {
@@ -1659,6 +1666,13 @@ export class DatabaseStorage implements IStorage {
           id: 'ai-recommendations',
           name: 'AI Tag Recommendations',
           description: 'AI-powered tag suggestions with confidence scoring',
+          enabled: true,
+          category: 'content'
+        },
+        {
+          id: 'theme-customizer',
+          name: 'Theme Customizer',
+          description: 'Customize interface colors and generate new theme palettes',
           enabled: true,
           category: 'content'
         }
