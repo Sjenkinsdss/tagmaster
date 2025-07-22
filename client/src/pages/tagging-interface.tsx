@@ -603,57 +603,6 @@ export default function TaggingInterface() {
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <span>Campaign:</span>
-                <Popover open={campaignOpen} onOpenChange={setCampaignOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={campaignOpen}
-                      className="w-56 justify-between text-sm h-8"
-                    >
-                      <span className="truncate">{campaignFilter}</span>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-56 p-0">
-                    <Command>
-                      <CommandInput 
-                        placeholder="Search campaigns..." 
-                      />
-                      <CommandList>
-                        <CommandEmpty>
-                          <div className="p-2 text-sm text-carbon-gray-70">
-                            No campaigns found
-                          </div>
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {campaignOptions.map((campaign: any) => (
-                            <CommandItem
-                              key={campaign}
-                              value={campaign}
-                              onSelect={(currentValue) => {
-                                setCampaignFilter(currentValue);
-                                setCampaignOpen(false);
-                                // Clear selected post when switching campaigns
-                                setSelectedPost(null);
-                              }}
-                            >
-                              <Check
-                                className={`mr-2 h-4 w-4 ${
-                                  campaignFilter === campaign ? "opacity-100" : "opacity-0"
-                                }`}
-                              />
-                              {campaign}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="flex items-center space-x-2">
                 <span>Client:</span>
                 <Popover open={clientOpen} onOpenChange={setClientOpen}>
                   <PopoverTrigger asChild>
@@ -696,6 +645,57 @@ export default function TaggingInterface() {
                                 }`}
                               />
                               {client}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span>Campaign:</span>
+                <Popover open={campaignOpen} onOpenChange={setCampaignOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={campaignOpen}
+                      className="w-56 justify-between text-sm h-8"
+                    >
+                      <span className="truncate">{campaignFilter}</span>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-0">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Search campaigns..." 
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          <div className="p-2 text-sm text-carbon-gray-70">
+                            No campaigns found
+                          </div>
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {campaignOptions.map((campaign: any) => (
+                            <CommandItem
+                              key={campaign}
+                              value={campaign}
+                              onSelect={(currentValue) => {
+                                setCampaignFilter(currentValue);
+                                setCampaignOpen(false);
+                                // Clear selected post when switching campaigns
+                                setSelectedPost(null);
+                              }}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${
+                                  campaignFilter === campaign ? "opacity-100" : "opacity-0"
+                                }`}
+                              />
+                              {campaign}
                             </CommandItem>
                           ))}
                         </CommandGroup>
