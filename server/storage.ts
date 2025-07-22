@@ -186,7 +186,7 @@ export class DatabaseStorage implements IStorage {
         return {
           id: post.id,
           title: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : ''),
-          platform: ['TikTok', 'Instagram', 'YouTube'][Math.floor(Math.random() * 3)],
+          platform: ['Instagram', 'Facebook', 'TikTok', 'YouTube', 'X'][Math.floor(Math.random() * 5)],
           embedUrl: '',
           url: '',
           thumbnailUrl: `https://picsum.photos/400/400?random=${post.id}`,
@@ -1332,10 +1332,16 @@ export class DatabaseStorage implements IStorage {
           dp.id,
           dp.content,
           dp.title,
-          dp.create_date as creation_date
+          dp.create_date as creation_date,
+          COALESCE(dp.platform_name, dp.platform) as platform
         FROM debra_posts dp
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
+        AND (
+          LOWER(COALESCE(dp.platform_name, dp.platform, '')) IN ('instagram', 'facebook', 'tiktok', 'youtube', 'twitter', 'x') 
+          OR dp.platform_name IS NULL 
+          OR dp.platform = ''
+        )
         ORDER BY dp.create_date DESC NULLS LAST, dp.id DESC
         LIMIT 150
       `);
@@ -1393,7 +1399,8 @@ export class DatabaseStorage implements IStorage {
             content: content,
             title: post.title || `Post ${post.id}`,
             create_date: post.creation_date ? new Date(post.creation_date) : new Date(),
-            authentic_campaign_title: campaignName
+            authentic_campaign_title: campaignName,
+            platform: post.platform || null
           } : null;
         })
         .filter(post => post !== null); // Remove posts without campaign matches
