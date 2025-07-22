@@ -197,7 +197,7 @@ export default function PostItem({
               const reelMatch = instagramUrl.match(/instagram\.com\/reel\/([^\/\?]+)/);
               
               if (postMatch || reelMatch) {
-                const postId = postMatch ? postMatch[1] : reelMatch[1];
+                const postId = postMatch ? postMatch[1] : reelMatch?.[1];
                 
                 // Create Instagram embed URL - using simpler approach for better compatibility
                 const embedInstagramUrl = `https://www.instagram.com/p/${postId}/embed/captioned/`;
