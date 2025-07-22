@@ -106,7 +106,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         AND title != ''
         GROUP BY title
         ORDER BY post_count DESC
-        LIMIT 100
       `);
       
       // Add the default campaign

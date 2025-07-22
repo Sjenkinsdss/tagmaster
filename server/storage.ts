@@ -480,8 +480,7 @@ export class DatabaseStorage implements IStorage {
         WHERE dit.name IS NOT NULL 
         AND dit.name != ''
         AND TRIM(dit.name) != ''
-        ORDER BY ditt.name, dit.name 
-        LIMIT 500
+        ORDER BY ditt.name, dit.name
       `);
 
       let allTags = [...influencerTagsResult.rows];
@@ -514,7 +513,6 @@ export class DatabaseStorage implements IStorage {
             LENGTH(client_name) > 10
           )
           ORDER BY name
-          LIMIT 100
         `);
         
         console.log(`Successfully found ${clientTagsResult.rows.length} client tags from debra_brandjobpost`);
@@ -550,7 +548,6 @@ export class DatabaseStorage implements IStorage {
               LENGTH(client_name) > 10
             )
             ORDER BY name
-            LIMIT 100
           `);
           
           console.log(`Successfully found ${brandClientTagsResult.rows.length} brand client tags from debra_brandjobpost`);
@@ -838,7 +835,6 @@ export class DatabaseStorage implements IStorage {
         WHERE name IS NOT NULL 
         AND name != ''
         ORDER BY created_time DESC
-        LIMIT 100
       `);
 
       return adsResult.rows.map((row: any) => ({
