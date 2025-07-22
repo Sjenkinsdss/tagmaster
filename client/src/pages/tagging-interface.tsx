@@ -58,6 +58,23 @@ export default function TaggingInterface() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Query for tools configuration to determine what features are enabled
+  const { data: toolsConfig } = useQuery({
+    queryKey: ["/api/admin/tools-config"],
+    queryFn: () => 
+      fetch("/api/admin/tools-config")
+        .then(res => res.json())
+        .then(data => data.tools || []),
+    retry: 1,
+  });
+
+  // Helper function to check if a tool is enabled
+  const isToolEnabled = (toolId: string): boolean => {
+    if (!toolsConfig) return true; // Default to enabled if config not loaded
+    const tool = toolsConfig.find((t: any) => t.id === toolId);
+    return tool ? tool.enabled : true;
+  };
+
   const { data: postsResponse, isLoading, error } = useQuery({
     queryKey: ["/api/posts", currentPage, pageSize],
     queryFn: () => 
@@ -441,51 +458,57 @@ export default function TaggingInterface() {
                 </PopoverTrigger>
                 <PopoverContent className="w-48" align="end">
                   <div className="space-y-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (sidebarContent === 'heatmap' && sidebarOpen) {
-                          closeSidebar();
-                        } else {
-                          openSidebar('heatmap');
-                        }
-                      }}
-                      className={`w-full justify-start text-sm ${sidebarContent === 'heatmap' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
-                    >
-                      <TrendingUp className="w-4 h-4 mr-2" />
-                      Heat Map
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (sidebarContent === 'analytics' && sidebarOpen) {
-                          closeSidebar();
-                        } else {
-                          openSidebar('analytics');
-                        }
-                      }}
-                      className={`w-full justify-start text-sm ${sidebarContent === 'analytics' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Platform Analytics
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (sidebarContent === 'tags' && sidebarOpen) {
-                          closeSidebar();
-                        } else {
-                          openSidebar('tags');
-                        }
-                      }}
-                      className={`w-full justify-start text-sm ${sidebarContent === 'tags' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
-                    >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Tag Management
-                    </Button>
+                    {isToolEnabled('heat-map') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (sidebarContent === 'heatmap' && sidebarOpen) {
+                            closeSidebar();
+                          } else {
+                            openSidebar('heatmap');
+                          }
+                        }}
+                        className={`w-full justify-start text-sm ${sidebarContent === 'heatmap' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                      >
+                        <TrendingUp className="w-4 h-4 mr-2" />
+                        Heat Map
+                      </Button>
+                    )}
+                    {isToolEnabled('platform-analytics') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (sidebarContent === 'analytics' && sidebarOpen) {
+                            closeSidebar();
+                          } else {
+                            openSidebar('analytics');
+                          }
+                        }}
+                        className={`w-full justify-start text-sm ${sidebarContent === 'analytics' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                      >
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Platform Analytics
+                      </Button>
+                    )}
+                    {isToolEnabled('tag-management') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (sidebarContent === 'tags' && sidebarOpen) {
+                            closeSidebar();
+                          } else {
+                            openSidebar('tags');
+                          }
+                        }}
+                        className={`w-full justify-start text-sm ${sidebarContent === 'tags' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                      >
+                        <Settings className="w-4 h-4 mr-2" />
+                        Tag Management
+                      </Button>
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>
@@ -784,7 +807,7 @@ export default function TaggingInterface() {
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-carbon-gray-100">Content</h2>
               <div className="flex items-center space-x-2">
-                {bulkPostMode && selectedPosts.size > 0 && (
+                {isToolEnabled('bulk-operations') && bulkPostMode && selectedPosts.size > 0 && (
                   <div className="flex items-center space-x-2">
                     <Badge variant="secondary" className="text-carbon-blue">
                       {selectedPosts.size} selected
@@ -799,15 +822,17 @@ export default function TaggingInterface() {
                     </Button>
                   </div>
                 )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={bulkPostMode ? "text-red-600" : "text-carbon-blue"}
-                  onClick={handleBulkPostMode}
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  {bulkPostMode ? "Cancel" : "Bulk Select"}
-                </Button>
+                {isToolEnabled('bulk-operations') && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={bulkPostMode ? "text-red-600" : "text-carbon-blue"}
+                    onClick={handleBulkPostMode}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    {bulkPostMode ? "Cancel" : "Bulk Select"}
+                  </Button>
+                )}
                 <Badge variant="secondary" className="text-carbon-gray-70">
                   {posts.length} posts
                 </Badge>
@@ -832,7 +857,7 @@ export default function TaggingInterface() {
                     post={post}
                     isSelected={selectedPost?.id === post.id}
                     onSelect={() => !bulkPostMode && setSelectedPost(post)}
-                    bulkMode={bulkPostMode}
+                    bulkMode={isToolEnabled('bulk-operations') && bulkPostMode}
                     isBulkSelected={selectedPosts.has(post.id)}
                     onBulkSelect={(isSelected) => handlePostSelection(post.id, isSelected)}
                   />
@@ -899,50 +924,54 @@ export default function TaggingInterface() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-carbon-gray-100">Tags</h2>
-              <div className="flex items-center space-x-2">
-                {bulkEditMode && selectedTags.size > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="secondary" className="text-carbon-blue">
-                      {selectedTags.size} selected
-                    </Badge>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-red-600 hover:text-red-700"
-                      onClick={handleBulkDelete}
-                      disabled={bulkDeleteMutation.isPending}
-                    >
-                      Delete Selected
-                    </Button>
-                  </div>
-                )}
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={bulkEditMode ? "text-red-600" : "text-carbon-blue"}
-                  onClick={handleBulkEdit}
-                >
-                  <Edit className="w-4 h-4 mr-1" />
-                  {bulkEditMode ? "Cancel" : "Bulk Edit"}
-                </Button>
-              </div>
+              {isToolEnabled('bulk-operations') && (
+                <div className="flex items-center space-x-2">
+                  {bulkEditMode && selectedTags.size > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <Badge variant="secondary" className="text-carbon-blue">
+                        {selectedTags.size} selected
+                      </Badge>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-600 hover:text-red-700"
+                        onClick={handleBulkDelete}
+                        disabled={bulkDeleteMutation.isPending}
+                      >
+                        Delete Selected
+                      </Button>
+                    </div>
+                  )}
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className={bulkEditMode ? "text-red-600" : "text-carbon-blue"}
+                    onClick={handleBulkEdit}
+                  >
+                    <Edit className="w-4 h-4 mr-1" />
+                    {bulkEditMode ? "Cancel" : "Bulk Edit"}
+                  </Button>
+                </div>
+              )}
             </div>
 
             {enrichedSelectedPost ? (
               <div className="space-y-6">
 
                 {/* AI Tag Recommendations */}
-                <TagRecommendations
-                  selectedPost={enrichedSelectedPost}
-                  onTagSelect={(tag) => {
-                    toast({
-                      title: "Tag Selected from AI",
-                      description: `AI recommended "${tag.name}" - adding to post`,
-                    });
-                    // Note: In read-only mode, this is just for demonstration
-                    // In a writable database, you would call the API to add the tag
-                  }}
-                />
+                {isToolEnabled('ai-recommendations') && (
+                  <TagRecommendations
+                    selectedPost={enrichedSelectedPost}
+                    onTagSelect={(tag) => {
+                      toast({
+                        title: "Tag Selected from AI",
+                        description: `AI recommended "${tag.name}" - adding to post`,
+                      });
+                      // Note: In read-only mode, this is just for demonstration
+                      // In a writable database, you would call the API to add the tag
+                    }}
+                  />
+                )}
                 
                 {/* Display tags grouped by type */}
                 {(() => {
@@ -1006,7 +1035,7 @@ export default function TaggingInterface() {
                 )}
 
               </div>
-            ) : bulkPostMode && selectedPosts.size > 0 ? (
+            ) : isToolEnabled('bulk-operations') && bulkPostMode && selectedPosts.size > 0 ? (
               <div className="space-y-6">
                 <div className="text-center">
                   <Tags className="w-12 h-12 mx-auto mb-4 text-carbon-blue" />
