@@ -859,6 +859,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: 'AI-powered tag suggestions with confidence scoring',
           enabled: true,
           category: 'content'
+        },
+        {
+          id: 'theme-customizer',
+          name: 'Theme Customizer',
+          description: 'Customize interface colors and generate new theme palettes',
+          enabled: true,
+          category: 'content'
         }
       ];
       res.json({ tools: defaultConfig });

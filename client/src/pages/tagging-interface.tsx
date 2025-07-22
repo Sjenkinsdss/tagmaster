@@ -510,21 +510,23 @@ export default function TaggingInterface() {
                         Tag Management
                       </Button>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        if (sidebarContent === 'themes' && sidebarOpen) {
-                          closeSidebar();
-                        } else {
-                          openSidebar('themes');
-                        }
-                      }}
-                      className={`w-full justify-start text-sm ${sidebarContent === 'themes' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
-                    >
-                      <Palette className="w-4 h-4 mr-2" />
-                      Theme Customizer
-                    </Button>
+                    {isToolEnabled('theme-customizer') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (sidebarContent === 'themes' && sidebarOpen) {
+                            closeSidebar();
+                          } else {
+                            openSidebar('themes');
+                          }
+                        }}
+                        className={`w-full justify-start text-sm ${sidebarContent === 'themes' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                      >
+                        <Palette className="w-4 h-4 mr-2" />
+                        Theme Customizer
+                      </Button>
+                    )}
                   </div>
                 </PopoverContent>
               </Popover>

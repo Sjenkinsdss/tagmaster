@@ -16,7 +16,8 @@ import {
   Eye,
   EyeOff,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  Palette
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -70,6 +71,14 @@ const AdminPanel: React.FC = () => {
       name: 'AI Tag Recommendations',
       description: 'AI-powered tag suggestions with confidence scoring',
       icon: <Shield className="w-5 h-5" />,
+      enabled: true,
+      category: 'content'
+    },
+    {
+      id: 'theme-customizer',
+      name: 'Theme Customizer',
+      description: 'Customize interface colors and generate new theme palettes',
+      icon: <Palette className="w-5 h-5" />,
       enabled: true,
       category: 'content'
     }
