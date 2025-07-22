@@ -84,85 +84,19 @@ const AdminPanel: React.FC = () => {
   // Query for current tools configuration
   const { data: currentConfig, isLoading } = useQuery({
     queryKey: ["/api/admin/tools-config"],
-    queryFn: async () => {
-      try {
-        const response = await fetch("/api/admin/tools-config", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        return data;
-      } catch (error) {
-        console.error("Error fetching tools config:", error);
-        // Return fallback configuration
-        return { 
-          tools: [
-            {
-              id: 'heat-map',
-              name: 'Heat Map & Analytics',
-              description: 'Engagement heat maps and mood analytics for content analysis',
-              enabled: true,
-              category: 'analytics'
-            },
-            {
-              id: 'platform-analytics',
-              name: 'Platform Analytics Dashboard',
-              description: 'Comprehensive platform performance tracking and insights',
-              enabled: true,
-              category: 'analytics'
-            },
-            {
-              id: 'tag-management',
-              name: 'Tag Management',
-              description: 'Advanced tag creation, editing, merging, and organization tools',
-              enabled: true,
-              category: 'management'
-            },
-            {
-              id: 'bulk-operations',
-              name: 'Bulk Operations',
-              description: 'Bulk post selection, tag application, and content management',
-              enabled: true,
-              category: 'management'
-            },
-            {
-              id: 'ai-recommendations',
-              name: 'AI Tag Recommendations',
-              description: 'AI-powered tag suggestions with confidence scoring',
-              enabled: true,
-              category: 'content'
-            }
-          ]
-        };
-      }
-    }
+    queryFn: () => 
+      fetch("/api/admin/tools-config")
+        .then(res => res.json())
+        .catch(() => ({ tools: toolsConfig })) // Fallback to default config
   });
 
   // Mutation to save tools configuration
   const saveConfigMutation = useMutation({
-    mutationFn: async (config: ToolConfig[]) => {
-      const response = await fetch("/api/admin/tools-config", {
+    mutationFn: (config: ToolConfig[]) =>
+      apiRequest("/api/admin/tools-config", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ tools: config }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-      }
-      
-      return response.json();
-    },
+        body: JSON.stringify({ tools: config })
+      }),
     onSuccess: () => {
       toast({
         title: "Configuration Saved",
