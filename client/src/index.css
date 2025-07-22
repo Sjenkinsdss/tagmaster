@@ -73,6 +73,14 @@
   --carbon-gray-20: hsl(0, 0%, 87.8%);
   --carbon-gray-30: hsl(0, 0%, 77.6%);
   --carbon-gray-50: hsl(0, 0%, 55.3%);
+  
+  /* Theme customization variables */
+  --theme-primary: 15 98 254;
+  --theme-secondary: 57 57 57;
+  --theme-accent: 138 63 252;
+  --theme-background: 255 255 255;
+  --theme-foreground: 22 22 22;
+  --theme-muted: 244 244 244;
   --carbon-gray-70: hsl(0, 0%, 32.2%);
   --carbon-gray-80: hsl(0, 0%, 22.4%);
   --carbon-gray-90: hsl(0, 0%, 14.9%);
@@ -103,6 +111,23 @@
   --destructive-foreground: hsl(0, 0%, 98%);
   --ring: hsl(240, 4.9%, 83.9%);
   --radius: 0.5rem;
+  
+  /* Dark mode theme customization variables */
+  --theme-primary: 120 169 255;
+  --theme-secondary: 141 141 141;
+  --theme-accent: 190 149 255;
+  --theme-background: 22 22 22;
+  --theme-foreground: 255 255 255;
+  --theme-muted: 38 38 38;
+  
+  /* Dark mode Carbon colors */
+  --carbon-blue: hsl(207, 90%, 74%);
+  --carbon-gray-10: hsl(0, 0%, 14.9%);
+  --carbon-gray-20: hsl(0, 0%, 22.4%);
+  --carbon-gray-30: hsl(0, 0%, 32.2%);
+  --carbon-gray-50: hsl(0, 0%, 55.3%);
+  --carbon-gray-70: hsl(0, 0%, 77.6%);
+  --carbon-gray-100: hsl(0, 0%, 95.7%);
 }
 
 @layer base {
@@ -211,5 +236,42 @@
   
   .bg-carbon-red {
     background-color: var(--carbon-red);
+  }
+  
+  /* Theme customization utility classes */
+  .theme-primary {
+    color: rgb(var(--theme-primary));
+  }
+  
+  .bg-theme-primary {
+    background-color: rgb(var(--theme-primary));
+  }
+  
+  .theme-secondary {
+    color: rgb(var(--theme-secondary));
+  }
+  
+  .bg-theme-secondary {
+    background-color: rgb(var(--theme-secondary));
+  }
+  
+  .theme-accent {
+    color: rgb(var(--theme-accent));
+  }
+  
+  .bg-theme-accent {
+    background-color: rgb(var(--theme-accent));
+  }
+  
+  .theme-background {
+    background-color: rgb(var(--theme-background));
+  }
+  
+  .theme-foreground {
+    color: rgb(var(--theme-foreground));
+  }
+  
+  .theme-muted {
+    background-color: rgb(var(--theme-muted));
   }
 }

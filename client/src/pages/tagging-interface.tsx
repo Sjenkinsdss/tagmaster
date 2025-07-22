@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings, TrendingUp, Menu, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
+import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings, TrendingUp, Menu, ChevronDown, ChevronUp, BarChart3, Palette } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
@@ -26,6 +26,7 @@ import SkeletonLoader from "@/components/SkeletonLoader";
 import EngagementHeatMap from "@/components/EngagementHeatMap";
 import MoodAnalytics from "@/components/MoodAnalytics";
 import PlatformAnalyticsDashboard from "@/components/PlatformAnalyticsDashboard";
+import ThemeCustomizer from "@/components/ThemeCustomizer";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -53,7 +54,7 @@ export default function TaggingInterface() {
   const [heatMapVariant, setHeatMapVariant] = useState<'grid' | 'timeline' | 'compact'>('grid');
   const [heatMapTab, setHeatMapTab] = useState<'heatmap' | 'analytics'>('heatmap');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarContent, setSidebarContent] = useState<'tags' | 'heatmap' | 'analytics' | null>(null);
+  const [sidebarContent, setSidebarContent] = useState<'tags' | 'heatmap' | 'analytics' | 'themes' | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -509,6 +510,21 @@ export default function TaggingInterface() {
                         Tag Management
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        if (sidebarContent === 'themes' && sidebarOpen) {
+                          closeSidebar();
+                        } else {
+                          openSidebar('themes');
+                        }
+                      }}
+                      className={`w-full justify-start text-sm ${sidebarContent === 'themes' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                    >
+                      <Palette className="w-4 h-4 mr-2" />
+                      Theme Customizer
+                    </Button>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -1303,6 +1319,7 @@ export default function TaggingInterface() {
                   {sidebarContent === 'tags' && 'Tag Management'}
                   {sidebarContent === 'heatmap' && 'Heat Map & Analytics'}
                   {sidebarContent === 'analytics' && 'Platform Analytics'}
+                  {sidebarContent === 'themes' && 'Theme Customizer'}
                 </h3>
                 <Button 
                   variant="ghost" 
@@ -1352,6 +1369,12 @@ export default function TaggingInterface() {
                 {sidebarContent === 'analytics' && (
                   <div className="p-4">
                     <PlatformAnalyticsDashboard posts={posts} />
+                  </div>
+                )}
+
+                {sidebarContent === 'themes' && (
+                  <div className="p-4">
+                    <ThemeCustomizer onClose={closeSidebar} />
                   </div>
                 )}
               </div>
