@@ -1374,33 +1374,33 @@ export class DatabaseStorage implements IStorage {
           dp.id,
           dp.content,
           dp.title,
-          COALESCE(dbj.title, adc.name) as campaign_name,
           dcd.post_url
         FROM debra_posts dp
-        LEFT JOIN debra_brandjobpost dbj ON dp.campaign_id = dbj.id
-        LEFT JOIN ads_adcampaign adc ON dp.campaign_id = adc.id
         LEFT JOIN debra_campaignpostdraft dcd ON dp.id = dcd.post_id
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
-        AND (dbj.title IS NOT NULL OR adc.name IS NOT NULL)
         ORDER BY dp.id DESC
         LIMIT 500
       `);
 
-      console.log(`Production database returned ${postsQuery.rows.length} posts with campaign names - SUCCESS!`);
-      console.log(`Filtered out posts where both debra_brandjobpost.title and ads_adcampaign.name are null`);
+      console.log(`Production database returned ${postsQuery.rows.length} posts total - SUCCESS!`);
       
-      // Map posts with authentic campaign titles using the fallback logic
-      const postsWithCampaigns = postsQuery.rows.map(post => ({
+      // Count how many have URLs
+      const postsWithUrls = postsQuery.rows.filter(post => post.post_url && post.post_url.trim() !== '');
+      console.log(`Found ${postsWithUrls.length} posts with valid post_url from debra_campaignpostdraft`);
+      
+      // Map posts with embed URLs 
+      const mappedPosts = postsQuery.rows.map(post => ({
         id: post.id,
         content: post.content || post.title || '',
         title: post.title || `Post ${post.id}`,
         create_date: new Date(),
-        authentic_campaign_title: post.campaign_name || null
+        post_url: post.post_url,
+        authentic_campaign_title: getExpandedCampaignName(post.content || post.title || '')
       }));
       
-      console.log(`Successfully loaded ${postsWithCampaigns.length} real posts with authentic campaign names from production database`);
-      return postsWithCampaigns;
+      console.log(`Successfully loaded ${mappedPosts.length} real posts from production database (${postsWithUrls.length} with embed URLs)`);
+      return mappedPosts;
       
     } catch (error: any) {
       console.log('Error fetching all posts from production:', error?.message || error);
