@@ -198,7 +198,7 @@ export class DatabaseStorage implements IStorage {
           embedUrl: '',
           url: '',
           thumbnailUrl: `https://picsum.photos/400/400?random=${post.id}`,
-          campaignName: campaignName, // Using authentic campaign titles with fallback logic: debra_brandjobpost.title OR ads_ad.name
+          campaignName: campaignName, // Using authentic campaign titles with fallback logic: debra_brandjobpost.title OR ads_adcampaign.name
           createdAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
           likes,
           comments,
@@ -384,6 +384,11 @@ export class DatabaseStorage implements IStorage {
 
   private convertAdsToPostFormat(adRows: any[]): PostWithTags[] {
     return adRows.map((row: any, index: number) => {
+      // Filter out ads without names (campaign names)
+      if (!row.name || row.name.trim() === '') {
+        return null;
+      }
+      
       // Create a guaranteed unique ID using a large offset + row index + ad ID
       // This ensures no conflicts with production post IDs (which are typically < 2 billion)
       const baseOffset = 9000000000; // 9 billion base offset
@@ -395,11 +400,11 @@ export class DatabaseStorage implements IStorage {
       
       return {
         id: uniqueId,
-        title: row.name || `Ad ${row.id}`,
+        title: row.name,
         platform: row.platform_name || 'META',
         embedUrl: row.embed_url || '',
         thumbnailUrl: 'https://picsum.photos/400/400?random=' + uniqueId,
-        campaignName: getExpandedCampaignName(row.name || ''),
+        campaignName: row.name, // Use ads_adcampaign.name directly as campaign name
         createdAt: new Date(row.created_at || Date.now()),
         // Add direct engagement properties for heat map
         likes,
@@ -420,7 +425,7 @@ export class DatabaseStorage implements IStorage {
         postTags: [] as any[],
         paidAds: [] as any[]
       };
-    }) as PostWithTags[];
+    }).filter(post => post !== null) as PostWithTags[];
   }
 
   async getPost(id: number): Promise<PostWithTags | undefined> {
@@ -1352,19 +1357,19 @@ export class DatabaseStorage implements IStorage {
           dp.id,
           dp.content,
           dp.title,
-          COALESCE(dbj.title, ads.name) as campaign_name
+          COALESCE(dbj.title, adc.name) as campaign_name
         FROM debra_posts dp
         LEFT JOIN debra_brandjobpost dbj ON dp.id = dbj.post_id
-        LEFT JOIN ads_ad ads ON dp.id = ads.post_id
+        LEFT JOIN ads_adcampaign adc ON dp.id = adc.post_id
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
-        AND (dbj.title IS NOT NULL OR ads.name IS NOT NULL)
+        AND (dbj.title IS NOT NULL OR adc.name IS NOT NULL)
         ORDER BY dp.id DESC
         LIMIT 500
       `);
 
       console.log(`Production database returned ${postsQuery.rows.length} posts with campaign names - SUCCESS!`);
-      console.log(`Filtered out posts where both debra_brandjobpost.title and ads_ad.name are null`);
+      console.log(`Filtered out posts where both debra_brandjobpost.title and ads_adcampaign.name are null`);
       
       // Map posts with authentic campaign titles using the fallback logic
       const postsWithCampaigns = postsQuery.rows.map(post => ({

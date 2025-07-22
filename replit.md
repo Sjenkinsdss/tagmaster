@@ -260,6 +260,14 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Real Campaign Names**: System now generates meaningful campaign names: "Sam's Club Campaign", "Sam's Club Direct Campaign", "Walmart Partnership"
 - **Frontend Filter Sync**: Updated campaign filter options to match actual API data instead of placeholder names
 - **UI Display Fix**: Resolved campaign filter display issue by increasing button width and adding text truncation for longer names
+
+### January 22, 2025 - Enhanced Campaign Name Fallback Logic
+- **Database Query Enhancement**: Modified getAllPostsFromProduction method to use JOIN with fallback logic
+- **Primary Source**: Uses debra_brandjobpost.title as primary campaign name source
+- **Fallback Source**: Uses ads_adcampaign.name when debra_brandjobpost.title is null
+- **Filtering Logic**: Automatically filters out posts where both campaign name sources are null
+- **Query Optimization**: Implemented COALESCE SQL function for efficient fallback handling
+- **Data Integrity**: Ensures only posts with valid campaign names are displayed in the interface
 - **Content-Based Classification**: Implemented CASE statement logic to classify campaigns based on post/ad content when database relationships don't exist
 - **User Validation**: Campaign names now display correctly throughout the interface and filtering works properly
 
