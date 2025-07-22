@@ -183,6 +183,14 @@ export class DatabaseStorage implements IStorage {
         const comments = Math.floor(Math.random() * 200) + 50;
         const shares = Math.floor(Math.random() * 100) + 20;
         
+        // Use authentic campaign title if available, otherwise filter out posts without campaigns
+        const campaignName = post.authentic_campaign_title;
+        
+        // Skip posts without campaign names (already filtered in query, but double-check)
+        if (!campaignName) {
+          return null;
+        }
+        
         return {
           id: post.id,
           title: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : ''),
@@ -190,14 +198,14 @@ export class DatabaseStorage implements IStorage {
           embedUrl: '',
           url: '',
           thumbnailUrl: `https://picsum.photos/400/400?random=${post.id}`,
-          campaignName: post.authentic_campaign_title || 'Uncategorized Campaign', // Using authentic campaign titles from debra_brandjobpost.title
+          campaignName: campaignName, // Using authentic campaign titles with fallback logic: debra_brandjobpost.title OR ads_ad.name
           createdAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
           likes,
           comments,
           shares,
           metadata: {
             content: post.content,
-            type: 'campaign_ready_for_authentic_data',
+            type: 'authentic_campaign_data',
             clientName: 'Production Client',
             engagement: {
               likes,
@@ -209,7 +217,7 @@ export class DatabaseStorage implements IStorage {
           postTags: [] as any[],
           paidAds: [] as any[]
         };
-      }) as PostWithTags[];
+      }).filter(post => post !== null) as PostWithTags[];
 
       console.log(`All campaigns loaded: ${allPosts.length} posts with ${[...new Set(allPosts.map(p => p.campaignName))].length} unique campaigns from debra_brandjobpost.title structure`);
       
@@ -280,6 +288,12 @@ export class DatabaseStorage implements IStorage {
       const comments = Math.floor(Math.random() * 500) + 20;
       const shares = Math.floor(Math.random() * 100) + 5;
       
+      // Use the campaign_name from the database query (with fallback logic already applied)
+      // If no campaign_name, filter out this post
+      if (!row.campaign_name) {
+        return null;
+      }
+      
       return {
         id: parseInt(row.id), // Ensure ID is a number
         title: (row.title || '').substring(0, 100) + (row.title?.length > 100 ? '...' : ''),
@@ -287,7 +301,7 @@ export class DatabaseStorage implements IStorage {
         embedUrl: row.embed_url || '',
         url: row.original_url || '', // Use original_url field from database
         thumbnailUrl: row.thumbnail_url || 'https://picsum.photos/400/400?random=' + row.id,
-        campaignName: getExpandedCampaignName(row.title || row.metadata_content || ''),
+        campaignName: row.campaign_name, // Use authentic campaign name from debra_brandjobpost.title OR ads_ad.name fallback
         createdAt: new Date(row.created_at || Date.now()),
         // Add direct engagement properties for heat map
         likes,
@@ -295,7 +309,7 @@ export class DatabaseStorage implements IStorage {
         shares,
         metadata: { 
           content: row.metadata_content,
-          type: 'real_post',
+          type: 'real_post_with_authentic_campaign',
           clientName: row.client_name || 'Other',
           engagement: {
             likes,
@@ -307,7 +321,7 @@ export class DatabaseStorage implements IStorage {
         postTags: [] as any[],
         paidAds: [] as any[]
       };
-    }) as PostWithTags[];
+    }).filter(post => post !== null) as PostWithTags[];
   }
 
   private generateDiverseCampaigns(): PostWithTags[] {
@@ -1331,49 +1345,38 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Fetching comprehensive posts from production database');
       
-      // Fast query with minimal processing
-      console.log('Fast production database query...');
+      // Enhanced query that joins posts with campaign information using fallback logic
+      console.log('Enhanced production database query with campaign fallback logic...');
       const postsQuery = await db.execute(sql`
         SELECT 
           dp.id,
           dp.content,
-          dp.title
+          dp.title,
+          COALESCE(dbj.title, ads.name) as campaign_name
         FROM debra_posts dp
+        LEFT JOIN debra_brandjobpost dbj ON dp.id = dbj.post_id
+        LEFT JOIN ads_ad ads ON dp.id = ads.post_id
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
+        AND (dbj.title IS NOT NULL OR ads.name IS NOT NULL)
         ORDER BY dp.id DESC
         LIMIT 500
       `);
-      
-      // Then get campaign associations separately using the correct column name
-      let campaignQuery;
-      try {
-        campaignQuery = await db.execute(sql`
-          SELECT DISTINCT 
-            id,
-            title as campaign_title
-          FROM debra_brandjobpost
-          WHERE title IS NOT NULL AND title != ''
-          LIMIT 100
-        `);
-      } catch (campaignError: any) {
-        console.log('Could not fetch campaign associations:', campaignError?.message || campaignError);
-        campaignQuery = { rows: [] };
-      }
 
-      console.log(`Production database returned ${postsQuery.rows.length} posts - SUCCESS!`);
+      console.log(`Production database returned ${postsQuery.rows.length} posts with campaign names - SUCCESS!`);
+      console.log(`Filtered out posts where both debra_brandjobpost.title and ads_ad.name are null`);
       
-      // Simple mapping without campaign lookups for now to test basic connectivity
-      const postsWithDefaults = postsQuery.rows.map(post => ({
+      // Map posts with authentic campaign titles using the fallback logic
+      const postsWithCampaigns = postsQuery.rows.map(post => ({
         id: post.id,
         content: post.content || post.title || '',
         title: post.title || `Post ${post.id}`,
         create_date: new Date(),
-        authentic_campaign_title: null
+        authentic_campaign_title: post.campaign_name || null
       }));
       
-      console.log(`Successfully loaded ${postsWithDefaults.length} real posts from production database`);
-      return postsWithDefaults;
+      console.log(`Successfully loaded ${postsWithCampaigns.length} real posts with authentic campaign names from production database`);
+      return postsWithCampaigns;
       
     } catch (error: any) {
       console.log('Error fetching all posts from production:', error?.message || error);
