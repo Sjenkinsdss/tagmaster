@@ -51,7 +51,6 @@ async function getPersonalizedCategories(tagType: string) {
       GROUP BY ditt.id, ditt.name
       HAVING COUNT(dit.id) > 0
       ORDER BY ditt.name
-      LIMIT 20
     `);
 
     return fallbackResult.rows.map((row: any) => ({
@@ -85,7 +84,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           COALESCE(title, content, 'Untitled Post') as display_title,
           platform_name as platform
         FROM debra_posts 
-        LIMIT 5
       `);
       
       res.json({ success: true, posts: postsResult.rows });
@@ -108,7 +106,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         AND title != ''
         GROUP BY title
         ORDER BY post_count DESC
-        LIMIT 50
       `);
       
       // Add the default campaign
