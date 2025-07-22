@@ -156,15 +156,20 @@ export class DatabaseStorage implements IStorage {
     throw new Error("User creation not supported");
   }
 
-  async getPosts(): Promise<PostWithTags[]> {
+  async getPosts(filters?: {
+    campaign?: string;
+    client?: string;
+    search?: string;
+    postId?: string;
+  }): Promise<PostWithTags[]> {
     try {
       console.log('Restoring posts functionality immediately...');
       
       // Now implementing authentic campaign names from debra_brandjobpost.title
       let authenticPosts: any[] = [];
       
-      // Get all posts from production database using same approach as client tags
-      authenticPosts = await this.getAllPostsFromProduction();
+      // Get all posts from production database with server-side filtering
+      authenticPosts = await this.getAllPostsFromProduction(filters);
       
 
 
@@ -276,47 +281,17 @@ export class DatabaseStorage implements IStorage {
         console.log(`Applied filters:`, filters);
       }
       
-      // Use the same data as getPosts() but paginate it
-      let allData = await this.getPosts();
+      // Get filtered data directly from database using server-side filtering
+      let allData = await this.getPosts(filters);
       
-      // Apply filters
-      if (filters) {
-        if (filters.campaign && filters.campaign.trim() !== '') {
-          console.log(`Filtering by campaign: ${filters.campaign}`);
-          allData = allData.filter(post => {
-            const campaignName = (post.metadata as any)?.campaignName || post.campaignName || '';
-            return campaignName.toLowerCase().includes(filters.campaign!.toLowerCase());
-          });
-          console.log(`After campaign filter: ${allData.length} posts`);
-        }
-        
-        if (filters.client && filters.client.trim() !== '') {
-          console.log(`Filtering by client: ${filters.client}`);
-          allData = allData.filter(post => {
-            const clientName = (post.metadata as any)?.clientName || '';
-            return clientName.toLowerCase().includes(filters.client!.toLowerCase());
-          });
-          console.log(`After client filter: ${allData.length} posts`);
-        }
-        
-        if (filters.search && filters.search.trim() !== '') {
-          console.log(`Filtering by search: ${filters.search}`);
-          const searchTerm = filters.search.toLowerCase();
-          allData = allData.filter(post => {
-            const title = (post.title || '').toLowerCase();
-            const content = (post.content || '').toLowerCase();
-            return title.includes(searchTerm) || content.includes(searchTerm);
-          });
-          console.log(`After search filter: ${allData.length} posts`);
-        }
-        
-        if (filters.postId && filters.postId.trim() !== '') {
-          console.log(`Filtering by post ID: ${filters.postId}`);
-          allData = allData.filter(post => 
-            post.id.toString().includes(filters.postId!)
-          );
-          console.log(`After post ID filter: ${allData.length} posts`);
-        }
+      // Apply additional campaign filtering on already filtered posts if needed
+      if (filters?.campaign && filters.campaign.trim() !== '') {
+        console.log(`Additional campaign filtering: ${filters.campaign}`);
+        allData = allData.filter(post => {
+          const campaignName = (post.metadata as any)?.campaignName || post.campaignName || '';
+          return campaignName.toLowerCase().includes(filters.campaign!.toLowerCase());
+        });
+        console.log(`After campaign filter: ${allData.length} posts`);
       }
       
       // Calculate pagination
@@ -1431,13 +1406,59 @@ export class DatabaseStorage implements IStorage {
     return 'TikTok'; // Default fallback
   }
 
-  async getAllPostsFromProduction(): Promise<any[]> {
+  async getAllPostsFromProduction(filters?: {
+    campaign?: string;
+    client?: string;
+    search?: string;
+    postId?: string;
+  }): Promise<any[]> {
     try {
       console.log('Fetching comprehensive posts from production database');
+      if (filters) {
+        console.log('Applying server-side filters:', filters);
+      }
       
-      // Enhanced query that joins posts with campaign and client information
-      console.log('Enhanced production database query with campaign and client fallback logic...');
-      const postsQuery = await db.execute(sql`
+      // Build dynamic WHERE clause based on filters
+      let whereConditions = ['dp.content IS NOT NULL', "dp.content != ''"];
+      let queryParams: any[] = [];
+      
+      // Add client-based content filtering
+      if (filters?.client) {
+        console.log(`Server-side filtering for client: ${filters.client}`);
+        const clientLower = filters.client.toLowerCase();
+        if (clientLower === 'h&m') {
+          whereConditions.push("(LOWER(dp.content) LIKE '%h&m%' OR LOWER(dp.content) LIKE '%weekday%')");
+        } else if (clientLower === "sam's club") {
+          whereConditions.push("(LOWER(dp.content) LIKE '%sam%' OR LOWER(dp.content) LIKE '%member%')");
+        } else if (clientLower === 'walmart') {
+          whereConditions.push("(LOWER(dp.content) LIKE '%walmart%' OR LOWER(dp.content) LIKE '%great value%')");
+        } else if (clientLower === 'target') {
+          whereConditions.push("LOWER(dp.content) LIKE '%target%'");
+        } else if (clientLower === 'nike') {
+          whereConditions.push("LOWER(dp.content) LIKE '%nike%'");
+        } else if (clientLower === 'amazon') {
+          whereConditions.push("(LOWER(dp.content) LIKE '%amazon%' OR LOWER(dp.content) LIKE '%prime%')");
+        } else {
+          whereConditions.push(`LOWER(dp.content) LIKE '%${clientLower}%'`);
+        }
+      }
+      
+      // Add search filtering
+      if (filters?.search) {
+        const searchTerm = filters.search.toLowerCase();
+        whereConditions.push(`(LOWER(dp.content) LIKE '%${searchTerm}%' OR LOWER(dp.title) LIKE '%${searchTerm}%')`);
+      }
+      
+      // Add post ID filtering
+      if (filters?.postId) {
+        whereConditions.push(`CAST(dp.id AS TEXT) LIKE '%${filters.postId}%'`);
+      }
+      
+      const whereClause = whereConditions.join(' AND ');
+      
+      // Enhanced query with dynamic filtering
+      console.log('Enhanced production database query with server-side filtering...');
+      const postsQuery = await db.execute(sql.raw(`
         SELECT 
           dp.id,
           dp.content,
@@ -1446,11 +1467,10 @@ export class DatabaseStorage implements IStorage {
           '' as campaign_name,
           '' as client_name
         FROM debra_posts dp
-        WHERE dp.content IS NOT NULL 
-        AND dp.content != ''
+        WHERE ${whereClause}
         ORDER BY dp.id DESC
         LIMIT 1000
-      `);
+      `));
 
       console.log(`Production database returned ${postsQuery.rows.length} posts total - SUCCESS!`);
       
