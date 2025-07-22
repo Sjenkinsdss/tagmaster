@@ -6,11 +6,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import NotFound from "@/pages/not-found";
 import TaggingInterface from "@/pages/tagging-interface";
+import AdminPanel from "@/pages/admin-panel";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={TaggingInterface} />
+      <Route path="/admin" component={AdminPanel} />
       <Route component={NotFound} />
     </Switch>
   );

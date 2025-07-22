@@ -76,6 +76,10 @@ export interface IStorage {
   createNewTag(tag: InsertTag & { code: string }): Promise<Tag>;
   addTagToPostReplit(postId: number, tagId: number): Promise<PostTag>;
   removeTagFromPostReplit(postId: number, tagId: number): Promise<void>;
+
+  // Admin Configuration Methods
+  getToolsConfig(): Promise<any[]>;
+  saveToolsConfig(tools: any[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1555,6 +1559,158 @@ export class DatabaseStorage implements IStorage {
       console.log("Successfully removed tag from post");
     } catch (error) {
       console.error("Error removing tag from post in Replit database:", error);
+      throw error;
+    }
+  }
+
+  // Admin Configuration Methods
+  async getToolsConfig(): Promise<any[]> {
+    try {
+      if (!replitDb) {
+        throw new Error("Replit database not available");
+      }
+      
+      // Try to get configuration from Replit database
+      const { adminConfig } = await import("@shared/schema");
+      const result = await replitDb
+        .select()
+        .from(adminConfig)
+        .where(sql`config_key = 'tools_config'`)
+        .limit(1);
+      
+      if (result.length > 0) {
+        console.log("Retrieved tools config from database");
+        return JSON.parse(result[0].configValue);
+      }
+      
+      // Return default configuration if none found
+      console.log("No tools config found, returning defaults");
+      return [
+        {
+          id: 'heat-map',
+          name: 'Heat Map & Analytics',
+          description: 'Engagement heat maps and mood analytics for content analysis',
+          enabled: true,
+          category: 'analytics'
+        },
+        {
+          id: 'platform-analytics',
+          name: 'Platform Analytics Dashboard',
+          description: 'Comprehensive platform performance tracking and insights',
+          enabled: true,
+          category: 'analytics'
+        },
+        {
+          id: 'tag-management',
+          name: 'Tag Management',
+          description: 'Advanced tag creation, editing, merging, and organization tools',
+          enabled: true,
+          category: 'management'
+        },
+        {
+          id: 'bulk-operations',
+          name: 'Bulk Operations',
+          description: 'Bulk post selection, tag application, and content management',
+          enabled: true,
+          category: 'management'
+        },
+        {
+          id: 'ai-recommendations',
+          name: 'AI Tag Recommendations',
+          description: 'AI-powered tag suggestions with confidence scoring',
+          enabled: true,
+          category: 'content'
+        }
+      ];
+    } catch (error) {
+      console.error("Error getting tools config:", error);
+      // Return default configuration as fallback
+      return [
+        {
+          id: 'heat-map',
+          name: 'Heat Map & Analytics',
+          description: 'Engagement heat maps and mood analytics for content analysis',
+          enabled: true,
+          category: 'analytics'
+        },
+        {
+          id: 'platform-analytics',
+          name: 'Platform Analytics Dashboard',
+          description: 'Comprehensive platform performance tracking and insights',
+          enabled: true,
+          category: 'analytics'
+        },
+        {
+          id: 'tag-management',
+          name: 'Tag Management',
+          description: 'Advanced tag creation, editing, merging, and organization tools',
+          enabled: true,
+          category: 'management'
+        },
+        {
+          id: 'bulk-operations',
+          name: 'Bulk Operations',
+          description: 'Bulk post selection, tag application, and content management',
+          enabled: true,
+          category: 'management'
+        },
+        {
+          id: 'ai-recommendations',
+          name: 'AI Tag Recommendations',
+          description: 'AI-powered tag suggestions with confidence scoring',
+          enabled: true,
+          category: 'content'
+        }
+      ];
+    }
+  }
+
+  async saveToolsConfig(tools: any[]): Promise<void> {
+    try {
+      if (!replitDb) {
+        throw new Error("Replit database not available");
+      }
+      
+      console.log("Saving tools configuration:", tools.length, "tools");
+      
+      const { adminConfig } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      // Check if configuration already exists
+      const existing = await replitDb
+        .select()
+        .from(adminConfig)
+        .where(eq(adminConfig.configKey, 'tools_config'))
+        .limit(1);
+      
+      const configValue = JSON.stringify(tools);
+      
+      if (existing.length > 0) {
+        // Update existing configuration
+        await replitDb
+          .update(adminConfig)
+          .set({
+            configValue,
+            updatedAt: new Date()
+          })
+          .where(eq(adminConfig.configKey, 'tools_config'));
+        
+        console.log("Updated existing tools configuration");
+      } else {
+        // Create new configuration entry
+        await replitDb
+          .insert(adminConfig)
+          .values({
+            configKey: 'tools_config',
+            configValue,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        
+        console.log("Created new tools configuration");
+      }
+    } catch (error) {
+      console.error("Error saving tools config:", error);
       throw error;
     }
   }

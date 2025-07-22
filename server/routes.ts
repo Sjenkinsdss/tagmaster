@@ -815,6 +815,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin Panel Routes
+  app.get("/api/admin/tools-config", async (req, res) => {
+    try {
+      // Get current tools configuration from storage or return default
+      const toolsConfig = await storage.getToolsConfig();
+      res.json({ tools: toolsConfig });
+    } catch (error) {
+      console.error("Error fetching tools config:", error);
+      // Return default configuration
+      const defaultConfig = [
+        {
+          id: 'heat-map',
+          name: 'Heat Map & Analytics',
+          description: 'Engagement heat maps and mood analytics for content analysis',
+          enabled: true,
+          category: 'analytics'
+        },
+        {
+          id: 'platform-analytics',
+          name: 'Platform Analytics Dashboard',
+          description: 'Comprehensive platform performance tracking and insights',
+          enabled: true,
+          category: 'analytics'
+        },
+        {
+          id: 'tag-management',
+          name: 'Tag Management',
+          description: 'Advanced tag creation, editing, merging, and organization tools',
+          enabled: true,
+          category: 'management'
+        },
+        {
+          id: 'bulk-operations',
+          name: 'Bulk Operations',
+          description: 'Bulk post selection, tag application, and content management',
+          enabled: true,
+          category: 'management'
+        },
+        {
+          id: 'ai-recommendations',
+          name: 'AI Tag Recommendations',
+          description: 'AI-powered tag suggestions with confidence scoring',
+          enabled: true,
+          category: 'content'
+        }
+      ];
+      res.json({ tools: defaultConfig });
+    }
+  });
+
+  app.post("/api/admin/tools-config", async (req, res) => {
+    try {
+      const { tools } = req.body;
+      
+      if (!tools || !Array.isArray(tools)) {
+        return res.status(400).json({
+          success: false,
+          message: "Tools configuration is required and must be an array"
+        });
+      }
+      
+      console.log("Updating tools configuration:", tools.length, "tools");
+      
+      await storage.saveToolsConfig(tools);
+      
+      res.json({
+        success: true,
+        message: "Tools configuration updated successfully",
+        tools
+      });
+    } catch (error) {
+      console.error("Error saving tools config:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to save tools configuration",
+        error: String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
