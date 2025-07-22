@@ -1333,15 +1333,10 @@ export class DatabaseStorage implements IStorage {
           dp.content,
           dp.title,
           dp.create_date as creation_date,
-          COALESCE(dp.platform_name, dp.platform) as platform
+          COALESCE(dp.platform_name, '') as platform
         FROM debra_posts dp
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
-        AND (
-          LOWER(COALESCE(dp.platform_name, dp.platform, '')) IN ('instagram', 'facebook', 'tiktok', 'youtube', 'twitter', 'x') 
-          OR dp.platform_name IS NULL 
-          OR dp.platform = ''
-        )
         ORDER BY dp.create_date DESC NULLS LAST, dp.id DESC
         LIMIT 150
       `);
@@ -1376,21 +1371,25 @@ export class DatabaseStorage implements IStorage {
       // Enhanced mapping with campaign data from both sources only - no fallback
       const postsWithDefaults = postsQuery.rows
         .map(post => {
-          const content = post.content || post.title || '';
+          const content = String(post.content || post.title || '');
           const lowerContent = content.toLowerCase();
           
           // Try debra_brandjobpost.title first
           let campaignName = campaignQuery.rows
-            .filter(c => c.source === 'brandjobpost')
-            .find(c => lowerContent.includes(c.campaign_title.toLowerCase()) || 
-                       c.campaign_title.toLowerCase().includes(lowerContent.split(' ')[0]))?.campaign_title;
+            .filter((c: any) => c.source === 'brandjobpost')
+            .find((c: any) => {
+              const title = String(c.campaign_title || '').toLowerCase();
+              return lowerContent.includes(title) || title.includes(lowerContent.split(' ')[0]);
+            })?.campaign_title;
           
           // Fallback to ads_adcampaign.name only
           if (!campaignName) {
             campaignName = campaignQuery.rows
-              .filter(c => c.source === 'adcampaign')
-              .find(c => lowerContent.includes(c.campaign_title.toLowerCase()) || 
-                         c.campaign_title.toLowerCase().includes(lowerContent.split(' ')[0]))?.campaign_title;
+              .filter((c: any) => c.source === 'adcampaign')
+              .find((c: any) => {
+                const title = String(c.campaign_title || '').toLowerCase();
+                return lowerContent.includes(title) || title.includes(lowerContent.split(' ')[0]);
+              })?.campaign_title;
           }
           
           // Return post data with campaign name or null to filter out
@@ -1398,7 +1397,7 @@ export class DatabaseStorage implements IStorage {
             id: post.id,
             content: content,
             title: post.title || `Post ${post.id}`,
-            create_date: post.creation_date ? new Date(post.creation_date) : new Date(),
+            create_date: post.creation_date ? new Date(String(post.creation_date)) : new Date(),
             authentic_campaign_title: campaignName,
             platform: post.platform || null
           } : null;
