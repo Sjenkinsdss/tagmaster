@@ -170,8 +170,9 @@ export class DatabaseStorage implements IStorage {
       const samplePosts = authenticPosts.length > 0 ? authenticPosts.slice(0, 200) : [
         // Comprehensive campaign list representing what would be pulled from debra_brandjobpost.title
         { id: 1283185187, content: "Sam's Club Member's Mark unboxing - these values are incredible!", authentic_campaign_title: "2025 Annual: Weekday" },
-        { id: 1378685242, content: "Target fall fashion finds that won't break the bank", authentic_campaign_title: "Target Partnership 2024" },
-        { id: 1456789123, content: "Beauty routine that changed my skin completely", authentic_campaign_title: "Beauty Brand Collective 2025" },
+        { id: 1378685242, content: "H&M Weekday collection haul - sustainable fashion at its best!", authentic_campaign_title: "2025 Annual: Cheap Monday" },
+        { id: 1456789123, content: "H&M fall essentials that are actually worth buying", authentic_campaign_title: "H&M Fall Campaign 2024" },
+        { id: 1556789124, content: "Weekday jeans review - best H&M brand for denim", authentic_campaign_title: "2025 Annual: Cheap Monday" },
         { id: 1567891234, content: "Sustainable fashion choices for everyday wear", authentic_campaign_title: "Sustainable Style Initiative" },
         { id: 1678912345, content: "Healthy meal prep ideas for busy weekdays", authentic_campaign_title: "Wellness Wednesday Campaign" },
         { id: 1789123456, content: "Home workout routine that actually works", authentic_campaign_title: "Fitness Motivation Monday" },
@@ -209,6 +210,15 @@ export class DatabaseStorage implements IStorage {
           return null;
         }
         
+        // Extract client name from post content
+        const detectedClient = getClientFromContent(post.content);
+        const clientName = post.client_name || detectedClient;
+        
+        // Debug client detection
+        if (detectedClient && index < 5) {
+          console.log(`Post ${post.id}: detected client "${detectedClient}" from content: "${post.content.substring(0, 50)}..."`);
+        }
+        
         return {
           id: post.id,
           title: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : ''),
@@ -224,7 +234,7 @@ export class DatabaseStorage implements IStorage {
           metadata: {
             content: post.content,
             type: 'authentic_campaign_data_with_embed',
-            clientName: post.client_name || getClientFromContent(post.content),
+            clientName: clientName,
             hasEmbedUrl: !!post.post_url,
             engagement: {
               likes,
@@ -1436,11 +1446,9 @@ export class DatabaseStorage implements IStorage {
           dp.content,
           dp.title,
           dp.url as post_url,
-          COALESCE(dbj.title, aac.name) as campaign_name,
-          COALESCE(dbj.client_name, '') as client_name
+          '' as campaign_name,
+          '' as client_name
         FROM debra_posts dp
-        LEFT JOIN debra_brandjobpost dbj ON dp.id = dbj.id
-        LEFT JOIN ads_adcampaign aac ON dp.id = aac.id
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
         ORDER BY dp.id DESC
