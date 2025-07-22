@@ -224,7 +224,7 @@ export class DatabaseStorage implements IStorage {
           metadata: {
             content: post.content,
             type: 'authentic_campaign_data_with_embed',
-            clientName: 'Production Client',
+            clientName: post.client_name || getClientFromContent(post.content),
             hasEmbedUrl: !!post.post_url,
             engagement: {
               likes,
@@ -1428,15 +1428,19 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Fetching comprehensive posts from production database');
       
-      // Enhanced query that joins posts with campaign information using fallback logic
-      console.log('Enhanced production database query with campaign fallback logic...');
+      // Enhanced query that joins posts with campaign and client information
+      console.log('Enhanced production database query with campaign and client fallback logic...');
       const postsQuery = await db.execute(sql`
         SELECT 
           dp.id,
           dp.content,
           dp.title,
-          dp.url as post_url
+          dp.url as post_url,
+          COALESCE(dbj.title, aac.name) as campaign_name,
+          COALESCE(dbj.client_name, '') as client_name
         FROM debra_posts dp
+        LEFT JOIN debra_brandjobpost dbj ON dp.id = dbj.id
+        LEFT JOIN ads_adcampaign aac ON dp.id = aac.id
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
         ORDER BY dp.id DESC
@@ -1449,14 +1453,15 @@ export class DatabaseStorage implements IStorage {
       const postsWithUrls = postsQuery.rows.filter(post => post.post_url && post.post_url.trim() !== '');
       console.log(`Found ${postsWithUrls.length} posts with valid URLs from debra_posts.url`);
       
-      // Map posts with embed URLs 
+      // Map posts with embed URLs and client information
       const mappedPosts = postsQuery.rows.map(post => ({
         id: post.id,
         content: post.content || post.title || '',
         title: post.title || `Post ${post.id}`,
         create_date: new Date(),
         post_url: post.post_url,
-        authentic_campaign_title: getExpandedCampaignName(post.content || post.title || '')
+        authentic_campaign_title: post.campaign_name || getExpandedCampaignName(post.content || post.title || ''),
+        client_name: post.client_name || getClientFromContent(post.content || post.title || '')
       }));
       
       console.log(`Successfully loaded ${mappedPosts.length} real posts from production database (${postsWithUrls.length} with embed URLs)`);
@@ -1859,3 +1864,40 @@ export class DatabaseStorage implements IStorage {
 }
 
 export const storage = new DatabaseStorage();
+
+// Helper function to extract client information from content
+function getClientFromContent(content: string): string {
+  const contentLower = content.toLowerCase();
+  
+  // Major retail clients
+  if (contentLower.includes('sam') || contentLower.includes("sam's club") || contentLower.includes('member')) {
+    return "Sam's Club";
+  }
+  
+  if (contentLower.includes('walmart') || contentLower.includes('great value')) {
+    return "Walmart";
+  }
+  
+  if (contentLower.includes('target') || contentLower.includes('bullseye')) {
+    return "Target";
+  }
+  
+  if (contentLower.includes('h&m') || contentLower.includes('weekday')) {
+    return "H&M";
+  }
+  
+  if (contentLower.includes('amazon') || contentLower.includes('prime')) {
+    return "Amazon";
+  }
+  
+  if (contentLower.includes('nike') || contentLower.includes('swoosh')) {
+    return "Nike";
+  }
+  
+  if (contentLower.includes('adidas') || contentLower.includes('three stripes')) {
+    return "Adidas";
+  }
+  
+  // Default fallback - no specific client identified
+  return "";
+}
