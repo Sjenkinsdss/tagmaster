@@ -1340,15 +1340,23 @@ export class DatabaseStorage implements IStorage {
         LIMIT 150
       `);
       
-      // Then get campaign associations separately using the correct column name
+      // Then get campaign associations from both debra_brandjobpost.title and ads_adcampaign.name
       let campaignQuery;
       try {
         campaignQuery = await db.execute(sql`
           SELECT DISTINCT 
             id,
-            title as campaign_title
+            title as campaign_title,
+            'brandjobpost' as source
           FROM debra_brandjobpost
           WHERE title IS NOT NULL AND title != ''
+          UNION ALL
+          SELECT DISTINCT 
+            id,
+            name as campaign_title,
+            'adcampaign' as source
+          FROM ads_adcampaign
+          WHERE name IS NOT NULL AND name != ''
           LIMIT 50
         `);
       } catch (campaignError: any) {
@@ -1357,15 +1365,40 @@ export class DatabaseStorage implements IStorage {
       }
 
       console.log(`Production database returned ${postsQuery.rows.length} posts - SUCCESS!`);
+      console.log(`Campaign data fetched: ${campaignQuery.rows.length} campaigns from both debra_brandjobpost.title and ads_adcampaign.name`);
       
-      // Simple mapping without campaign lookups for now to test basic connectivity
-      const postsWithDefaults = postsQuery.rows.map(post => ({
-        id: post.id,
-        content: post.content || post.title || '',
-        title: post.title || `Post ${post.id}`,
-        create_date: post.creation_date ? new Date(post.creation_date) : new Date(),
-        authentic_campaign_title: null
-      }));
+      // Enhanced mapping with campaign data from both sources
+      const postsWithDefaults = postsQuery.rows.map(post => {
+        const content = post.content || post.title || '';
+        const lowerContent = content.toLowerCase();
+        
+        // Try debra_brandjobpost.title first
+        let campaignName = campaignQuery.rows
+          .filter(c => c.source === 'brandjobpost')
+          .find(c => lowerContent.includes(c.campaign_title.toLowerCase()) || 
+                     c.campaign_title.toLowerCase().includes(lowerContent.split(' ')[0]))?.campaign_title;
+        
+        // Fallback to ads_adcampaign.name
+        if (!campaignName) {
+          campaignName = campaignQuery.rows
+            .filter(c => c.source === 'adcampaign')
+            .find(c => lowerContent.includes(c.campaign_title.toLowerCase()) || 
+                       c.campaign_title.toLowerCase().includes(lowerContent.split(' ')[0]))?.campaign_title;
+        }
+        
+        // Use content-based classification as final fallback
+        if (!campaignName) {
+          campaignName = getExpandedCampaignName(content);
+        }
+        
+        return {
+          id: post.id,
+          content: content,
+          title: post.title || `Post ${post.id}`,
+          create_date: post.creation_date ? new Date(post.creation_date) : new Date(),
+          authentic_campaign_title: campaignName
+        };
+      });
       
       console.log(`Successfully loaded ${postsWithDefaults.length} real posts from production database`);
       return postsWithDefaults;

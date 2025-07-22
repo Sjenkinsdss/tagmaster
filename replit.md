@@ -651,6 +651,13 @@ The application is designed to be deployed on platforms that support Node.js app
 - **Production Date Integration**: Posts now display in proper chronological order from production database
 - **User Request Fulfilled**: Posts successfully ordered by creation date with most recent content first
 
+### January 22, 2025 - Enhanced Campaign Name System with Dual Database Sources
+- **Dual Campaign Source Integration**: Implemented campaign name resolution from both debra_brandjobpost.title (primary) and ads_adcampaign.name (fallback)
+- **Priority-Based Campaign Selection**: System first searches debra_brandjobpost.title, then falls back to ads_adcampaign.name if no match found
+- **Enhanced Campaign Query**: Added UNION ALL query to fetch campaigns from both database tables with source identification
+- **Intelligent Campaign Matching**: Implemented content-based matching logic to associate posts with appropriate campaigns from either source
+- **Production Database Expansion**: Expanded campaign data coverage by utilizing additional production database tables
+
 ### January 22, 2025 - Performance Benchmark Mini-Dashboard Implementation Complete
 - **Real-Time Performance Monitoring**: Implemented comprehensive performance tracking middleware capturing all API requests with response times, error rates, and system metrics
 - **Multi-Tab Dashboard Interface**: Created frontend dashboard with API Metrics, Database, System, and Recent Activity tabs for complete performance visibility
