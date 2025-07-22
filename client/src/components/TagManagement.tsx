@@ -179,12 +179,10 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       });
     },
     onError: (error: any) => {
-      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
+
       toast({
-        title: isReadOnlyError ? "Read-Only Database" : "Error",
-        description: isReadOnlyError 
-          ? "Cannot modify data: Connected to read-only production database."
-          : `Failed to merge tags: ${error.message}`,
+        title: "Error",
+        description: `Failed to merge tags: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -216,12 +214,9 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       });
     },
     onError: (error: any) => {
-      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
       toast({
-        title: isReadOnlyError ? "Read-Only Database" : "Error",
-        description: isReadOnlyError 
-          ? "Cannot modify data: Connected to read-only production database."
-          : `Failed to split tag: ${error.message}`,
+        title: "Error",
+        description: `Failed to split tag: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -248,12 +243,9 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       });
     },
     onError: (error: any) => {
-      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
       toast({
-        title: isReadOnlyError ? "Read-Only Database" : "Error",
-        description: isReadOnlyError 
-          ? "Cannot modify data: Connected to read-only production database."
-          : `Failed to update tag: ${error.message}`,
+        title: "Error",
+        description: `Failed to update tag: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -279,12 +271,9 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       });
     },
     onError: (error: any) => {
-      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
       toast({
-        title: isReadOnlyError ? "Read-Only Database" : "Error",
-        description: isReadOnlyError 
-          ? "Cannot modify data: Connected to read-only production database."
-          : `Failed to delete tag: ${error.message}`,
+        title: "Error",
+        description: `Failed to delete tag: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -321,12 +310,9 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
       });
     },
     onError: (error: any) => {
-      const isReadOnlyError = error.message?.includes("read-only") || error.message?.includes("READONLY_DATABASE");
       toast({
-        title: isReadOnlyError ? "Read-Only Database" : "Error",
-        description: isReadOnlyError 
-          ? "Cannot create tag: Connected to read-only production database."
-          : `Failed to create tag: ${error.message}`,
+        title: "Error",
+        description: `Failed to create tag: ${error.message}`,
         variant: "destructive",
       });
     },

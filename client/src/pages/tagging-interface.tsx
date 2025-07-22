@@ -453,9 +453,7 @@ export default function TaggingInterface() {
             <div className="flex items-center space-x-4">
               <Tags className="text-carbon-blue text-xl" />
               <h1 className="text-xl font-semibold text-carbon-gray-100">Tagging Interface</h1>
-              <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
-                Read-Only Production
-              </Badge>
+
               {hasEnabledTools() && (
                 <Popover>
                   <PopoverTrigger asChild>
@@ -530,7 +528,7 @@ export default function TaggingInterface() {
                           if (sidebarContent === 'performance' && sidebarOpen) {
                             closeSidebar();
                           } else {
-                            openSidebar('performance');
+                            openSidebar('performance' as any);
                           }
                         }}
                         className={`w-full justify-start text-sm ${sidebarContent === 'performance' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
