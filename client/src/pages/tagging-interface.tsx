@@ -76,6 +76,13 @@ export default function TaggingInterface() {
     return tool ? tool.enabled : true;
   };
 
+  // Helper function to check if any tools are enabled
+  const hasEnabledTools = (): boolean => {
+    if (!toolsConfig) return true; // Default to enabled if config not loaded
+    const toolIds = ['heat-map', 'platform-analytics', 'tag-management', 'theme-customizer'];
+    return toolIds.some(toolId => isToolEnabled(toolId));
+  };
+
   const { data: postsResponse, isLoading, error } = useQuery({
     queryKey: ["/api/posts", currentPage, pageSize],
     queryFn: () => 
@@ -445,18 +452,19 @@ export default function TaggingInterface() {
               <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
                 Read-Only Production
               </Badge>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className={`flex items-center space-x-1 ${sidebarOpen ? 'bg-blue-50 text-blue-600 border-blue-300' : ''}`}
-                  >
-                    <Menu className="w-4 h-4" />
-                    <span>Tools</span>
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </PopoverTrigger>
+              {hasEnabledTools() && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className={`flex items-center space-x-1 ${sidebarOpen ? 'bg-blue-50 text-blue-600 border-blue-300' : ''}`}
+                    >
+                      <Menu className="w-4 h-4" />
+                      <span>Tools</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </Button>
+                  </PopoverTrigger>
                 <PopoverContent className="w-48" align="end">
                   <div className="space-y-1">
                     {isToolEnabled('heat-map') && (
@@ -529,7 +537,8 @@ export default function TaggingInterface() {
                     )}
                   </div>
                 </PopoverContent>
-              </Popover>
+                </Popover>
+              )}
               <InteractionHelpPanel />
             </div>
             <div className="flex items-center space-x-4 text-sm text-carbon-gray-70">
