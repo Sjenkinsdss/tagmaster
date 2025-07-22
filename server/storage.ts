@@ -1593,6 +1593,13 @@ export class DatabaseStorage implements IStorage {
           category: 'analytics'
         },
         {
+          id: 'performance-benchmark',
+          name: 'Performance Benchmark',
+          description: 'Real-time performance monitoring, API metrics, and system health dashboard',
+          enabled: true,
+          category: 'analytics'
+        },
+        {
           id: 'tag-management',
           name: 'Tag Management',
           description: 'Advanced tag creation, editing, merging, and organization tools',
@@ -1636,6 +1643,13 @@ export class DatabaseStorage implements IStorage {
           id: 'platform-analytics',
           name: 'Platform Analytics Dashboard',
           description: 'Comprehensive platform performance tracking and insights',
+          enabled: true,
+          category: 'analytics'
+        },
+        {
+          id: 'performance-benchmark',
+          name: 'Performance Benchmark',
+          description: 'Real-time performance monitoring, API metrics, and system health dashboard',
           enabled: true,
           category: 'analytics'
         },
