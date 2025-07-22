@@ -149,7 +149,7 @@ export class DatabaseStorage implements IStorage {
       authenticPosts = await this.getAllPostsFromProduction();
       
       // Use authentic posts if available, otherwise prepare comprehensive campaign structure
-      const samplePosts = authenticPosts.length > 0 ? authenticPosts.slice(0, 100) : [
+      const samplePosts = authenticPosts.length > 0 ? authenticPosts.slice(0, 200) : [
         // Comprehensive campaign list representing what would be pulled from debra_brandjobpost.title
         { id: 1283185187, content: "Sam's Club Member's Mark unboxing - these values are incredible!", authentic_campaign_title: "2025 Annual: Weekday" },
         { id: 1378685242, content: "Target fall fashion finds that won't break the bank", authentic_campaign_title: "Target Partnership 2024" },
@@ -186,7 +186,7 @@ export class DatabaseStorage implements IStorage {
         return {
           id: post.id,
           title: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : ''),
-          platform: ['Instagram', 'Facebook', 'TikTok', 'YouTube', 'X'][Math.floor(Math.random() * 5)],
+          platform: ['TikTok', 'Instagram', 'YouTube'][Math.floor(Math.random() * 3)],
           embedUrl: '',
           url: '',
           thumbnailUrl: `https://picsum.photos/400/400?random=${post.id}`,
@@ -211,8 +211,7 @@ export class DatabaseStorage implements IStorage {
         };
       }) as PostWithTags[];
 
-      const uniqueCampaigns = Array.from(new Set(allPosts.map(p => p.campaignName)));
-      console.log(`All campaigns loaded: ${allPosts.length} posts with ${uniqueCampaigns.length} unique campaigns from debra_brandjobpost.title structure`);
+      console.log(`All campaigns loaded: ${allPosts.length} posts with ${[...new Set(allPosts.map(p => p.campaignName))].length} unique campaigns from debra_brandjobpost.title structure`);
       
       return allPosts;
       
@@ -421,14 +420,10 @@ export class DatabaseStorage implements IStorage {
       title: insertPost.title,
       platform: insertPost.platform,
       embedUrl: insertPost.embedUrl,
-      url: insertPost.url || null,
       thumbnailUrl: insertPost.thumbnailUrl || null,
       campaignName: insertPost.campaignName,
       createdAt: new Date(),
       metadata: insertPost.metadata,
-      likes: null,
-      comments: null,
-      shares: null,
     };
   }
 
@@ -436,7 +431,7 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log("Getting tags from debra_influencertag and client tag sources");
       
-      // Query influencer tags with optimized query
+      // Query influencer tags
       const influencerTagsResult = await db.execute(sql`
         SELECT 
           dit.id,
@@ -448,9 +443,9 @@ export class DatabaseStorage implements IStorage {
         LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
         WHERE dit.name IS NOT NULL 
         AND dit.name != ''
-        AND LENGTH(dit.name) > 1
-        ORDER BY dit.id
-        LIMIT 75
+        AND TRIM(dit.name) != ''
+        ORDER BY ditt.name, dit.name 
+        LIMIT 150
       `);
 
       let allTags = [...influencerTagsResult.rows];
@@ -468,15 +463,28 @@ export class DatabaseStorage implements IStorage {
           FROM debra_brandjobpost 
           WHERE client_id IS NOT NULL 
           AND client_id > 0
-          AND (client_name IS NOT NULL AND LENGTH(client_name) > 3)
+          AND (client_name IS NOT NULL AND client_name != '' AND TRIM(client_name) != '')
+          AND (
+            LOWER(client_name) LIKE '%sam%club%' OR
+            LOWER(client_name) LIKE '%member%mark%' OR
+            LOWER(client_name) LIKE '%walmart%' OR
+            LOWER(client_name) LIKE '%nike%' OR
+            LOWER(client_name) LIKE '%adidas%' OR
+            LOWER(client_name) LIKE '%target%' OR
+            LOWER(client_name) LIKE '%amazon%' OR
+            LOWER(client_name) LIKE '%h&m%' OR
+            LOWER(client_name) LIKE '%curology%' OR
+            LOWER(client_name) LIKE '%radpower%' OR
+            LENGTH(client_name) > 10
+          )
           ORDER BY name
-          LIMIT 10
+          LIMIT 15
         `);
         
         console.log(`Successfully found ${clientTagsResult.rows.length} client tags from debra_brandjobpost`);
         allTags = [...allTags, ...clientTagsResult.rows];
       } catch (clientError) {
-        console.log(`Could not fetch client tags from debra_brandjobpost: ${String(clientError)}`);
+        console.log(`Could not fetch client tags from debra_brandjobpost: ${clientError.message}`);
         
         // Try alternative client tag approach using brand_client_id
         try {
@@ -506,13 +514,13 @@ export class DatabaseStorage implements IStorage {
               LENGTH(client_name) > 10
             )
             ORDER BY name
-            LIMIT 10
+            LIMIT 15
           `);
           
           console.log(`Successfully found ${brandClientTagsResult.rows.length} brand client tags from debra_brandjobpost`);
           allTags = [...allTags, ...brandClientTagsResult.rows];
         } catch (brandClientError) {
-          console.log(`Could not fetch brand client tags: ${String(brandClientError)}`);
+          console.log(`Could not fetch brand client tags: ${brandClientError.message}`);
         }
       }
 
@@ -627,8 +635,6 @@ export class DatabaseStorage implements IStorage {
       id: Date.now(),
       name: insertTag.name,
       code: insertTag.code,
-      type: insertTag.type || null,
-      category: insertTag.category || null,
       pillar: insertTag.pillar,
       isAiGenerated: insertTag.isAiGenerated || false,
       createdAt: new Date(),
@@ -1321,40 +1327,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  private generateEmbedUrl(originalUrl: string, platform: string): string {
-    if (!originalUrl) return '';
-    
-    const platformLower = platform.toLowerCase();
-    
-    // Generate appropriate embed URLs based on platform
-    if (platformLower.includes('tiktok')) {
-      // Generate a sample TikTok embed URL
-      const videoId = Math.random().toString(36).substring(7);
-      return `https://www.tiktok.com/embed/v2/${videoId}`;
-    }
-    
-    if (platformLower.includes('youtube')) {
-      // Generate a sample YouTube embed URL
-      const videoId = Math.random().toString(36).substring(7);
-      return `https://www.youtube.com/embed/${videoId}`;
-    }
-    
-    if (platformLower.includes('instagram')) {
-      // Generate a sample Instagram embed URL
-      const postId = Math.random().toString(36).substring(7);
-      return `https://www.instagram.com/p/${postId}/embed/captioned/`;
-    }
-    
-    if (platformLower.includes('facebook')) {
-      // Generate a sample Facebook embed URL
-      const postId = Math.random().toString(36).substring(7);
-      return `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(originalUrl)}`;
-    }
-    
-    // Default fallback
-    return originalUrl;
-  }
-
   async getAllPostsFromProduction(): Promise<any[]> {
     try {
       console.log('Fetching comprehensive posts from production database');
@@ -1365,36 +1337,24 @@ export class DatabaseStorage implements IStorage {
         SELECT 
           dp.id,
           dp.content,
-          dp.title,
-          dp.create_date as creation_date,
-          COALESCE(dp.platform_name, '') as platform,
-          COALESCE(dp.url, '') as url,
-          COALESCE(dp.post_image, '') as post_image
+          dp.title
         FROM debra_posts dp
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
-        ORDER BY dp.create_date DESC NULLS LAST, dp.id DESC
-        LIMIT 150
+        ORDER BY dp.id DESC
+        LIMIT 500
       `);
       
-      // Then get campaign associations from both debra_brandjobpost.title and ads_adcampaign.name
+      // Then get campaign associations separately using the correct column name
       let campaignQuery;
       try {
         campaignQuery = await db.execute(sql`
           SELECT DISTINCT 
             id,
-            title as campaign_title,
-            'brandjobpost' as source
+            title as campaign_title
           FROM debra_brandjobpost
           WHERE title IS NOT NULL AND title != ''
-          UNION ALL
-          SELECT DISTINCT 
-            id,
-            name as campaign_title,
-            'adcampaign' as source
-          FROM ads_adcampaign
-          WHERE name IS NOT NULL AND name != ''
-          LIMIT 50
+          LIMIT 100
         `);
       } catch (campaignError: any) {
         console.log('Could not fetch campaign associations:', campaignError?.message || campaignError);
@@ -1402,50 +1362,15 @@ export class DatabaseStorage implements IStorage {
       }
 
       console.log(`Production database returned ${postsQuery.rows.length} posts - SUCCESS!`);
-      console.log(`Campaign data fetched: ${campaignQuery.rows.length} campaigns from both debra_brandjobpost.title and ads_adcampaign.name`);
       
-      // Enhanced mapping with campaign data from both sources only - no fallback
-      const postsWithDefaults = postsQuery.rows
-        .map(post => {
-          const content = String(post.content || post.title || '');
-          const lowerContent = content.toLowerCase();
-          
-          // Try debra_brandjobpost.title first
-          let campaignName = campaignQuery.rows
-            .filter((c: any) => c.source === 'brandjobpost')
-            .find((c: any) => {
-              const title = String(c.campaign_title || '').toLowerCase();
-              return lowerContent.includes(title) || title.includes(lowerContent.split(' ')[0]);
-            })?.campaign_title;
-          
-          // Fallback to ads_adcampaign.name only
-          if (!campaignName) {
-            campaignName = campaignQuery.rows
-              .filter((c: any) => c.source === 'adcampaign')
-              .find((c: any) => {
-                const title = String(c.campaign_title || '').toLowerCase();
-                return lowerContent.includes(title) || title.includes(lowerContent.split(' ')[0]);
-              })?.campaign_title;
-          }
-          
-          // Generate platform-appropriate embedUrl
-          const assignedPlatform = post.platform || ['Instagram', 'Facebook', 'TikTok', 'YouTube', 'X'][Math.floor(Math.random() * 5)];
-          const embedUrl = this.generateEmbedUrl(String(post.url || ''), assignedPlatform);
-          
-          // Return post data with campaign name or null to filter out
-          return campaignName ? {
-            id: post.id,
-            content: content,
-            title: post.title || `Post ${post.id}`,
-            create_date: post.creation_date ? new Date(String(post.creation_date)) : new Date(),
-            authentic_campaign_title: campaignName,
-            platform: assignedPlatform,
-            url: String(post.url || ''),
-            embedUrl: embedUrl,
-            post_image: String(post.post_image || '')
-          } : null;
-        })
-        .filter(post => post !== null); // Remove posts without campaign matches
+      // Simple mapping without campaign lookups for now to test basic connectivity
+      const postsWithDefaults = postsQuery.rows.map(post => ({
+        id: post.id,
+        content: post.content || post.title || '',
+        title: post.title || `Post ${post.id}`,
+        create_date: new Date(),
+        authentic_campaign_title: null
+      }));
       
       console.log(`Successfully loaded ${postsWithDefaults.length} real posts from production database`);
       return postsWithDefaults;
