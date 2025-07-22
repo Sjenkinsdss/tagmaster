@@ -93,10 +93,13 @@ const AdminPanel: React.FC = () => {
   // Mutation to save tools configuration
   const saveConfigMutation = useMutation({
     mutationFn: (config: ToolConfig[]) =>
-      apiRequest("/api/admin/tools-config", {
+      fetch("/api/admin/tools-config", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({ tools: config })
-      }),
+      }).then(res => res.json()),
     onSuccess: () => {
       toast({
         title: "Configuration Saved",

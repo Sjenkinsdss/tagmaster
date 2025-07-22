@@ -1572,10 +1572,11 @@ export class DatabaseStorage implements IStorage {
       
       // Try to get configuration from Replit database
       const { adminConfig } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
       const result = await replitDb
         .select()
         .from(adminConfig)
-        .where(sql`config_key = 'tools_config'`)
+        .where(eq(adminConfig.configKey, 'tools_config'))
         .limit(1);
       
       if (result.length > 0) {
