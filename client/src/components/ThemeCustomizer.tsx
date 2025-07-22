@@ -19,6 +19,17 @@ interface ColorPalette {
 
 const predefinedPalettes: ColorPalette[] = [
   {
+    id: "original",
+    name: "Original Theme",
+    primary: "#0f62fe",
+    secondary: "#f4f4f4",
+    accent: "#f4f4f4",
+    background: "#ffffff",
+    foreground: "#161616",
+    muted: "#f4f4f4",
+    description: "Default system theme"
+  },
+  {
     id: "default",
     name: "Carbon Blue",
     primary: "#0f62fe",
