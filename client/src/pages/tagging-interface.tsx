@@ -85,10 +85,30 @@ export default function TaggingInterface() {
   };
 
   const { data: postsResponse, isLoading, error } = useQuery({
-    queryKey: ["/api/posts", currentPage, pageSize],
-    queryFn: () => 
-      fetch(`/api/posts?page=${currentPage}&limit=${pageSize}`)
-        .then(res => res.json()),
+    queryKey: ["/api/posts", currentPage, pageSize, campaignFilter, clientFilter, postIdFilter, searchQuery],
+    queryFn: () => {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: pageSize.toString(),
+      });
+      
+      // Add filter parameters if they are set and not default values
+      if (campaignFilter && campaignFilter !== "All Posts") {
+        params.append('campaign', campaignFilter);
+      }
+      if (clientFilter && clientFilter !== "All Clients") {
+        params.append('client', clientFilter);
+      }
+      if (postIdFilter && postIdFilter.trim() !== '') {
+        params.append('postId', postIdFilter);
+      }
+      if (searchQuery && searchQuery.trim() !== '') {
+        params.append('search', searchQuery);
+      }
+      
+      return fetch(`/api/posts?${params.toString()}`)
+        .then(res => res.json());
+    },
     retry: 3,
     retryDelay: 1000,
   });
@@ -159,33 +179,13 @@ export default function TaggingInterface() {
     postTags: postTags
   } : null;
 
-  // Remove duplicates by ID and filter posts
-  const uniquePosts = allPosts.reduce((acc: any[], post: any) => {
+  // Remove duplicates by ID (filtering is now done on backend)
+  const posts = allPosts.reduce((acc: any[], post: any) => {
     if (!acc.find(p => p.id === post.id)) {
       acc.push(post);
     }
     return acc;
   }, []);
-
-  // Filter posts based on all criteria
-  const posts = uniquePosts.filter((post: any) => {
-    // Campaign filter
-    const campaignMatch = campaignFilter === "All Posts" || post.campaignName === campaignFilter;
-    
-    // Client filter
-    const postClientName = post.metadata?.clientName || 'Other';
-    const clientMatch = clientFilter === "All Clients" || postClientName === clientFilter;
-    
-    // Post ID filter
-    const postIdMatch = !postIdFilter || post.id.toString().includes(postIdFilter);
-    
-    // Search filter (searches through title and content)
-    const searchMatch = !searchQuery || 
-      post.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.metadata?.content?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    return campaignMatch && clientMatch && postIdMatch && searchMatch;
-  });
 
   // Organize tags by production categories
   const categories = (categoriesData as any)?.categories || [];

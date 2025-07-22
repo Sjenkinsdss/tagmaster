@@ -212,7 +212,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const result = await storage.getPostsPaginated(page, limit);
+      const campaign = req.query.campaign as string;
+      const client = req.query.client as string;
+      const search = req.query.search as string;
+      const postId = req.query.postId as string;
+      
+      const result = await storage.getPostsPaginated(page, limit, {
+        campaign,
+        client, 
+        search,
+        postId
+      });
       res.json(result);
     } catch (error) {
       console.error("Error fetching posts:", error);

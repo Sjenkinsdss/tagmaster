@@ -248,7 +248,12 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getPostsPaginated(page: number, limit: number): Promise<{
+  async getPostsPaginated(page: number, limit: number, filters?: {
+    campaign?: string;
+    client?: string;
+    search?: string;
+    postId?: string;
+  }): Promise<{
     posts: PostWithTags[];
     pagination: {
       currentPage: number;
@@ -260,9 +265,52 @@ export class DatabaseStorage implements IStorage {
   }> {
     try {
       console.log(`Fetching posts with pagination: page ${page}, limit ${limit}`);
+      if (filters) {
+        console.log(`Applied filters:`, filters);
+      }
       
       // Use the same data as getPosts() but paginate it
-      const allData = await this.getPosts();
+      let allData = await this.getPosts();
+      
+      // Apply filters
+      if (filters) {
+        if (filters.campaign && filters.campaign.trim() !== '') {
+          console.log(`Filtering by campaign: ${filters.campaign}`);
+          allData = allData.filter(post => {
+            const campaignName = (post.metadata as any)?.campaignName || post.campaignName || '';
+            return campaignName.toLowerCase().includes(filters.campaign!.toLowerCase());
+          });
+          console.log(`After campaign filter: ${allData.length} posts`);
+        }
+        
+        if (filters.client && filters.client.trim() !== '') {
+          console.log(`Filtering by client: ${filters.client}`);
+          allData = allData.filter(post => {
+            const clientName = (post.metadata as any)?.clientName || '';
+            return clientName.toLowerCase().includes(filters.client!.toLowerCase());
+          });
+          console.log(`After client filter: ${allData.length} posts`);
+        }
+        
+        if (filters.search && filters.search.trim() !== '') {
+          console.log(`Filtering by search: ${filters.search}`);
+          const searchTerm = filters.search.toLowerCase();
+          allData = allData.filter(post => {
+            const title = (post.title || '').toLowerCase();
+            const content = (post.content || '').toLowerCase();
+            return title.includes(searchTerm) || content.includes(searchTerm);
+          });
+          console.log(`After search filter: ${allData.length} posts`);
+        }
+        
+        if (filters.postId && filters.postId.trim() !== '') {
+          console.log(`Filtering by post ID: ${filters.postId}`);
+          allData = allData.filter(post => 
+            post.id.toString().includes(filters.postId!)
+          );
+          console.log(`After post ID filter: ${allData.length} posts`);
+        }
+      }
       
       // Calculate pagination
       const totalPosts = allData.length;
@@ -272,7 +320,7 @@ export class DatabaseStorage implements IStorage {
       // Get the slice for this page
       const posts = allData.slice(offset, offset + limit);
 
-      console.log(`Found ${posts.length} posts for page ${page}`);
+      console.log(`Found ${posts.length} posts for page ${page} after filtering`);
       console.log(`Returning ${posts.length} posts for page ${page} of ${totalPages}`);
 
       return {
