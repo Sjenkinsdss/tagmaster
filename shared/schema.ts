@@ -19,6 +19,9 @@ export const posts = pgTable("posts", {
   campaignName: text("campaign_name").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   metadata: jsonb("metadata"), // likes, comments, shares, etc.
+  likes: integer("likes").default(0),
+  comments: integer("comments").default(0),
+  shares: integer("shares").default(0),
 });
 
 export const tags = pgTable("tags", {
