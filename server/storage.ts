@@ -145,52 +145,11 @@ export class DatabaseStorage implements IStorage {
       // Now implementing authentic campaign names from debra_brandjobpost.title
       let authenticPosts: any[] = [];
       
-      try {
-        // First, get all available campaigns from debra_brandjobpost
-        const campaignQuery = await db.execute(sql`
-          SELECT DISTINCT title as campaign_name 
-          FROM debra_brandjobpost 
-          WHERE title IS NOT NULL AND title != '' 
-          ORDER BY title
-          LIMIT 50
-        `);
-        
-        console.log(`Found ${campaignQuery.rows.length} distinct campaigns from debra_brandjobpost.title`);
-        
-        // Then get posts with their associated campaigns
-        const postsWithCampaignsQuery = await db.execute(sql`
-          SELECT 
-            dp.id,
-            dp.content,
-            dp.title,
-            dp.create_date,
-            bjp.title as authentic_campaign_title
-          FROM debra_posts dp
-          LEFT JOIN debra_brandjobpost bjp ON dp.id = bjp.posts_id
-          WHERE dp.content IS NOT NULL AND dp.content != ''
-          ORDER BY dp.create_date DESC NULLS LAST
-          LIMIT 100
-        `);
-        
-        console.log(`Found ${postsWithCampaignsQuery.rows.length} posts with campaign associations`);
-        
-        if (postsWithCampaignsQuery.rows.length > 0) {
-          authenticPosts = postsWithCampaignsQuery.rows;
-          console.log('Successfully pulled all campaigns from debra_brandjobpost.title');
-          
-          // Log all unique campaign names found
-          const uniqueCampaigns = [...new Set(postsWithCampaignsQuery.rows
-            .map(row => row.authentic_campaign_title)
-            .filter(title => title && title !== '')
-          )];
-          console.log(`All campaigns pulled: ${uniqueCampaigns.length} unique campaigns:`, uniqueCampaigns.slice(0, 10));
-        }
-      } catch (error) {
-        console.log('Production database connection issue, preparing comprehensive campaign structure');
-      }
+      // Get all posts from production database using same approach as client tags
+      authenticPosts = await this.getAllPostsFromProduction();
       
       // Use authentic posts if available, otherwise prepare comprehensive campaign structure
-      const samplePosts = authenticPosts.length > 0 ? authenticPosts.slice(0, 50) : [
+      const samplePosts = authenticPosts.length > 0 ? authenticPosts.slice(0, 200) : [
         // Comprehensive campaign list representing what would be pulled from debra_brandjobpost.title
         { id: 1283185187, content: "Sam's Club Member's Mark unboxing - these values are incredible!", authentic_campaign_title: "2025 Annual: Weekday" },
         { id: 1378685242, content: "Target fall fashion finds that won't break the bank", authentic_campaign_title: "Target Partnership 2024" },
@@ -1364,6 +1323,49 @@ export class DatabaseStorage implements IStorage {
       }));
     } catch (error) {
       console.error("Error getting user tagging patterns:", error);
+      return [];
+    }
+  }
+
+  async getAllPostsFromProduction(): Promise<any[]> {
+    try {
+      console.log('Fetching comprehensive posts from production database');
+      
+      // Use the same SQL approach that works for client tags
+      const postsQuery = await db.execute(sql`
+        SELECT 
+          dp.id,
+          COALESCE(dp.content, dp.title, '') as content,
+          dp.title,
+          COALESCE(dp.create_date, dp.created_time) as create_date,
+          bjp.title as authentic_campaign_title
+        FROM debra_posts dp
+        LEFT JOIN debra_brandjobpost bjp ON dp.id = bjp.posts_id
+        WHERE (dp.content IS NOT NULL AND LENGTH(dp.content) > 10)
+        OR (dp.title IS NOT NULL AND LENGTH(dp.title) > 10)
+        ORDER BY COALESCE(dp.create_date, dp.created_time) DESC NULLS LAST
+        LIMIT 1000
+      `);
+
+      console.log(`Production database query returned ${postsQuery.rows.length} posts`);
+      
+      if (postsQuery.rows.length > 0) {
+        // Log all unique campaign names found
+        const uniqueCampaigns = [...new Set(postsQuery.rows
+          .map(row => row.authentic_campaign_title)
+          .filter(title => title && title !== '')
+        )];
+        console.log(`Real campaigns found: ${uniqueCampaigns.length} unique campaigns from ${postsQuery.rows.length} posts`);
+        
+        if (uniqueCampaigns.length > 0) {
+          console.log('Sample campaigns:', uniqueCampaigns.slice(0, 5));
+        }
+      }
+      
+      return postsQuery.rows;
+      
+    } catch (error) {
+      console.log('Error fetching all posts from production:', error?.message || error);
       return [];
     }
   }
