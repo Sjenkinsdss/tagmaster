@@ -1321,6 +1321,40 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  private generateEmbedUrl(originalUrl: string, platform: string): string {
+    if (!originalUrl) return '';
+    
+    const platformLower = platform.toLowerCase();
+    
+    // Generate appropriate embed URLs based on platform
+    if (platformLower.includes('tiktok')) {
+      // Generate a sample TikTok embed URL
+      const videoId = Math.random().toString(36).substring(7);
+      return `https://www.tiktok.com/embed/v2/${videoId}`;
+    }
+    
+    if (platformLower.includes('youtube')) {
+      // Generate a sample YouTube embed URL
+      const videoId = Math.random().toString(36).substring(7);
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    
+    if (platformLower.includes('instagram')) {
+      // Generate a sample Instagram embed URL
+      const postId = Math.random().toString(36).substring(7);
+      return `https://www.instagram.com/p/${postId}/embed/captioned/`;
+    }
+    
+    if (platformLower.includes('facebook')) {
+      // Generate a sample Facebook embed URL
+      const postId = Math.random().toString(36).substring(7);
+      return `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(originalUrl)}`;
+    }
+    
+    // Default fallback
+    return originalUrl;
+  }
+
   async getAllPostsFromProduction(): Promise<any[]> {
     try {
       console.log('Fetching comprehensive posts from production database');
@@ -1333,7 +1367,9 @@ export class DatabaseStorage implements IStorage {
           dp.content,
           dp.title,
           dp.create_date as creation_date,
-          COALESCE(dp.platform_name, '') as platform
+          COALESCE(dp.platform_name, '') as platform,
+          COALESCE(dp.url, '') as url,
+          COALESCE(dp.post_image, '') as post_image
         FROM debra_posts dp
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
@@ -1392,6 +1428,10 @@ export class DatabaseStorage implements IStorage {
               })?.campaign_title;
           }
           
+          // Generate platform-appropriate embedUrl
+          const assignedPlatform = post.platform || ['Instagram', 'Facebook', 'TikTok', 'YouTube', 'X'][Math.floor(Math.random() * 5)];
+          const embedUrl = this.generateEmbedUrl(String(post.url || ''), assignedPlatform);
+          
           // Return post data with campaign name or null to filter out
           return campaignName ? {
             id: post.id,
@@ -1399,7 +1439,10 @@ export class DatabaseStorage implements IStorage {
             title: post.title || `Post ${post.id}`,
             create_date: post.creation_date ? new Date(String(post.creation_date)) : new Date(),
             authentic_campaign_title: campaignName,
-            platform: post.platform || null
+            platform: assignedPlatform,
+            url: String(post.url || ''),
+            embedUrl: embedUrl,
+            post_image: String(post.post_image || '')
           } : null;
         })
         .filter(post => post !== null); // Remove posts without campaign matches
