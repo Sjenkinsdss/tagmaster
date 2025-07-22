@@ -166,15 +166,7 @@ export class DatabaseStorage implements IStorage {
       // Get all posts from production database using same approach as client tags
       authenticPosts = await this.getAllPostsFromProduction();
       
-      // Add some H&M test posts to the beginning of authentic posts for testing
-      if (authenticPosts.length > 0) {
-        // Inject H&M test posts at the beginning
-        authenticPosts.unshift(
-          { id: 9999001, content: "H&M Weekday collection haul - sustainable fashion at its best!", post_url: "https://www.tiktok.com/@user/video/123", campaign_name: "2025 Annual: Cheap Monday", client_name: "" },
-          { id: 9999002, content: "H&M fall essentials that are actually worth buying", post_url: "https://www.instagram.com/p/ABC123/", campaign_name: "H&M Fall Campaign 2024", client_name: "" },
-          { id: 9999003, content: "Weekday jeans review - best H&M brand for denim", post_url: "https://www.youtube.com/watch?v=ABC123", campaign_name: "2025 Annual: Cheap Monday", client_name: "" }
-        );
-      }
+
 
       // Use authentic posts if available, otherwise prepare comprehensive campaign structure
       const samplePosts = authenticPosts.length > 0 ? authenticPosts.slice(0, 200) : [
@@ -223,11 +215,6 @@ export class DatabaseStorage implements IStorage {
         // Extract client name from post content
         const detectedClient = getClientFromContent(post.content);
         const clientName = post.client_name || detectedClient;
-        
-        // Debug client detection
-        if (detectedClient && index < 5) {
-          console.log(`Post ${post.id}: detected client "${detectedClient}" from content: "${post.content.substring(0, 50)}..."`);
-        }
         
         return {
           id: post.id,
