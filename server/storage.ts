@@ -1331,11 +1331,12 @@ export class DatabaseStorage implements IStorage {
         SELECT 
           dp.id,
           dp.content,
-          dp.title
+          dp.title,
+          dp.create_date as creation_date
         FROM debra_posts dp
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
-        ORDER BY dp.id DESC
+        ORDER BY dp.create_date DESC NULLS LAST, dp.id DESC
         LIMIT 150
       `);
       
@@ -1362,7 +1363,7 @@ export class DatabaseStorage implements IStorage {
         id: post.id,
         content: post.content || post.title || '',
         title: post.title || `Post ${post.id}`,
-        create_date: new Date(),
+        create_date: post.creation_date ? new Date(post.creation_date) : new Date(),
         authentic_campaign_title: null
       }));
       
