@@ -1,10 +1,14 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { tracker } from "./performance";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Add performance tracking middleware first
+app.use(tracker.middleware());
 
 app.use((req, res, next) => {
   const start = Date.now();

@@ -902,6 +902,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Performance Benchmark API Endpoints
+  app.get("/api/performance/metrics", async (req, res) => {
+    try {
+      const { tracker } = await import("./performance");
+      const category = req.query.category as 'api' | 'database' | 'system' | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 100;
+      
+      const metrics = tracker.getMetrics(category, limit);
+      res.json({ success: true, metrics });
+    } catch (error) {
+      console.error("Error fetching performance metrics:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to fetch performance metrics" 
+      });
+    }
+  });
+
+  app.get("/api/performance/summary", async (req, res) => {
+    try {
+      const { tracker } = await import("./performance");
+      const summary = tracker.getSummary();
+      res.json({ success: true, summary });
+    } catch (error) {
+      console.error("Error fetching performance summary:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to fetch performance summary" 
+      });
+    }
+  });
+
+  app.post("/api/performance/clear", async (req, res) => {
+    try {
+      const { tracker } = await import("./performance");
+      tracker.clearMetrics();
+      res.json({ success: true, message: "Performance metrics cleared" });
+    } catch (error) {
+      console.error("Error clearing performance metrics:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to clear performance metrics" 
+      });
+    }
+  });
+
+  app.get("/api/performance/health", async (req, res) => {
+    try {
+      const memUsage = process.memoryUsage();
+      const uptime = process.uptime();
+      
+      const health = {
+        status: 'healthy',
+        uptime: uptime,
+        memory: {
+          used: Math.round(memUsage.heapUsed / 1024 / 1024),
+          total: Math.round(memUsage.heapTotal / 1024 / 1024),
+          external: Math.round(memUsage.external / 1024 / 1024),
+          rss: Math.round(memUsage.rss / 1024 / 1024)
+        },
+        timestamps: {
+          server_time: new Date().toISOString(),
+          started_at: new Date(Date.now() - (uptime * 1000)).toISOString()
+        }
+      };
+      
+      res.json({ success: true, health });
+    } catch (error) {
+      console.error("Error fetching health metrics:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Failed to fetch health metrics" 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

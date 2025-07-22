@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings, TrendingUp, Menu, ChevronDown, ChevronUp, BarChart3, Palette } from "lucide-react";
+import { Tags, Users, ShoppingBag, Edit, Check, ChevronsUpDown, ChevronLeft, ChevronRight, Search, X, Settings, TrendingUp, Menu, ChevronDown, ChevronUp, BarChart3, Palette, Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import PostItem from "@/components/PostItem";
@@ -27,6 +27,7 @@ import EngagementHeatMap from "@/components/EngagementHeatMap";
 import MoodAnalytics from "@/components/MoodAnalytics";
 import PlatformAnalyticsDashboard from "@/components/PlatformAnalyticsDashboard";
 import ThemeCustomizer from "@/components/ThemeCustomizer";
+import { PerformanceBenchmark } from "@/components/PerformanceBenchmark";
 import type { PostWithTags } from "@shared/schema";
 
 export default function TaggingInterface() {
@@ -54,7 +55,7 @@ export default function TaggingInterface() {
   const [heatMapVariant, setHeatMapVariant] = useState<'grid' | 'timeline' | 'compact'>('grid');
   const [heatMapTab, setHeatMapTab] = useState<'heatmap' | 'analytics'>('heatmap');
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarContent, setSidebarContent] = useState<'tags' | 'heatmap' | 'analytics' | 'themes' | null>(null);
+  const [sidebarContent, setSidebarContent] = useState<'tags' | 'heatmap' | 'analytics' | 'themes' | 'performance' | null>(null);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -79,7 +80,7 @@ export default function TaggingInterface() {
   // Helper function to check if any tools are enabled
   const hasEnabledTools = (): boolean => {
     if (!toolsConfig) return true; // Default to enabled if config not loaded
-    const toolIds = ['heat-map', 'platform-analytics', 'tag-management', 'theme-customizer'];
+    const toolIds = ['heat-map', 'platform-analytics', 'tag-management', 'theme-customizer', 'performance-benchmark'];
     return toolIds.some(toolId => isToolEnabled(toolId));
   };
 
@@ -519,6 +520,23 @@ export default function TaggingInterface() {
                       >
                         <Settings className="w-4 h-4 mr-2" />
                         Tag Management
+                      </Button>
+                    )}
+                    {isToolEnabled('performance-benchmark') && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          if (sidebarContent === 'performance' && sidebarOpen) {
+                            closeSidebar();
+                          } else {
+                            openSidebar('performance');
+                          }
+                        }}
+                        className={`w-full justify-start text-sm ${sidebarContent === 'performance' && sidebarOpen ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-100'}`}
+                      >
+                        <Activity className="w-4 h-4 mr-2" />
+                        Performance Benchmark
                       </Button>
                     )}
                     {isToolEnabled('theme-customizer') && (
@@ -1333,6 +1351,7 @@ export default function TaggingInterface() {
                   {sidebarContent === 'tags' && 'Tag Management'}
                   {sidebarContent === 'heatmap' && 'Heat Map & Analytics'}
                   {sidebarContent === 'analytics' && 'Platform Analytics'}
+                  {sidebarContent === 'performance' && 'Performance Benchmark'}
                   {sidebarContent === 'themes' && 'Theme Customizer'}
                 </h3>
                 <Button 
@@ -1374,6 +1393,12 @@ export default function TaggingInterface() {
                 {sidebarContent === 'analytics' && (
                   <div className="p-4">
                     <PlatformAnalyticsDashboard posts={posts} />
+                  </div>
+                )}
+
+                {sidebarContent === 'performance' && (
+                  <div className="p-4">
+                    <PerformanceBenchmark />
                   </div>
                 )}
 
