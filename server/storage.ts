@@ -36,6 +36,9 @@ export interface IStorage {
   }>;
   getPost(id: number): Promise<PostWithTags | undefined>;
   createPost(post: InsertPost): Promise<Post>;
+  updatePost(id: number, updates: Partial<InsertPost>): Promise<Post>;
+  updatePostCampaign(postId: number, campaignName: string): Promise<Post>;
+  updatePostClient(postId: number, clientName: string): Promise<Post>;
 
   // Tag methods
   getTags(): Promise<Tag[]>;
@@ -1769,6 +1772,41 @@ export class DatabaseStorage implements IStorage {
       console.error("Error saving tools config:", error);
       throw error;
     }
+  }
+
+  // Post update methods
+  async updatePost(id: number, updates: Partial<InsertPost>): Promise<Post> {
+    try {
+      if (!replitDb) {
+        throw new Error("Replit database not available for updates");
+      }
+      
+      const { posts } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      
+      const result = await replitDb
+        .update(posts)
+        .set(updates)
+        .where(eq(posts.id, id))
+        .returning();
+      
+      if (result.length === 0) {
+        throw new Error('Post not found');
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error('Error updating post:', error);
+      throw new Error('Failed to update post');
+    }
+  }
+
+  async updatePostCampaign(postId: number, campaignName: string): Promise<Post> {
+    return this.updatePost(postId, { campaignName });
+  }
+
+  async updatePostClient(postId: number, clientName: string): Promise<Post> {
+    return this.updatePost(postId, { clientName });
   }
 }
 

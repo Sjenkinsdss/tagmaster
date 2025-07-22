@@ -995,6 +995,70 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update post campaign
+  app.put("/api/posts/:id/campaign", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const { campaignName } = req.body;
+      
+      if (!campaignName || typeof campaignName !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: "Campaign name is required"
+        });
+      }
+      
+      console.log(`Updating post ${postId} campaign to: ${campaignName}`);
+      
+      const updatedPost = await storage.updatePostCampaign(postId, campaignName);
+      
+      res.json({
+        success: true,
+        post: updatedPost,
+        message: "Post campaign updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating post campaign:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update post campaign",
+        error: String(error)
+      });
+    }
+  });
+
+  // Update post client
+  app.put("/api/posts/:id/client", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const { clientName } = req.body;
+      
+      if (!clientName || typeof clientName !== 'string') {
+        return res.status(400).json({
+          success: false,
+          message: "Client name is required"
+        });
+      }
+      
+      console.log(`Updating post ${postId} client to: ${clientName}`);
+      
+      const updatedPost = await storage.updatePostClient(postId, clientName);
+      
+      res.json({
+        success: true,
+        post: updatedPost,
+        message: "Post client updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating post client:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update post client",
+        error: String(error)
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

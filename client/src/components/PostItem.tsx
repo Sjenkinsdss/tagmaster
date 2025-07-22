@@ -1,11 +1,39 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Play, Heart, MessageCircle, Share, Instagram, Youtube, Facebook, Twitter } from "lucide-react";
+import { Play, Heart, MessageCircle, Share, Instagram, Youtube, Facebook, Twitter, MoreHorizontal, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PostWithTags } from "@shared/schema";
 import { InteractionTooltip, InteractionGuide } from './InteractionTooltip';
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 interface PostItemProps {
   post: PostWithTags;
@@ -35,6 +63,79 @@ export default function PostItem({
   isBulkSelected = false, 
   onBulkSelect 
 }: PostItemProps) {
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editType, setEditType] = useState<'campaign' | 'client'>('campaign');
+  const [editValue, setEditValue] = useState('');
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // Fetch campaign and client options
+  const { data: allCampaigns } = useQuery({
+    queryKey: ["/api/campaigns"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: allClients } = useQuery({
+    queryKey: ["/api/clients"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Update post mutation
+  const updatePostMutation = useMutation({
+    mutationFn: async ({ type, value }: { type: 'campaign' | 'client', value: string }) => {
+      const endpoint = type === 'campaign' ? 'campaign' : 'client';
+      const body = type === 'campaign' ? { campaignName: value } : { clientName: value };
+      
+      return apiRequest(`/api/posts/${post.id}/${endpoint}`, {
+        method: 'PUT',
+        body: JSON.stringify(body),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+    },
+    onSuccess: (data, variables) => {
+      toast({
+        title: "Post Updated",
+        description: `${variables.type === 'campaign' ? 'Campaign' : 'Client'} updated successfully to "${variables.value}"`,
+      });
+      
+      // Invalidate and refetch posts
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      setEditDialogOpen(false);
+      setEditValue('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update post",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleEdit = (type: 'campaign' | 'client') => {
+    setEditType(type);
+    const currentValue = type === 'campaign' 
+      ? (post.metadata as any)?.campaignName || post.campaignName || ''
+      : (post.metadata as any)?.clientName || '';
+    setEditValue(currentValue);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateSubmit = () => {
+    if (!editValue.trim()) {
+      toast({
+        title: "Invalid Input",
+        description: `${editType === 'campaign' ? 'Campaign' : 'Client'} name cannot be empty`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    updatePostMutation.mutate({ type: editType, value: editValue.trim() });
+  };
+
   const platformColor = platformColors[post.platform as keyof typeof platformColors] || "from-blue-500 to-blue-600";
 
   const formatTimestamp = (timestamp: string | Date) => {
@@ -51,15 +152,21 @@ export default function PostItem({
 
   const metadata = post.metadata as any;
 
+  const campaignOptions = allCampaigns?.campaigns?.map((c: any) => c.campaign_name).filter(Boolean).sort() || [];
+  const clientOptions = allClients?.clients?.map((c: any) => c.client_name).filter(Boolean).sort() || [];
+
   return (
-    <Card 
-      className={cn(
-        "cursor-pointer transition-all duration-200 hover:shadow-md",
-        isSelected && !bulkMode && "ring-2 ring-carbon-blue",
-        isBulkSelected && bulkMode && "ring-2 ring-green-500 bg-green-50"
-      )}
-      onClick={bulkMode ? undefined : onSelect}
-    >
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger>
+          <Card 
+            className={cn(
+              "cursor-pointer transition-all duration-200 hover:shadow-md",
+              isSelected && !bulkMode && "ring-2 ring-carbon-blue",
+              isBulkSelected && bulkMode && "ring-2 ring-green-500 bg-green-50"
+            )}
+            onClick={bulkMode ? undefined : onSelect}
+          >
       <CardContent className="p-4">
         <div className="mb-4">
           <div className="flex items-center space-x-3 mb-2">
@@ -412,6 +519,97 @@ export default function PostItem({
         
 
       </CardContent>
-    </Card>
+          </Card>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          <ContextMenuItem onClick={() => handleEdit('campaign')}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Campaign
+          </ContextMenuItem>
+          <ContextMenuItem onClick={() => handleEdit('client')}>
+            <Edit className="w-4 h-4 mr-2" />
+            Edit Client
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem onClick={() => window.open(post.embedUrl || post.url, '_blank')}>
+            View Original
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+
+      {/* Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Edit {editType === 'campaign' ? 'Campaign' : 'Client'}
+            </DialogTitle>
+            <DialogDescription>
+              Update the {editType === 'campaign' ? 'campaign' : 'client'} for this post.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor={`${editType}-input`}>
+                {editType === 'campaign' ? 'Campaign Name' : 'Client Name'}
+              </Label>
+              {editType === 'campaign' && campaignOptions.length > 0 ? (
+                <Select value={editValue} onValueChange={setEditValue}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select campaign" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {campaignOptions.map((campaign: string) => (
+                      <SelectItem key={campaign} value={campaign}>
+                        {campaign}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : editType === 'client' && clientOptions.length > 0 ? (
+                <Select value={editValue} onValueChange={setEditValue}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select client" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clientOptions.map((client: string) => (
+                      <SelectItem key={client} value={client}>
+                        {client}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id={`${editType}-input`}
+                  value={editValue}
+                  onChange={(e) => setEditValue(e.target.value)}
+                  placeholder={`Enter ${editType === 'campaign' ? 'campaign' : 'client'} name`}
+                />
+              )}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditDialogOpen(false);
+                setEditValue('');
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateSubmit}
+              disabled={updatePostMutation.isPending}
+            >
+              {updatePostMutation.isPending ? 'Updating...' : 'Update'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

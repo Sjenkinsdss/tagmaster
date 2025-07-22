@@ -17,6 +17,7 @@ export const posts = pgTable("posts", {
   url: text("url"), // Original URL from debra_posts.url column
   thumbnailUrl: text("thumbnail_url"),
   campaignName: text("campaign_name").notNull(),
+  clientName: text("client_name"), // Client name for the post
   createdAt: timestamp("created_at").defaultNow().notNull(),
   metadata: jsonb("metadata"), // likes, comments, shares, etc.
   likes: integer("likes").default(0),
