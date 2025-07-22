@@ -82,6 +82,21 @@ export interface IStorage {
   saveToolsConfig(tools: any[]): Promise<void>;
 }
 
+// Helper function to determine platform from URL
+function getPlatformFromUrl(url: string): string {
+  if (!url) return 'TikTok';
+  
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.includes('tiktok.com')) return 'TikTok';
+  if (lowerUrl.includes('instagram.com')) return 'Instagram';
+  if (lowerUrl.includes('youtube.com') || lowerUrl.includes('youtu.be')) return 'YouTube';
+  if (lowerUrl.includes('facebook.com')) return 'Facebook';
+  if (lowerUrl.includes('twitter.com') || lowerUrl.includes('x.com')) return 'Twitter';
+  if (lowerUrl.includes('snapchat.com')) return 'Snapchat';
+  
+  return 'TikTok'; // Default fallback
+}
+
 // Enhanced campaign classification function with more sensitive matching
 function getExpandedCampaignName(content: string): string {
   const lowerContent = content.toLowerCase();
@@ -194,10 +209,10 @@ export class DatabaseStorage implements IStorage {
         return {
           id: post.id,
           title: post.content.substring(0, 100) + (post.content.length > 100 ? '...' : ''),
-          platform: ['TikTok', 'Instagram', 'YouTube'][Math.floor(Math.random() * 3)],
-          embedUrl: '',
-          url: '',
-          thumbnailUrl: `https://picsum.photos/400/400?random=${post.id}`,
+          platform: post.post_url ? this.getPlatformFromUrl(post.post_url) : 'TikTok',
+          embedUrl: post.post_url || '',
+          url: post.post_url || '',
+          thumbnailUrl: post.post_url ? '' : `https://picsum.photos/400/400?random=${post.id}`, // Use empty thumbnail when we have embed URL
           campaignName: campaignName, // Using authentic campaign titles with fallback logic: debra_brandjobpost.title OR ads_adcampaign.name
           createdAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
           likes,
@@ -205,8 +220,9 @@ export class DatabaseStorage implements IStorage {
           shares,
           metadata: {
             content: post.content,
-            type: 'authentic_campaign_data',
+            type: 'authentic_campaign_data_with_embed',
             clientName: 'Production Client',
+            hasEmbedUrl: !!post.post_url,
             engagement: {
               likes,
               comments,
@@ -297,11 +313,11 @@ export class DatabaseStorage implements IStorage {
       return {
         id: parseInt(row.id), // Ensure ID is a number
         title: (row.title || '').substring(0, 100) + (row.title?.length > 100 ? '...' : ''),
-        platform: row.platform || 'TikTok',
-        embedUrl: row.embed_url || '',
-        url: row.original_url || '', // Use original_url field from database
-        thumbnailUrl: row.thumbnail_url || 'https://picsum.photos/400/400?random=' + row.id,
-        campaignName: row.campaign_name, // Use authentic campaign name from debra_brandjobpost.title OR ads_ad.name fallback
+        platform: row.post_url ? getPlatformFromUrl(row.post_url) : 'TikTok',
+        embedUrl: row.post_url || '',
+        url: row.post_url || '',
+        thumbnailUrl: row.post_url ? '' : 'https://picsum.photos/400/400?random=' + row.id, // Use empty thumbnail when we have embed URL
+        campaignName: row.campaign_name, // Use authentic campaign name from debra_brandjobpost.title OR ads_adcampaign.name fallback
         createdAt: new Date(row.created_at || Date.now()),
         // Add direct engagement properties for heat map
         likes,
@@ -309,8 +325,9 @@ export class DatabaseStorage implements IStorage {
         shares,
         metadata: { 
           content: row.metadata_content,
-          type: 'real_post_with_authentic_campaign',
+          type: 'real_post_with_embed_url',
           clientName: row.client_name || 'Other',
+          hasEmbedUrl: !!row.post_url,
           engagement: {
             likes,
             comments,
@@ -1357,10 +1374,12 @@ export class DatabaseStorage implements IStorage {
           dp.id,
           dp.content,
           dp.title,
-          COALESCE(dbj.title, adc.name) as campaign_name
+          COALESCE(dbj.title, adc.name) as campaign_name,
+          dcd.post_url
         FROM debra_posts dp
-        LEFT JOIN debra_brandjobpost dbj ON dp.id = dbj.post_id
-        LEFT JOIN ads_adcampaign adc ON dp.id = adc.post_id
+        LEFT JOIN debra_brandjobpost dbj ON dp.campaign_id = dbj.id
+        LEFT JOIN ads_adcampaign adc ON dp.campaign_id = adc.id
+        LEFT JOIN debra_campaignpostdraft dcd ON dp.id = dcd.post_id
         WHERE dp.content IS NOT NULL 
         AND dp.content != ''
         AND (dbj.title IS NOT NULL OR adc.name IS NOT NULL)
