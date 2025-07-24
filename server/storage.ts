@@ -1051,36 +1051,18 @@ export class DatabaseStorage implements IStorage {
         }
         
       } catch (error) {
-        console.log(`All direct connection methods failed for post ${postId}, falling back to brand-based ads:`, error);
+        console.log(`All direct connection methods failed for post ${postId}:`, error);
         adsResult = { rows: [] };
       }
       
-      // If no direct connections found, fall back to brand-based matching
+      // Following Data Integrity Policy: Only show authentic database relationships
+      // No fallback to synthetic or brand-based ads - only direct connections
       if (adsResult.rows.length === 0) {
-        console.log(`No direct connections found for post ${postId}, using brand-based fallback`);
-        adsResult = await db.execute(sql`
-          SELECT 
-            aa.id,
-            aa.name,
-            COALESCE(aa.platform_name, 'UNKNOWN') as platform_name,
-            COALESCE(aa.created_time, NOW()) as created_time,
-            0.5 as confidence_score,
-            'fallback_connection' as connection_method
-          FROM ads_ad aa
-          WHERE aa.name IS NOT NULL 
-            AND aa.name != ''
-            AND (
-              LOWER(aa.name) LIKE '%sam%club%' OR 
-              LOWER(aa.name) LIKE '%walmart%' OR
-              LOWER(aa.name) LIKE '%h&m%' OR
-              LOWER(aa.name) LIKE '%weekday%'
-            )
-          ORDER BY aa.id DESC
-          LIMIT 10
-        `);
+        console.log(`No direct database connections found for post ${postId}. Following Data Integrity Policy - showing no connected ads.`);
+        return []; // Return empty array for no authentic connections
       }
 
-      console.log(`Found ${adsResult.rows.length} ads connected to post ${postId}`);
+      console.log(`Found ${adsResult.rows.length} authentic ads connected to post ${postId}`);
       
       return adsResult.rows.map((row: any) => {
         // Generate realistic performance metrics based on platform and ad type
