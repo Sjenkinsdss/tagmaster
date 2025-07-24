@@ -1016,35 +1016,103 @@ export class DatabaseStorage implements IStorage {
 
   async getPaidAdsByPost(postId: number): Promise<(PaidAd & { adTags: (AdTag & { tag: Tag })[] })[]> {
     try {
-      console.log(`Looking for ads connected to post ${postId}...`);
+      console.log(`Looking for ads actually connected to post ${postId}...`);
       
-      // Get actual ads connected to this specific post with safe column handling
-      const adsResult = await db.execute(sql`
-        SELECT 
-          aa.id,
-          aa.name,
-          COALESCE(aa.platform_name, 'UNKNOWN') as platform_name,
-          COALESCE(aa.created_time, NOW()) as created_time,
-          0.7 as confidence_score,
-          'fallback_connection' as connection_method
-        FROM ads_ad aa
-        WHERE aa.name IS NOT NULL 
-          AND aa.name != ''
-          AND (
-            LOWER(aa.name) LIKE '%sam%club%' OR 
-            LOWER(aa.name) LIKE '%walmart%' OR
-            LOWER(aa.name) LIKE '%nike%' OR
-            LOWER(aa.name) LIKE '%adidas%' OR
-            LOWER(aa.name) LIKE '%target%' OR
-            LOWER(aa.name) LIKE '%amazon%' OR
-            LOWER(aa.name) LIKE '%h&m%' OR
-            LOWER(aa.name) LIKE '%weekday%' OR
-            LOWER(aa.name) LIKE '%curology%' OR
-            LOWER(aa.name) LIKE '%radpower%'
-          )
-        ORDER BY aa.id DESC
-        LIMIT 10
-      `);
+      // First, try to find actual connected ads through campaign bridge tables
+      let adsResult;
+      
+      try {
+        // First, try direct auto-connected post ID
+        adsResult = await db.execute(sql`
+          SELECT
+            aa.id,
+            aa.name,
+            COALESCE(aa.platform_name, 'UNKNOWN') as platform_name,
+            COALESCE(aa.created_time, NOW()) as created_time,
+            COALESCE(aa.auto_connected_post_report_confidence_score, 0.95) as confidence_score,
+            'direct_auto_connection' as connection_method
+          FROM ads_ad aa
+          WHERE aa.auto_connected_post_id = ${postId}
+            AND aa.name IS NOT NULL 
+            AND aa.name != ''
+          ORDER BY aa.auto_connected_post_report_confidence_score DESC
+          LIMIT 10
+        `);
+        
+        console.log(`Found ${adsResult.rows.length} ads via direct auto-connection for post ${postId}`);
+        
+        // If no direct auto-connection, try post_report_id connection
+        if (adsResult.rows.length === 0) {
+          adsResult = await db.execute(sql`
+            SELECT
+              aa.id,
+              aa.name,
+              COALESCE(aa.platform_name, 'UNKNOWN') as platform_name,
+              COALESCE(aa.created_time, NOW()) as created_time,
+              0.9 as confidence_score,
+              'post_report_connection' as connection_method
+            FROM ads_ad aa
+            JOIN campaign_report_campaignpostreport crcp ON aa.post_report_id = crcp.id
+            WHERE crcp.post_id = ${postId}
+              AND aa.name IS NOT NULL 
+              AND aa.name != ''
+            ORDER BY aa.id DESC
+            LIMIT 10
+          `);
+          console.log(`Found ${adsResult.rows.length} ads via post report connection for post ${postId}`);
+        }
+        
+        // If still no results, try automatch bridge table
+        if (adsResult.rows.length === 0) {
+          adsResult = await db.execute(sql`
+            SELECT
+              aa.id,
+              aa.name,
+              COALESCE(aa.platform_name, 'UNKNOWN') as platform_name,
+              COALESCE(aa.created_time, NOW()) as created_time,
+              COALESCE(apram.score, 0.8) as confidence_score,
+              'automatch_bridge' as connection_method
+            FROM ads_ad aa
+            JOIN ads_postreportadautomatch apram ON aa.id = apram.ad_id
+            JOIN campaign_report_campaignpostreport crcp ON apram.post_report_id = crcp.id
+            WHERE crcp.post_id = ${postId}
+              AND aa.name IS NOT NULL 
+              AND aa.name != ''
+            ORDER BY apram.score DESC
+            LIMIT 10
+          `);
+          console.log(`Found ${adsResult.rows.length} ads via automatch bridge for post ${postId}`);
+        }
+        
+      } catch (error) {
+        console.log(`All direct connection methods failed for post ${postId}, falling back to brand-based ads:`, error);
+        adsResult = { rows: [] };
+      }
+      
+      // If no direct connections found, fall back to brand-based matching
+      if (adsResult.rows.length === 0) {
+        console.log(`No direct connections found for post ${postId}, using brand-based fallback`);
+        adsResult = await db.execute(sql`
+          SELECT 
+            aa.id,
+            aa.name,
+            COALESCE(aa.platform_name, 'UNKNOWN') as platform_name,
+            COALESCE(aa.created_time, NOW()) as created_time,
+            0.5 as confidence_score,
+            'fallback_connection' as connection_method
+          FROM ads_ad aa
+          WHERE aa.name IS NOT NULL 
+            AND aa.name != ''
+            AND (
+              LOWER(aa.name) LIKE '%sam%club%' OR 
+              LOWER(aa.name) LIKE '%walmart%' OR
+              LOWER(aa.name) LIKE '%h&m%' OR
+              LOWER(aa.name) LIKE '%weekday%'
+            )
+          ORDER BY aa.id DESC
+          LIMIT 10
+        `);
+      }
 
       console.log(`Found ${adsResult.rows.length} ads connected to post ${postId}`);
       
