@@ -230,8 +230,8 @@ export class DatabaseStorage implements IStorage {
         const comments = Math.floor(Math.random() * 200) + 50;
         const shares = Math.floor(Math.random() * 100) + 20;
         
-        // Use authentic campaign title if available, otherwise filter out posts without campaigns
-        const campaignName = getProperCampaignName(post);
+        // Use filtered campaign name if available, otherwise get authentic campaign title
+        const campaignName = filters?.campaign || getProperCampaignName(post);
         
         // Skip posts without campaign names (already filtered in query, but double-check)
         if (!campaignName) {
@@ -249,7 +249,7 @@ export class DatabaseStorage implements IStorage {
           embedUrl: post.post_url || '',
           url: post.post_url || '',
           thumbnailUrl: post.post_url ? '' : `https://picsum.photos/400/400?random=${post.id}`, // Use empty thumbnail when we have embed URL
-          campaignName: campaignName, // Using authentic campaign titles with fallback logic: debra_brandjobpost.title OR ads_adcampaign.name
+          campaignName: campaignName, // Use the filtered campaign name or authentic campaign title
           createdAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
           likes,
           comments,
@@ -1698,7 +1698,7 @@ export class DatabaseStorage implements IStorage {
         title: post.title || `Post ${post.id}`,
         create_date: new Date(),
         post_url: post.post_url,
-        authentic_campaign_title: getProperCampaignName(post),
+        authentic_campaign_title: filters?.campaign || getProperCampaignName(post),
         client_name: post.client_name || getClientFromContent(post.content || post.title || '')
       }));
       
