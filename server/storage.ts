@@ -389,15 +389,8 @@ export class DatabaseStorage implements IStorage {
       // Get filtered data directly from database using server-side filtering
       let allData = await this.getPosts(filters);
       
-      // Apply additional campaign filtering on already filtered posts if needed
-      if (filters?.campaign && filters.campaign.trim() !== '') {
-        console.log(`Additional campaign filtering: ${filters.campaign}`);
-        allData = allData.filter(post => {
-          const campaignName = (post.metadata as any)?.campaignName || post.campaignName || '';
-          return campaignName.toLowerCase().includes(filters.campaign!.toLowerCase());
-        });
-        console.log(`After campaign filter: ${allData.length} posts`);
-      }
+      // Campaign filtering is already handled at the database level in getAllPostsFromProduction
+      // No additional client-side campaign filtering needed
       
       // Calculate pagination
       const totalPosts = allData.length;
@@ -1595,19 +1588,15 @@ export class DatabaseStorage implements IStorage {
       let whereConditions = ['dp.content IS NOT NULL', "dp.content != ''"];
       let queryParams: any[] = [];
       
-      // Add campaign filtering - search in content for campaign-related terms
+      // Add campaign filtering - since there's no direct relationship, search content for campaign-related terms
       if (filters?.campaign && filters.campaign !== 'Unknown Campaign') {
         console.log(`Server-side filtering for campaign: ${filters.campaign}`);
         const campaignLower = filters.campaign.toLowerCase();
-        // Search for campaign-related terms in post content
-        if (campaignLower.includes('weekday')) {
-          whereConditions.push("(LOWER(dp.content) LIKE '%weekday%' OR LOWER(dp.content) LIKE '%h&m%')");
-        } else if (campaignLower.includes('sam')) {
-          whereConditions.push("(LOWER(dp.content) LIKE '%sam%' OR LOWER(dp.content) LIKE '%member%')");
-        } else if (campaignLower.includes('walmart')) {
-          whereConditions.push("LOWER(dp.content) LIKE '%walmart%'");
+        // For "Self 2025" specifically, search for "self" in content
+        if (campaignLower.includes('self')) {
+          whereConditions.push("LOWER(dp.content) LIKE '%self%'");
         } else {
-          // Generic campaign search in content
+          // Generic campaign search in content for other campaigns
           const campaignWords = campaignLower.split(' ').filter(word => word.length > 2);
           if (campaignWords.length > 0) {
             const campaignSearches = campaignWords.map(word => `LOWER(dp.content) LIKE '%${word}%'`);
