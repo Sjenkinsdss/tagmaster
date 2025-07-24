@@ -136,7 +136,7 @@ export default function TaggingInterface() {
   // Generate campaign options from all available campaigns in database
   const campaignOptions = [
     "All Posts",
-    ...(allCampaigns?.campaigns?.map((c: any) => c.campaign_name).filter(Boolean).sort() || [])
+    ...(Array.isArray(allCampaigns) ? allCampaigns.map((c: any) => c.campaign_name).filter(Boolean).sort() : [])
   ];
 
   // Fetch all clients from database
@@ -148,7 +148,7 @@ export default function TaggingInterface() {
   // Generate client options from all available clients in database
   const clientOptions = [
     "All Clients",
-    ...(allClients?.clients?.map((c: any) => c.client_name).filter(Boolean).sort() || [])
+    ...(Array.isArray(allClients) ? allClients.map((c: any) => c.client_name).filter(Boolean).sort() : [])
   ];
 
   const { data: tags = [], error: tagsError } = useQuery({
@@ -329,29 +329,29 @@ export default function TaggingInterface() {
   // Auto-select first post when filtering results in few posts or specific post ID
   useEffect(() => {
     console.log("Auto-selection check:", { 
-      postsLength: posts.length, 
+      postsLength: allPosts.length, 
       postIdFilter, 
       bulkPostMode, 
-      firstPostId: posts[0]?.id,
+      firstPostId: allPosts[0]?.id,
       selectedPostId: selectedPost?.id 
     });
     
-    if (posts.length === 1 && !bulkPostMode) {
+    if (allPosts.length === 1 && !bulkPostMode) {
       // Auto-select the only post
-      console.log("Auto-selecting single post:", posts[0].id);
-      setSelectedPost(posts[0]);
-    } else if (posts.length <= 3 && postIdFilter && !bulkPostMode) {
+      console.log("Auto-selecting single post:", allPosts[0].id);
+      setSelectedPost(allPosts[0]);
+    } else if (allPosts.length <= 3 && postIdFilter && !bulkPostMode) {
       // Auto-select first post when filtering by post ID
-      const targetPost = posts.find(p => p.id.toString() === postIdFilter);
+      const targetPost = allPosts.find((p: PostWithTags) => p.id.toString() === postIdFilter);
       if (targetPost) {
         console.log("Auto-selecting target post:", targetPost.id);
         setSelectedPost(targetPost);
-      } else if (posts.length > 0) {
-        console.log("Auto-selecting first post:", posts[0].id);
-        setSelectedPost(posts[0]);
+      } else if (allPosts.length > 0) {
+        console.log("Auto-selecting first post:", allPosts[0].id);
+        setSelectedPost(allPosts[0]);
       }
     }
-  }, [posts, postIdFilter, bulkPostMode]);
+  }, [allPosts, postIdFilter, bulkPostMode]);
 
   // Bulk tag application mutation
   const bulkTagApplicationMutation = useMutation({
