@@ -275,29 +275,29 @@ export class DatabaseStorage implements IStorage {
       const postIds = posts.map(p => p.id);
       const postIdList = postIds.join(',');
       
-      // Query production database for tag relationships
+      // Query production database for tag relationships using correct table name
       const tagRelationshipsQuery = await db.execute(sql.raw(`
         SELECT 
           pt.post_id,
-          t.id as tag_id,
-          t.name as tag_name,
-          t.tag_type_id,
-          COALESCE(tt.name, 'Uncategorized') as tag_type_name,
+          dit.id as tag_id,
+          dit.name as tag_name,
+          dit.tag_type_id,
+          COALESCE(ditt.name, 'Uncategorized') as tag_type_name,
           CASE 
-            WHEN t.tag_type_id = 1 THEN 'post'
-            WHEN t.tag_type_id = 2 THEN 'influencer'  
-            WHEN t.tag_type_id = 3 THEN 'product'
-            WHEN t.tag_type_id = 4 THEN 'campaign'
-            WHEN t.tag_type_id = 5 THEN 'client'
-            WHEN t.tag_type_id = 6 THEN 'ad'
+            WHEN dit.tag_type_id = 1 THEN 'post'
+            WHEN dit.tag_type_id = 2 THEN 'influencer'  
+            WHEN dit.tag_type_id = 3 THEN 'product'
+            WHEN dit.tag_type_id = 4 THEN 'campaign'
+            WHEN dit.tag_type_id = 5 THEN 'client'
+            WHEN dit.tag_type_id = 6 THEN 'ad'
             ELSE 'post'
           END as pillar
-        FROM debra_posts_influencer_tags pt
-        LEFT JOIN debra_influencertag t ON pt.influencertag_id = t.id
-        LEFT JOIN debra_influencertagtype tt ON t.tag_type_id = tt.id
+        FROM post_tags pt
+        LEFT JOIN debra_influencertag dit ON pt.tag_id = dit.id
+        LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
         WHERE pt.post_id IN (${postIdList})
-        AND t.id IS NOT NULL
-        ORDER BY pt.post_id, t.name
+        AND dit.id IS NOT NULL
+        ORDER BY pt.post_id, dit.name
       `));
       
       console.log(`Found ${tagRelationshipsQuery.rows.length} tag relationships from production database`);
