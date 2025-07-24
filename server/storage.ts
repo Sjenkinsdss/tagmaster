@@ -1616,24 +1616,42 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // Add client-based content filtering
+      // Add client-based content filtering with performance optimizations
       if (filters?.client && filters.client !== 'Unknown Client') {
         console.log(`Server-side filtering for client: ${filters.client}`);
         const clientLower = filters.client.toLowerCase();
         if (clientLower === 'h&m') {
-          whereConditions.push("(LOWER(dp.content) LIKE '%h&m%' OR LOWER(dp.content) LIKE '%weekday%')");
+          whereConditions.push("(LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%h&m%' OR LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%weekday%')");
         } else if (clientLower === "sam's club") {
-          whereConditions.push("(LOWER(dp.content) LIKE '%sam%' OR LOWER(dp.content) LIKE '%member%')");
+          whereConditions.push("(LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%sam%' OR LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%member%')");
         } else if (clientLower === 'walmart') {
-          whereConditions.push("(LOWER(dp.content) LIKE '%walmart%' OR LOWER(dp.content) LIKE '%great value%')");
+          whereConditions.push("(LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%walmart%' OR LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%great value%')");
         } else if (clientLower === 'target') {
-          whereConditions.push("LOWER(dp.content) LIKE '%target%'");
+          whereConditions.push("LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%target%'");
         } else if (clientLower === 'nike') {
-          whereConditions.push("LOWER(dp.content) LIKE '%nike%'");
+          whereConditions.push("LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%nike%'");
         } else if (clientLower === 'amazon') {
-          whereConditions.push("(LOWER(dp.content) LIKE '%amazon%' OR LOWER(dp.content) LIKE '%prime%')");
+          whereConditions.push("(LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%amazon%' OR LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%prime%')");
         } else {
-          whereConditions.push(`LOWER(dp.content) LIKE '%${clientLower}%'`);
+          // For generic clients, search only key words to prevent full table scans
+          const clientWords = clientLower
+            .split(/[\s\-_&]+/) // Split on space, dash, underscore, ampersand
+            .filter(word => word.length > 2) // Only meaningful words
+            .filter(word => !['brand', 'inc', 'corp', 'company', 'llc'].includes(word)) // Filter out generic terms
+            .slice(0, 3); // Limit to first 3 significant words for performance
+          
+          if (clientWords.length > 0) {
+            const clientSearches = clientWords.map(word => {
+              // Clean word for SQL safety
+              const cleanWord = word.replace(/[^a-z0-9]/g, '');
+              return `LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%${cleanWord}%'`;
+            });
+            whereConditions.push(`(${clientSearches.join(' OR ')})`);
+          } else {
+            // Fallback for very generic client names - limit search area
+            const safeClientName = clientLower.replace(/[^a-z0-9\s]/g, '').substring(0, 50);
+            whereConditions.push(`LOWER(SUBSTRING(dp.content, 1, 500)) LIKE '%${safeClientName}%'`);
+          }
         }
       }
       
@@ -1678,8 +1696,13 @@ export class DatabaseStorage implements IStorage {
       
       let postsQuery;
       
-      // Use dynamic WHERE clause for all filtering
+      // Use dynamic WHERE clause for all filtering with performance optimizations
+      const isFilteredQuery = filters?.client || filters?.campaign || filters?.search;
+      const queryLimit = filters?.postId ? '1' : (isFilteredQuery ? '50' : '1000');
+      
       console.log(`Executing query with WHERE clause: ${whereClause}`);
+      console.log(`Using query limit: ${queryLimit} ${isFilteredQuery ? '(reduced limit for filtered queries to prevent hanging)' : ''}`);
+      
       postsQuery = await db.execute(sql.raw(`
         SELECT 
           dp.id,
@@ -1692,7 +1715,7 @@ export class DatabaseStorage implements IStorage {
         LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.id
         WHERE ${whereClause}
         ORDER BY dp.id DESC
-        LIMIT ${filters?.postId ? '1' : '1000'}
+        LIMIT ${queryLimit}
       `));
       
       if (postsQuery.rows.length === 0 && !filters?.client && !filters?.search && !filters?.postId) {
