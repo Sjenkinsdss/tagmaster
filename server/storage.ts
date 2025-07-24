@@ -1623,10 +1623,26 @@ export class DatabaseStorage implements IStorage {
         }
       }
       
-      // Add search filtering
+      // Add search filtering with length limit and word-based search
       if (filters?.search) {
-        const searchTerm = filters.search.toLowerCase();
-        whereConditions.push(`(LOWER(dp.content) LIKE '%${searchTerm}%' OR LOWER(dp.title) LIKE '%${searchTerm}%')`);
+        const searchTerm = filters.search.toLowerCase().trim();
+        
+        // Limit search term length to prevent performance issues
+        if (searchTerm.length > 100) {
+          console.log(`Search term too long (${searchTerm.length} chars), truncating to 100 characters`);
+          const truncatedSearch = searchTerm.substring(0, 100);
+          whereConditions.push(`(LOWER(dp.content) LIKE '%${truncatedSearch}%' OR LOWER(dp.title) LIKE '%${truncatedSearch}%')`);
+        } else if (searchTerm.length > 50) {
+          // For medium-length searches, use word-based approach
+          const words = searchTerm.split(' ').filter(word => word.length > 2).slice(0, 5); // Max 5 significant words
+          if (words.length > 0) {
+            const wordConditions = words.map(word => `(LOWER(dp.content) LIKE '%${word}%' OR LOWER(dp.title) LIKE '%${word}%')`);
+            whereConditions.push(`(${wordConditions.join(' AND ')})`);
+          }
+        } else {
+          // For short searches, use exact phrase matching
+          whereConditions.push(`(LOWER(dp.content) LIKE '%${searchTerm}%' OR LOWER(dp.title) LIKE '%${searchTerm}%')`);
+        }
       }
       
       // Add post ID filtering - extract numeric part from "Post 1234567" format
