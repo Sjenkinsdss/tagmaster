@@ -157,9 +157,19 @@ export class DatabaseStorage implements IStorage {
           const detectedClient = getClientFromContent(post.content);
           const clientName = post.client_name || detectedClient;
           
+          // Use same sophisticated title logic as getAllPostsFromProduction
+          let displayTitle = post.title;
+          if (!displayTitle || displayTitle.trim() === '') {
+            if (post.content && post.content.trim() !== '') {
+              displayTitle = post.content.substring(0, 80).trim() + (post.content.length > 80 ? '...' : '');
+            } else {
+              displayTitle = `Post ${post.id}`;
+            }
+          }
+          
           return {
             id: parseInt(post.id),
-            title: (post.title || post.content).substring(0, 100) + ((post.title || post.content).length > 100 ? '...' : ''),
+            title: displayTitle,
             platform: post.post_url ? getPlatformFromUrl(post.post_url) : 'TikTok',
             embedUrl: post.post_url || '',
             url: post.post_url || '',
@@ -1707,15 +1717,43 @@ export class DatabaseStorage implements IStorage {
       console.log(`Found ${postsWithUrls.length} posts with valid URLs from debra_posts.url`);
       
       // Map posts with embed URLs and client information
-      const mappedPosts = postsQuery.rows.map(post => ({
-        id: post.id,
-        content: post.content || post.title || '',
-        title: post.title || `Post ${post.id}`,
-        create_date: new Date(),
-        post_url: post.post_url,
-        authentic_campaign_title: filters?.campaign || getProperCampaignName(post),
-        client_name: post.client_name || getClientFromContent(post.content || post.title || '')
-      }));
+      const mappedPosts = postsQuery.rows.map(post => {
+        // Debug logging for post ID filter
+        if (filters?.postId) {
+          const filterPostId = filters.postId.toString().replace(/^Post\s+/, '').trim();
+          if (post.id.toString() === filterPostId) {
+            console.log(`DEBUG: Post ${post.id} raw database data:`, {
+              id: post.id,
+              title: post.title || 'NULL/EMPTY',
+              content: post.content ? post.content.substring(0, 100) + '...' : 'NULL/EMPTY',
+              campaign_name: post.campaign_name,
+              client_name: post.client_name,
+              has_title: !!post.title,
+              has_content: !!post.content
+            });
+          }
+        }
+        
+        // Use actual title from database, or create meaningful fallback from content
+        let displayTitle = post.title;
+        if (!displayTitle || displayTitle.trim() === '') {
+          if (post.content && post.content.trim() !== '') {
+            displayTitle = post.content.substring(0, 80).trim() + (post.content.length > 80 ? '...' : '');
+          } else {
+            displayTitle = `Post ${post.id}`;
+          }
+        }
+        
+        return {
+          id: post.id,
+          content: post.content || post.title || '',
+          title: displayTitle,
+          create_date: new Date(),
+          post_url: post.post_url,
+          authentic_campaign_title: filters?.campaign || getProperCampaignName(post),
+          client_name: post.client_name || getClientFromContent(post.content || post.title || '')
+        };
+      });
       
       console.log(`Successfully loaded ${mappedPosts.length} real posts from production database (${postsWithUrls.length} with embed URLs)`);
       return mappedPosts;
