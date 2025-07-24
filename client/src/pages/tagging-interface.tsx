@@ -106,8 +106,13 @@ export default function TaggingInterface() {
         params.append('search', searchQuery);
       }
       
+      console.log("Query params being sent:", params.toString());
       return fetch(`/api/posts?${params.toString()}`)
-        .then(res => res.json());
+        .then(res => res.json())
+        .then(data => {
+          console.log("API response:", { totalPosts: data.posts?.length, pagination: data.pagination });
+          return data;
+        });
     },
     retry: 3,
     retryDelay: 1000,
@@ -162,8 +167,17 @@ export default function TaggingInterface() {
   // Fetch connected ads for the selected post
   const { data: connectedAds = [] } = useQuery({
     queryKey: ["/api/posts", selectedPost?.id, "ads"],
-    queryFn: () => selectedPost ? fetch(`/api/posts/${selectedPost.id}/ads`).then(res => res.json()) : [],
+    queryFn: () => {
+      console.log("Fetching ads for selected post:", selectedPost?.id);
+      return selectedPost ? fetch(`/api/posts/${selectedPost.id}/ads`).then(res => res.json()) : [];
+    },
     enabled: !!selectedPost,
+  });
+  
+  console.log("Connected ads state:", { 
+    selectedPostId: selectedPost?.id, 
+    connectedAdsCount: connectedAds.length,
+    connectedAdsIds: connectedAds.slice(0, 3).map((ad: any) => ad.id) 
   });
 
   // Fetch tags for the selected post
@@ -314,15 +328,26 @@ export default function TaggingInterface() {
 
   // Auto-select first post when filtering results in few posts or specific post ID
   useEffect(() => {
+    console.log("Auto-selection check:", { 
+      postsLength: posts.length, 
+      postIdFilter, 
+      bulkPostMode, 
+      firstPostId: posts[0]?.id,
+      selectedPostId: selectedPost?.id 
+    });
+    
     if (posts.length === 1 && !bulkPostMode) {
       // Auto-select the only post
+      console.log("Auto-selecting single post:", posts[0].id);
       setSelectedPost(posts[0]);
     } else if (posts.length <= 3 && postIdFilter && !bulkPostMode) {
       // Auto-select first post when filtering by post ID
       const targetPost = posts.find(p => p.id.toString() === postIdFilter);
       if (targetPost) {
+        console.log("Auto-selecting target post:", targetPost.id);
         setSelectedPost(targetPost);
       } else if (posts.length > 0) {
+        console.log("Auto-selecting first post:", posts[0].id);
         setSelectedPost(posts[0]);
       }
     }
