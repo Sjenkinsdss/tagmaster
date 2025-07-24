@@ -275,29 +275,18 @@ export class DatabaseStorage implements IStorage {
       const postIds = posts.map(p => p.id);
       const postIdList = postIds.join(',');
       
-      // Query production database for tag relationships using correct table name
+      // Query production database using the same working pattern as getPostTags
       const tagRelationshipsQuery = await db.execute(sql.raw(`
         SELECT 
-          pt.post_id,
+          dpit.posts_id as post_id,
           dit.id as tag_id,
           dit.name as tag_name,
-          dit.tag_type_id,
-          COALESCE(ditt.name, 'Uncategorized') as tag_type_name,
-          CASE 
-            WHEN dit.tag_type_id = 1 THEN 'post'
-            WHEN dit.tag_type_id = 2 THEN 'influencer'  
-            WHEN dit.tag_type_id = 3 THEN 'product'
-            WHEN dit.tag_type_id = 4 THEN 'campaign'
-            WHEN dit.tag_type_id = 5 THEN 'client'
-            WHEN dit.tag_type_id = 6 THEN 'ad'
-            ELSE 'post'
-          END as pillar
-        FROM post_tags pt
-        LEFT JOIN debra_influencertag dit ON pt.tag_id = dit.id
+          ditt.name as tag_type_name
+        FROM debra_posts_influencer_tags dpit
+        JOIN debra_influencertag dit ON dpit.influencertag_id = dit.id
         LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
-        WHERE pt.post_id IN (${postIdList})
-        AND dit.id IS NOT NULL
-        ORDER BY pt.post_id, dit.name
+        WHERE dpit.posts_id IN (${postIdList})
+        ORDER BY dpit.posts_id, dit.name
       `));
       
       console.log(`Found ${tagRelationshipsQuery.rows.length} tag relationships from production database`);
@@ -310,6 +299,8 @@ export class DatabaseStorage implements IStorage {
           tagsByPostId.set(postId, []);
         }
         
+        // Use the same mapping logic as the working getPostTags method
+        const pillar = this.mapTagTypeToPillar(row.tag_type_name);
         tagsByPostId.get(postId).push({
           id: row.tag_id,
           postId: postId,
@@ -317,18 +308,24 @@ export class DatabaseStorage implements IStorage {
           tag: {
             id: row.tag_id,
             name: row.tag_name,
-            pillar: row.pillar,
-            tag_type_name: row.tag_type_name,
-            code: `${row.pillar}_${row.tag_name}_${String(row.tag_id).padStart(4, '0')}`,
-            isAiGenerated: false
+            pillar: pillar,
+            tag_type_name: row.tag_type_name || 'general',
+            code: `${pillar}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
+            isAiGenerated: false,
+            createdAt: new Date(),
+            categoryName: row.tag_type_name || 'general'
           }
         });
       });
       
-      // Update posts with their tag relationships
+      // Update posts with their tag relationships and report counts
+      let totalTagsLoaded = 0;
       const postsWithTagRelationships = posts.map(post => {
         const postTags = tagsByPostId.get(post.id) || [];
-        console.log(`Post ${post.id} has ${postTags.length} tags`);
+        totalTagsLoaded += postTags.length;
+        if (postTags.length > 0) {
+          console.log(`Post ${post.id} has ${postTags.length} tags: ${postTags.map(t => t.tag.name).join(', ')}`);
+        }
         
         return {
           ...post,
@@ -336,7 +333,8 @@ export class DatabaseStorage implements IStorage {
         };
       });
       
-      console.log(`Successfully loaded tag relationships for ${posts.length} posts`);
+      console.log(`Successfully loaded tag relationships for ${posts.length} posts - Total tags: ${totalTagsLoaded}`);
+      console.log(`Posts with tags: ${postsWithTagRelationships.filter(p => p.postTags.length > 0).length}/${posts.length}`);
       return postsWithTagRelationships;
       
     } catch (error: any) {
