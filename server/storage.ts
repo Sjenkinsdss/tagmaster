@@ -1055,29 +1055,11 @@ export class DatabaseStorage implements IStorage {
         adsResult = { rows: [] };
       }
       
-      // If no direct connections found, fall back to brand-based matching
+      // Data Integrity Policy: Only show authentic connections, no fallback ads
       if (adsResult.rows.length === 0) {
-        console.log(`No direct connections found for post ${postId}, using brand-based fallback`);
-        adsResult = await db.execute(sql`
-          SELECT 
-            aa.id,
-            aa.name,
-            COALESCE(aa.platform_name, 'UNKNOWN') as platform_name,
-            COALESCE(aa.created_time, NOW()) as created_time,
-            0.5 as confidence_score,
-            'fallback_connection' as connection_method
-          FROM ads_ad aa
-          WHERE aa.name IS NOT NULL 
-            AND aa.name != ''
-            AND (
-              LOWER(aa.name) LIKE '%sam%club%' OR 
-              LOWER(aa.name) LIKE '%walmart%' OR
-              LOWER(aa.name) LIKE '%h&m%' OR
-              LOWER(aa.name) LIKE '%weekday%'
-            )
-          ORDER BY aa.id DESC
-          LIMIT 10
-        `);
+        console.log(`No authentic connections found for post ${postId} - returning empty result per Data Integrity Policy`);
+        // Return empty array instead of generic fallback ads
+        adsResult = { rows: [] };
       }
 
       console.log(`Found ${adsResult.rows.length} ads connected to post ${postId}`);
