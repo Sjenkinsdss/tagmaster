@@ -136,7 +136,8 @@ export default function TaggingInterface() {
   // Generate campaign options from all available campaigns in database
   const campaignOptions = [
     "All Posts",
-    ...(Array.isArray(allCampaigns) ? allCampaigns.map((c: any) => c.campaign_name).filter(Boolean).sort() : [])
+    ...(allCampaigns?.campaigns && Array.isArray(allCampaigns.campaigns) ? 
+      allCampaigns.campaigns.map((c: any) => c.campaign_name).filter(Boolean).sort() : [])
   ];
 
   // Fetch all clients from database
@@ -148,7 +149,8 @@ export default function TaggingInterface() {
   // Generate client options from all available clients in database
   const clientOptions = [
     "All Clients",
-    ...(Array.isArray(allClients) ? allClients.map((c: any) => c.client_name).filter(Boolean).sort() : [])
+    ...(allClients?.clients && Array.isArray(allClients.clients) ? 
+      allClients.clients.map((c: any) => c.client_name).filter(Boolean).sort() : [])
   ];
 
   const { data: tags = [], error: tagsError } = useQuery({
