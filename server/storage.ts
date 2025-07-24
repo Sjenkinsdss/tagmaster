@@ -171,7 +171,53 @@ export class DatabaseStorage implements IStorage {
       // Get all posts from production database with server-side filtering
       authenticPosts = await this.getAllPostsFromProduction(filters);
       
-
+      // If filtering by specific post ID, return only that post without combining with other data
+      console.log(`Checking post ID filter:`, { postId: filters?.postId, hasPostId: !!filters?.postId });
+      if (filters?.postId) {
+        console.log(`Post ID filter applied: ${filters.postId} - returning only the specific post`);
+        const allPosts = authenticPosts.map((post, index) => {
+          const likes = Math.floor(Math.random() * 3000) + 500;
+          const comments = Math.floor(Math.random() * 200) + 50;
+          const shares = Math.floor(Math.random() * 100) + 20;
+          
+          const campaignName = post.authentic_campaign_title || post.campaign_name;
+          const detectedClient = getClientFromContent(post.content);
+          const clientName = post.client_name || detectedClient;
+          
+          return {
+            id: parseInt(post.id),
+            title: (post.title || post.content).substring(0, 100) + ((post.title || post.content).length > 100 ? '...' : ''),
+            platform: post.post_url ? getPlatformFromUrl(post.post_url) : 'TikTok',
+            embedUrl: post.post_url || '',
+            url: post.post_url || '',
+            thumbnailUrl: post.post_url ? '' : 'https://picsum.photos/400/400?random=' + post.id,
+            campaignName: campaignName,
+            createdAt: new Date(post.create_date || Date.now()),
+            likes,
+            comments,
+            shares,
+            metadata: {
+              content: post.content,
+              type: 'authentic_filtered_post',
+              clientName: clientName,
+              hasEmbedUrl: !!post.post_url,
+              engagement: {
+                likes,
+                comments,
+                shares,
+                impressions: Math.floor(Math.random() * 15000) + 3000
+              }
+            },
+            postTags: [],
+            paidAds: []
+          };
+        }).filter(post => post !== null) as PostWithTags[];
+        
+        // Load tag relationships for the filtered post
+        const postsWithTags = await this.loadTagRelationshipsForPosts(allPosts);
+        console.log(`Returning ${postsWithTags.length} post(s) for post ID filter ${filters.postId}`);
+        return postsWithTags;
+      }
 
       // Combine authentic posts with sample posts that have tag relationships
       const samplePostsWithTags = [
@@ -1561,7 +1607,7 @@ export class DatabaseStorage implements IStorage {
         FROM debra_posts dp
         WHERE ${whereClause}
         ORDER BY dp.id DESC
-        LIMIT ${filters?.postId ? '10' : '1000'}
+        LIMIT ${filters?.postId ? '1' : '1000'}
       `));
       
       if (postsQuery.rows.length === 0 && !filters?.client && !filters?.search && !filters?.postId) {

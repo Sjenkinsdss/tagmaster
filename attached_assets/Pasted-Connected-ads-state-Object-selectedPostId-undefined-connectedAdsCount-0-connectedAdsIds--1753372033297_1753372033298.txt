@@ -1,0 +1,47 @@
+Connected ads state: 
+Object { selectedPostId: undefined, connectedAdsCount: 0, connectedAdsIds: [] }
+Console.js:61:15
+Query params being sent: page=1&limit=20&postId=1283185187 Console.js:61:15
+Auto-selection check: 
+Object { postsLength: 0, postIdFilter: "1283185187", bulkPostMode: false, firstPostId: undefined, selectedPostId: undefined }
+Console.js:61:15
+API response: 
+Object { totalPosts: 20, pagination: {…} }
+​
+pagination: Object { currentPage: 1, totalPages: 2, totalPosts: 27, … }
+​
+totalPosts: 20
+​
+<prototype>: Object { … }
+Console.js:61:15
+Connected ads state: 
+Object { selectedPostId: undefined, connectedAdsCount: 0, connectedAdsIds: [] }
+Console.js:61:15
+Auto-selection check: 
+Object { postsLength: 19, postIdFilter: "1283185187", bulkPostMode: false, firstPostId: 1283185187, selectedPostId: undefined }
+Console.js:61:15
+Connected ads state: 
+Object { selectedPostId: undefined, connectedAdsCount: 0, connectedAdsIds: [] }
+Console.js:61:15
+Auto-selection check: 
+Object { postsLength: 19, postIdFilter: "1283185187", bulkPostMode: false, firstPostId: 1283185187, selectedPostId: undefined }
+Console.js:61:15
+Connected ads state: 
+Object { selectedPostId: 1283185187, connectedAdsCount: 0, connectedAdsIds: [] }
+Console.js:61:15
+Fetching ads for selected post: 1283185187 Console.js:61:15
+Auto-selection check: 
+Object { postsLength: 19, postIdFilter: "1283185187", bulkPostMode: false, firstPostId: 1283185187, selectedPostId: 1283185187 }
+Console.js:61:15
+Connected ads state: 
+Object { selectedPostId: 1283185187, connectedAdsCount: 10, connectedAdsIds: (3) […] }
+Console.js:61:15
+Auto-selection check: 
+Object { postsLength: 19, postIdFilter: "1283185187", bulkPostMode: false, firstPostId: 1283185187, selectedPostId: 1283185187 }
+Console.js:61:15
+Connected ads state: 
+Object { selectedPostId: 1283185187, connectedAdsCount: 10, connectedAdsIds: (3) […] }
+Console.js:61:15
+Auto-selection check: 
+Object { postsLength: 19, postIdFilter: "1283185187", bulkPostMode: false, firstPostId: 1283185187, selectedPostId: 1283185187 }
+Console.js:61:15
