@@ -245,18 +245,104 @@ export class DatabaseStorage implements IStorage {
               impressions: Math.floor(Math.random() * 15000) + 3000
             }
           },
-          postTags: [] as any[],
-          paidAds: [] as any[]
+          postTags: [],
+          paidAds: []
         };
       }).filter(post => post !== null) as PostWithTags[];
 
       console.log(`All campaigns loaded: ${allPosts.length} posts with ${[...new Set(allPosts.map(p => p.campaignName))].length} unique campaigns from debra_brandjobpost.title structure`);
       
-      return allPosts;
+      // Load tag relationships for these posts from production database
+      const postsWithTags = await this.loadTagRelationshipsForPosts(allPosts);
+      
+      return postsWithTags;
       
     } catch (error) {
       console.error('Error restoring posts:', error);
       return [];
+    }
+  }
+
+  async loadTagRelationshipsForPosts(posts: PostWithTags[]): Promise<PostWithTags[]> {
+    try {
+      console.log(`Loading tag relationships for ${posts.length} posts from production database`);
+      
+      if (posts.length === 0) {
+        return posts;
+      }
+      
+      // Get post IDs for batch query
+      const postIds = posts.map(p => p.id);
+      const postIdList = postIds.join(',');
+      
+      // Query production database for tag relationships
+      const tagRelationshipsQuery = await db.execute(sql.raw(`
+        SELECT 
+          pt.post_id,
+          t.id as tag_id,
+          t.name as tag_name,
+          t.tag_type_id,
+          COALESCE(tt.name, 'Uncategorized') as tag_type_name,
+          CASE 
+            WHEN t.tag_type_id = 1 THEN 'post'
+            WHEN t.tag_type_id = 2 THEN 'influencer'  
+            WHEN t.tag_type_id = 3 THEN 'product'
+            WHEN t.tag_type_id = 4 THEN 'campaign'
+            WHEN t.tag_type_id = 5 THEN 'client'
+            WHEN t.tag_type_id = 6 THEN 'ad'
+            ELSE 'post'
+          END as pillar
+        FROM debra_posts_influencer_tags pt
+        LEFT JOIN debra_influencertag t ON pt.influencertag_id = t.id
+        LEFT JOIN debra_influencertagtype tt ON t.tag_type_id = tt.id
+        WHERE pt.post_id IN (${postIdList})
+        AND t.id IS NOT NULL
+        ORDER BY pt.post_id, t.name
+      `));
+      
+      console.log(`Found ${tagRelationshipsQuery.rows.length} tag relationships from production database`);
+      
+      // Group tags by post ID
+      const tagsByPostId = new Map();
+      tagRelationshipsQuery.rows.forEach(row => {
+        const postId = row.post_id;
+        if (!tagsByPostId.has(postId)) {
+          tagsByPostId.set(postId, []);
+        }
+        
+        tagsByPostId.get(postId).push({
+          id: row.tag_id,
+          postId: postId,
+          tagId: row.tag_id,
+          tag: {
+            id: row.tag_id,
+            name: row.tag_name,
+            pillar: row.pillar,
+            tag_type_name: row.tag_type_name,
+            code: `${row.pillar}_${row.tag_name}_${String(row.tag_id).padStart(4, '0')}`,
+            isAiGenerated: false
+          }
+        });
+      });
+      
+      // Update posts with their tag relationships
+      const postsWithTagRelationships = posts.map(post => {
+        const postTags = tagsByPostId.get(post.id) || [];
+        console.log(`Post ${post.id} has ${postTags.length} tags`);
+        
+        return {
+          ...post,
+          postTags: postTags
+        };
+      });
+      
+      console.log(`Successfully loaded tag relationships for ${posts.length} posts`);
+      return postsWithTagRelationships;
+      
+    } catch (error: any) {
+      console.log('Error loading tag relationships:', error?.message || error);
+      // Return posts without tags if there's an error
+      return posts;
     }
   }
 
