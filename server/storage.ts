@@ -1588,18 +1588,33 @@ export class DatabaseStorage implements IStorage {
       let whereConditions = ['dp.content IS NOT NULL', "dp.content != ''"];
       let queryParams: any[] = [];
       
-      // Add campaign filtering - since there's no direct relationship, search content for campaign-related terms
+      // Add campaign filtering - improved approach with better SQL escaping
       if (filters?.campaign && filters.campaign !== 'Unknown Campaign') {
         console.log(`Server-side filtering for campaign: ${filters.campaign}`);
+        
+        // Since there's no direct database relationship, we'll use targeted content matching
+        // This approach works well for campaigns that might have related keywords in post content
         const campaignLower = filters.campaign.toLowerCase();
-        // For "Self 2025" specifically, search for "self" in content
+        
         if (campaignLower.includes('self')) {
           whereConditions.push("LOWER(dp.content) LIKE '%self%'");
+        } else if (campaignLower.includes('test')) {
+          whereConditions.push("LOWER(dp.content) LIKE '%test%'");
+        } else if (campaignLower.includes('volvo')) {
+          whereConditions.push("LOWER(dp.content) LIKE '%volvo%'");
         } else {
-          // Generic campaign search in content for other campaigns
-          const campaignWords = campaignLower.split(' ').filter(word => word.length > 2);
+          // For other campaigns, try to match with meaningful keywords only
+          const campaignWords = campaignLower
+            .split(/[\s\-_']+/) // Split on space, dash, underscore, apostrophe
+            .filter(word => word.length > 3) // Only meaningful words
+            .filter(word => !['2025', '2024', '2023', 'campaign'].includes(word)); // Filter out generic terms
+          
           if (campaignWords.length > 0) {
-            const campaignSearches = campaignWords.map(word => `LOWER(dp.content) LIKE '%${word}%'`);
+            const campaignSearches = campaignWords.map(word => {
+              // Properly escape SQL by removing problematic characters
+              const cleanWord = word.replace(/[^a-z0-9]/g, ''); // Keep only alphanumeric
+              return `LOWER(dp.content) LIKE '%${cleanWord}%'`;
+            });
             whereConditions.push(`(${campaignSearches.join(' OR ')})`);
           }
         }
@@ -1659,12 +1674,10 @@ export class DatabaseStorage implements IStorage {
           dp.content,
           dp.title,
           dp.url as post_url,
-          COALESCE(bjp.title, aac.name, 'Unknown Campaign') as campaign_name,
+          COALESCE(bjp.title, 'Unknown Campaign') as campaign_name,
           COALESCE(bjp.client_name, 'Unknown Client') as client_name
         FROM debra_posts dp
         LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.id
-        LEFT JOIN debra_campaignpostdraft crd ON crd.posts_id = dp.id
-        LEFT JOIN ads_adcampaign aac ON aac.id = crd.campaign_id
         WHERE ${whereClause}
         ORDER BY dp.id DESC
         LIMIT ${filters?.postId ? '1' : '1000'}
@@ -1678,12 +1691,10 @@ export class DatabaseStorage implements IStorage {
             dp.content,
             dp.title,
             dp.url as post_url,
-            COALESCE(bjp.title, aac.name, 'Unknown Campaign') as campaign_name,
+            COALESCE(bjp.title, 'Unknown Campaign') as campaign_name,
             COALESCE(bjp.client_name, 'Unknown Client') as client_name
           FROM debra_posts dp
           LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.id
-          LEFT JOIN debra_campaignpostdraft crd ON crd.posts_id = dp.id
-          LEFT JOIN ads_adcampaign aac ON aac.id = crd.campaign_id
           WHERE dp.content IS NOT NULL 
           AND dp.content != ''
           ORDER BY dp.id DESC
