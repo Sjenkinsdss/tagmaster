@@ -1576,8 +1576,12 @@ export class DatabaseStorage implements IStorage {
         console.log('Applying server-side filters:', filters);
       }
       
-      // Build dynamic WHERE clause based on filters
-      let whereConditions = ['dp.content IS NOT NULL', "dp.content != ''"];
+      // Build dynamic WHERE clause based on filters (with 2-year date limit)
+      let whereConditions = [
+        'dp.content IS NOT NULL', 
+        "dp.content != ''",
+        "dp.create_date >= NOW() - INTERVAL '2 years'"
+      ];
       let queryParams: any[] = [];
       
       // Add campaign filtering - improved approach with better SQL escaping
@@ -1692,7 +1696,7 @@ export class DatabaseStorage implements IStorage {
       `));
       
       if (postsQuery.rows.length === 0 && !filters?.client && !filters?.search && !filters?.postId) {
-        // Default query without filtering
+        // Default query without filtering (with 2-year date limit)
         postsQuery = await db.execute(sql`
           SELECT 
             dp.id,
@@ -1705,6 +1709,7 @@ export class DatabaseStorage implements IStorage {
           LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.id
           WHERE dp.content IS NOT NULL 
           AND dp.content != ''
+          AND dp.create_date >= NOW() - INTERVAL '2 years'
           ORDER BY dp.id DESC
           LIMIT 1000
         `);
