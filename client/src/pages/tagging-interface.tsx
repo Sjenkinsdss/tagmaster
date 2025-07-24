@@ -130,7 +130,7 @@ export default function TaggingInterface() {
   // Fetch all campaigns from database
   const { data: allCampaigns } = useQuery({
     queryKey: ["/api/campaigns"],
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always fetch fresh data to get all available campaigns
   });
 
   // Generate campaign options from all available campaigns in database
@@ -143,7 +143,7 @@ export default function TaggingInterface() {
   // Fetch all clients from database
   const { data: allClients } = useQuery({
     queryKey: ["/api/clients"],
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Always fetch fresh data to get all available clients
   });
 
   // Generate client options from all available clients in database

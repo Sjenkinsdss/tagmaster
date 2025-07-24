@@ -106,7 +106,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         AND title != ''
         GROUP BY title
         ORDER BY post_count DESC
-        LIMIT 100
       `);
       
       if (campaignResult.rows.length === 0) {
@@ -117,6 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           note: "Campaign filter requires authentic data from debra_brandjobpost table"
         });
       } else {
+        console.log(`Found ${campaignResult.rows.length} total campaigns in production database`);
         res.json({ success: true, campaigns: campaignResult.rows });
       }
     } catch (error) {
@@ -1009,7 +1009,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         AND TRIM(client_name) != ''
         GROUP BY client_name
         ORDER BY post_count DESC
-        LIMIT 100
       `);
       
       if (clientResult.rows.length === 0) {
@@ -1020,6 +1019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           note: "Client filter requires authentic data from debra_brandjobpost table"
         });
       } else {
+        console.log(`Found ${clientResult.rows.length} total clients in production database`);
         res.json({ success: true, clients: clientResult.rows });
       }
     } catch (error) {
