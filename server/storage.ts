@@ -100,47 +100,20 @@ function getPlatformFromUrl(url: string): string {
   return 'TikTok'; // Default fallback
 }
 
-// Enhanced campaign classification function with more sensitive matching
-function getExpandedCampaignName(content: string): string {
-  const lowerContent = content.toLowerCase();
+// Helper function to get proper campaign name without synthetic generation
+function getProperCampaignName(post: any): string {
+  // Use authentic campaign title if available
+  if (post.authentic_campaign_title && post.authentic_campaign_title.trim() !== '') {
+    return post.authentic_campaign_title;
+  }
   
-  // Brand-specific campaigns
-  if (lowerContent.includes('sam') && lowerContent.includes('club') || lowerContent.includes('sams')) return "Sam's Club Campaign";
-  if (lowerContent.includes('walmart')) return 'Walmart Partnership';
-  if (lowerContent.includes('nike')) return 'Nike Campaign';
-  if (lowerContent.includes('adidas')) return 'Adidas Campaign';
-  if (lowerContent.includes('target')) return 'Target Campaign';
-  if (lowerContent.includes('amazon')) return 'Amazon Campaign';
-  if (lowerContent.includes('h&m') || lowerContent.includes('weekday')) return 'H&M Campaign';
+  // Use campaign_name from database if available
+  if (post.campaign_name && post.campaign_name.trim() !== '') {
+    return post.campaign_name;
+  }
   
-  // Seasonal campaigns
-  if (lowerContent.includes('easter') || lowerContent.includes('holiday')) return 'Holiday Campaign';
-  if (lowerContent.includes('summer') || lowerContent.includes('beach') || lowerContent.includes('vacation')) return 'Summer Campaign';
-  if (lowerContent.includes('winter') || lowerContent.includes('christmas')) return 'Winter Campaign';
-  if (lowerContent.includes('spring') || lowerContent.includes('flower')) return 'Spring Campaign';
-  if (lowerContent.includes('fall') || lowerContent.includes('autumn')) return 'Fall Campaign';
-  
-  // Category campaigns - more sensitive matching
-  if (lowerContent.includes('baby') || lowerContent.includes('toddler') || lowerContent.includes('mom') || lowerContent.includes('parent')) return 'Family & Parenting Campaign';
-  if (lowerContent.includes('outfit') || lowerContent.includes('fashion') || lowerContent.includes('style') || lowerContent.includes('dress') || lowerContent.includes('wear')) return 'Fashion Campaign';
-  if (lowerContent.includes('beauty') || lowerContent.includes('makeup') || lowerContent.includes('skincare') || lowerContent.includes('cosmetic')) return 'Beauty Campaign';
-  if (lowerContent.includes('food') || lowerContent.includes('recipe') || lowerContent.includes('cooking') || lowerContent.includes('eat') || lowerContent.includes('meal')) return 'Food & Lifestyle Campaign';
-  if (lowerContent.includes('workout') || lowerContent.includes('fitness') || lowerContent.includes('gym') || lowerContent.includes('exercise')) return 'Fitness Campaign';
-  if (lowerContent.includes('travel') || lowerContent.includes('trip') || lowerContent.includes('explore') || lowerContent.includes('journey')) return 'Travel Campaign';
-  if (lowerContent.includes('home') || lowerContent.includes('decor') || lowerContent.includes('interior') || lowerContent.includes('house')) return 'Home & Decor Campaign';
-  if (lowerContent.includes('tech') || lowerContent.includes('phone') || lowerContent.includes('app') || lowerContent.includes('digital')) return 'Technology Campaign';
-  if (lowerContent.includes('car') || lowerContent.includes('auto') || lowerContent.includes('vehicle') || lowerContent.includes('drive')) return 'Automotive Campaign';
-  if (lowerContent.includes('music') || lowerContent.includes('concert') || lowerContent.includes('entertainment') || lowerContent.includes('show')) return 'Entertainment Campaign';
-  if (lowerContent.includes('education') || lowerContent.includes('learn') || lowerContent.includes('course') || lowerContent.includes('study')) return 'Education Campaign';
-  if (lowerContent.includes('finance') || lowerContent.includes('money') || lowerContent.includes('investment') || lowerContent.includes('budget')) return 'Finance Campaign';
-  if (lowerContent.includes('gaming') || lowerContent.includes('game') || lowerContent.includes('esports') || lowerContent.includes('player')) return 'Gaming Campaign';
-  if (lowerContent.includes('pet') || lowerContent.includes('dog') || lowerContent.includes('cat') || lowerContent.includes('animal')) return 'Pet Care Campaign';
-  if (lowerContent.includes('sustainable') || lowerContent.includes('eco') || lowerContent.includes('green') || lowerContent.includes('environment')) return 'Sustainability Campaign';
-  if (lowerContent.includes('coffee') || lowerContent.includes('drink') || lowerContent.includes('beverage')) return 'Beverage Campaign';
-  if (lowerContent.includes('book') || lowerContent.includes('read') || lowerContent.includes('literature')) return 'Publishing Campaign';
-  if (lowerContent.includes('health') || lowerContent.includes('wellness') || lowerContent.includes('medical')) return 'Healthcare Campaign';
-  
-  return 'Lifestyle Campaign';
+  // Show unknown campaign instead of generating fake names
+  return 'Unknown Campaign';
 }
 
 export class DatabaseStorage implements IStorage {
@@ -180,7 +153,7 @@ export class DatabaseStorage implements IStorage {
           const comments = Math.floor(Math.random() * 200) + 50;
           const shares = Math.floor(Math.random() * 100) + 20;
           
-          const campaignName = post.authentic_campaign_title || post.campaign_name;
+          const campaignName = getProperCampaignName(post);
           const detectedClient = getClientFromContent(post.content);
           const clientName = post.client_name || detectedClient;
           
@@ -258,7 +231,7 @@ export class DatabaseStorage implements IStorage {
         const shares = Math.floor(Math.random() * 100) + 20;
         
         // Use authentic campaign title if available, otherwise filter out posts without campaigns
-        const campaignName = post.authentic_campaign_title || post.campaign_name;
+        const campaignName = getProperCampaignName(post);
         
         // Skip posts without campaign names (already filtered in query, but double-check)
         if (!campaignName) {
@@ -1670,8 +1643,8 @@ export class DatabaseStorage implements IStorage {
           dp.content,
           dp.title,
           dp.url as post_url,
-          '' as campaign_name,
-          '' as client_name
+          'Unknown Campaign' as campaign_name,
+          'Unknown Client' as client_name
         FROM debra_posts dp
         WHERE ${whereClause}
         ORDER BY dp.id DESC
@@ -1686,8 +1659,8 @@ export class DatabaseStorage implements IStorage {
             dp.content,
             dp.title,
             dp.url as post_url,
-            '' as campaign_name,
-            '' as client_name
+            'Unknown Campaign' as campaign_name,
+            'Unknown Client' as client_name
           FROM debra_posts dp
           WHERE dp.content IS NOT NULL 
           AND dp.content != ''
@@ -1709,7 +1682,7 @@ export class DatabaseStorage implements IStorage {
         title: post.title || `Post ${post.id}`,
         create_date: new Date(),
         post_url: post.post_url,
-        authentic_campaign_title: post.campaign_name || getExpandedCampaignName(post.content || post.title || ''),
+        authentic_campaign_title: getProperCampaignName(post),
         client_name: post.client_name || getClientFromContent(post.content || post.title || '')
       }));
       
