@@ -1595,8 +1595,29 @@ export class DatabaseStorage implements IStorage {
       let whereConditions = ['dp.content IS NOT NULL', "dp.content != ''"];
       let queryParams: any[] = [];
       
+      // Add campaign filtering - search in content for campaign-related terms
+      if (filters?.campaign && filters.campaign !== 'Unknown Campaign') {
+        console.log(`Server-side filtering for campaign: ${filters.campaign}`);
+        const campaignLower = filters.campaign.toLowerCase();
+        // Search for campaign-related terms in post content
+        if (campaignLower.includes('weekday')) {
+          whereConditions.push("(LOWER(dp.content) LIKE '%weekday%' OR LOWER(dp.content) LIKE '%h&m%')");
+        } else if (campaignLower.includes('sam')) {
+          whereConditions.push("(LOWER(dp.content) LIKE '%sam%' OR LOWER(dp.content) LIKE '%member%')");
+        } else if (campaignLower.includes('walmart')) {
+          whereConditions.push("LOWER(dp.content) LIKE '%walmart%'");
+        } else {
+          // Generic campaign search in content
+          const campaignWords = campaignLower.split(' ').filter(word => word.length > 2);
+          if (campaignWords.length > 0) {
+            const campaignSearches = campaignWords.map(word => `LOWER(dp.content) LIKE '%${word}%'`);
+            whereConditions.push(`(${campaignSearches.join(' OR ')})`);
+          }
+        }
+      }
+      
       // Add client-based content filtering
-      if (filters?.client) {
+      if (filters?.client && filters.client !== 'Unknown Client') {
         console.log(`Server-side filtering for client: ${filters.client}`);
         const clientLower = filters.client.toLowerCase();
         if (clientLower === 'h&m') {
@@ -1622,9 +1643,15 @@ export class DatabaseStorage implements IStorage {
         whereConditions.push(`(LOWER(dp.content) LIKE '%${searchTerm}%' OR LOWER(dp.title) LIKE '%${searchTerm}%')`);
       }
       
-      // Add post ID filtering - use exact match
+      // Add post ID filtering - extract numeric part from "Post 1234567" format
       if (filters?.postId) {
-        whereConditions.push(`dp.id = ${parseInt(filters.postId)}`);
+        const numericPostId = filters.postId.toString().replace(/^Post\s+/, '').trim();
+        const parsedPostId = parseInt(numericPostId);
+        if (!isNaN(parsedPostId)) {
+          whereConditions.push(`dp.id = ${parsedPostId}`);
+        } else {
+          console.log(`Invalid post ID format: ${filters.postId}, extracted: ${numericPostId}`);
+        }
       }
       
       const whereClause = whereConditions.join(' AND ');
