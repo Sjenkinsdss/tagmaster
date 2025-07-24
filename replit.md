@@ -836,12 +836,11 @@ The application is designed to be deployed on platforms that support Node.js app
 
 ### January 24, 2025 - Two-Year Production Database Filtering Implementation Complete ✅
 - **Post Query Date Filter**: Added `dp.create_date >= NOW() - INTERVAL '2 years'` to all debra_posts database queries
-- **Campaign API Date Filter**: Updated `/api/campaigns` endpoint to limit debra_brandjobpost records to last 2 years
-- **Client API Date Filter**: Updated `/api/clients` endpoint to limit debra_brandjobpost records to last 2 years
-- **Comprehensive Data Limitation**: All production database queries now consistently filter data to 2-year timeframe
-- **Query Performance**: 2-year filter applied to base WHERE conditions for optimal database performance
-- **Data Consistency**: Posts (176), campaigns (3,371), and clients (667) all use same 2-year date limitation
-- **Production Data Focus**: System now exclusively works with recent, relevant content from last 2 years
+- **Campaign/Client Filter Fix**: Removed date filter from campaign and client endpoints due to debra_brandjobpost table lacking create_date column
+- **Selective Date Filtering**: Posts limited to 2-year timeframe (176 posts), while campaigns (3,371) and clients (667) show all available options
+- **Database Column Compatibility**: Fixed PostgreSQL errors by ensuring date filters only applied to tables with appropriate date columns
+- **Query Performance**: 2-year filter applied to base WHERE conditions for optimal database performance on posts only
+- **Production Data Focus**: System now works with recent post content while maintaining complete metadata access
 - **Filter Integration**: Date limitation works seamlessly with existing campaign, client, search, and post ID filters
 
 ### January 24, 2025 - Data Integrity Policy Implementation for Connected Ads Complete ✅

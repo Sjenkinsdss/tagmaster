@@ -97,7 +97,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get campaign data from debra_brandjobpost title column
   app.get("/api/campaigns", async (req, res) => {
     try {
-      // Check if debra_brandjobpost table exists and has data (last 2 years)
+      // Check if debra_brandjobpost table exists and has data
       const campaignResult = await db.execute(sql`
         SELECT 
           title as campaign_name,
@@ -105,7 +105,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         FROM debra_brandjobpost 
         WHERE title IS NOT NULL 
         AND title != ''
-        AND create_date >= NOW() - INTERVAL '2 years'
         GROUP BY title
         ORDER BY post_count DESC
       `);
@@ -1000,7 +999,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all client data from debra_brandjobpost client_name column
   app.get("/api/clients", async (req, res) => {
     try {
-      // Check if debra_brandjobpost table exists and has client data (last 2 years)
+      // Check if debra_brandjobpost table exists and has client data
       const clientResult = await db.execute(sql`
         SELECT 
           client_name,
@@ -1009,7 +1008,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         WHERE client_name IS NOT NULL 
         AND client_name != ''
         AND TRIM(client_name) != ''
-        AND create_date >= NOW() - INTERVAL '2 years'
         GROUP BY client_name
         ORDER BY post_count DESC
       `);
