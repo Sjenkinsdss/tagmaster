@@ -1659,9 +1659,12 @@ export class DatabaseStorage implements IStorage {
           dp.content,
           dp.title,
           dp.url as post_url,
-          'Unknown Campaign' as campaign_name,
-          'Unknown Client' as client_name
+          COALESCE(bjp.title, aac.name, 'Unknown Campaign') as campaign_name,
+          COALESCE(bjp.client_name, 'Unknown Client') as client_name
         FROM debra_posts dp
+        LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.id
+        LEFT JOIN debra_campaignpostdraft crd ON crd.posts_id = dp.id
+        LEFT JOIN ads_adcampaign aac ON aac.id = crd.campaign_id
         WHERE ${whereClause}
         ORDER BY dp.id DESC
         LIMIT ${filters?.postId ? '1' : '1000'}
@@ -1675,9 +1678,12 @@ export class DatabaseStorage implements IStorage {
             dp.content,
             dp.title,
             dp.url as post_url,
-            'Unknown Campaign' as campaign_name,
-            'Unknown Client' as client_name
+            COALESCE(bjp.title, aac.name, 'Unknown Campaign') as campaign_name,
+            COALESCE(bjp.client_name, 'Unknown Client') as client_name
           FROM debra_posts dp
+          LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.id
+          LEFT JOIN debra_campaignpostdraft crd ON crd.posts_id = dp.id
+          LEFT JOIN ads_adcampaign aac ON aac.id = crd.campaign_id
           WHERE dp.content IS NOT NULL 
           AND dp.content != ''
           ORDER BY dp.id DESC
