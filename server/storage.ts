@@ -1458,19 +1458,77 @@ export class DatabaseStorage implements IStorage {
       
       // Enhanced query with dynamic filtering
       console.log('Enhanced production database query with server-side filtering...');
-      const postsQuery = await db.execute(sql.raw(`
-        SELECT 
-          dp.id,
-          dp.content,
-          dp.title,
-          dp.url as post_url,
-          '' as campaign_name,
-          '' as client_name
-        FROM debra_posts dp
-        WHERE ${whereClause}
-        ORDER BY dp.id DESC
-        LIMIT 1000
-      `));
+      console.log('WHERE clause:', whereClause);
+      
+      let postsQuery;
+      if (filters?.client || filters?.search || filters?.postId) {
+        // Use specific filtering for performance
+        if (filters?.client?.toLowerCase() === 'h&m') {
+          postsQuery = await db.execute(sql`
+            SELECT 
+              dp.id,
+              dp.content,
+              dp.title,
+              dp.url as post_url,
+              '' as campaign_name,
+              '' as client_name
+            FROM debra_posts dp
+            WHERE dp.content IS NOT NULL 
+            AND dp.content != ''
+            AND (LOWER(dp.content) LIKE '%h&m%' OR LOWER(dp.content) LIKE '%weekday%')
+            ORDER BY dp.id DESC
+            LIMIT 100
+          `);
+        } else if (filters?.client?.toLowerCase() === "sam's club") {
+          postsQuery = await db.execute(sql`
+            SELECT 
+              dp.id,
+              dp.content,
+              dp.title,
+              dp.url as post_url,
+              '' as campaign_name,
+              '' as client_name
+            FROM debra_posts dp
+            WHERE dp.content IS NOT NULL 
+            AND dp.content != ''
+            AND (LOWER(dp.content) LIKE '%sam%' OR LOWER(dp.content) LIKE '%member%')
+            ORDER BY dp.id DESC
+            LIMIT 100
+          `);
+        } else {
+          // Default query without client filtering
+          postsQuery = await db.execute(sql`
+            SELECT 
+              dp.id,
+              dp.content,
+              dp.title,
+              dp.url as post_url,
+              '' as campaign_name,
+              '' as client_name
+            FROM debra_posts dp
+            WHERE dp.content IS NOT NULL 
+            AND dp.content != ''
+            ORDER BY dp.id DESC
+            LIMIT 1000
+          `);
+        }
+      } else {
+        // Default query without filtering
+        postsQuery = await db.execute(sql`
+          SELECT 
+            dp.id,
+            dp.content,
+            dp.title,
+            dp.url as post_url,
+            '' as campaign_name,
+            '' as client_name
+          FROM debra_posts dp
+          WHERE dp.content IS NOT NULL 
+          AND dp.content != ''
+          ORDER BY dp.id DESC
+          LIMIT 1000
+        `);
+      }
 
       console.log(`Production database returned ${postsQuery.rows.length} posts total - SUCCESS!`);
       
