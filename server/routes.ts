@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 async function getPersonalizedCategories(tagType: string) {
   try {
     // Query only categories that have tags with the specific pillar in the database
+    const searchTerm = `%${tagType.toLowerCase()}%`;
     const categoriesResult = await db.execute(sql`
       SELECT 
         ditt.id,
@@ -19,7 +20,7 @@ async function getPersonalizedCategories(tagType: string) {
       INNER JOIN debra_influencertag dit ON ditt.id = dit.tag_type_id
       WHERE ditt.name IS NOT NULL 
       AND ditt.name != ''
-      AND LOWER(COALESCE(ditt.name, '')) LIKE '%${tagType.toLowerCase()}%'
+      AND LOWER(COALESCE(ditt.name, '')) LIKE ${searchTerm}
       GROUP BY ditt.id, ditt.name
       HAVING COUNT(dit.id) > 0
       ORDER BY ditt.name
