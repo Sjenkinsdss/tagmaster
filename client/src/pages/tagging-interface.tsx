@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -311,6 +311,22 @@ export default function TaggingInterface() {
       bulkDeleteMutation.mutate(Array.from(selectedTags));
     }
   };
+
+  // Auto-select first post when filtering results in few posts or specific post ID
+  useEffect(() => {
+    if (posts.length === 1 && !bulkPostMode) {
+      // Auto-select the only post
+      setSelectedPost(posts[0]);
+    } else if (posts.length <= 3 && postIdFilter && !bulkPostMode) {
+      // Auto-select first post when filtering by post ID
+      const targetPost = posts.find(p => p.id.toString() === postIdFilter);
+      if (targetPost) {
+        setSelectedPost(targetPost);
+      } else if (posts.length > 0) {
+        setSelectedPost(posts[0]);
+      }
+    }
+  }, [posts, postIdFilter, bulkPostMode]);
 
   // Bulk tag application mutation
   const bulkTagApplicationMutation = useMutation({
