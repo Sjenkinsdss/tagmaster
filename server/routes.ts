@@ -96,7 +96,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get campaign data from debra_brandjobpost title column
   app.get("/api/campaigns", async (req, res) => {
     try {
-      // Get campaign names from debra_brandjobpost title column
+      // Check if debra_brandjobpost table exists and has data
       const campaignResult = await db.execute(sql`
         SELECT 
           title as campaign_name,
@@ -106,15 +106,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         AND title != ''
         GROUP BY title
         ORDER BY post_count DESC
+        LIMIT 100
       `);
       
-      // Use only database campaigns, no hardcoded duplicates
-      const campaigns = campaignResult.rows;
-      
-      res.json({ success: true, campaigns });
+      if (campaignResult.rows.length === 0) {
+        res.json({ 
+          success: true, 
+          campaigns: [],
+          message: "No campaign data available in production database",
+          note: "Campaign filter requires authentic data from debra_brandjobpost table"
+        });
+      } else {
+        res.json({ success: true, campaigns: campaignResult.rows });
+      }
     } catch (error) {
       console.error("Campaign query error:", error);
-      res.status(500).json({ success: false, error: String(error) });
+      res.status(200).json({ 
+        success: true, 
+        campaigns: [],
+        error: "Campaign data source unavailable",
+        message: "Cannot access debra_brandjobpost table for authentic campaign data",
+        details: String(error)
+      });
     }
   });
 
@@ -985,7 +998,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get all client data from debra_brandjobpost client_name column
   app.get("/api/clients", async (req, res) => {
     try {
-      // Get client names from debra_brandjobpost client_name column
+      // Check if debra_brandjobpost table exists and has client data
       const clientResult = await db.execute(sql`
         SELECT 
           client_name,
@@ -996,12 +1009,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
         AND TRIM(client_name) != ''
         GROUP BY client_name
         ORDER BY post_count DESC
+        LIMIT 100
       `);
       
-      res.json({ success: true, clients: clientResult.rows });
+      if (clientResult.rows.length === 0) {
+        res.json({ 
+          success: true, 
+          clients: [],
+          message: "No client data available in production database",
+          note: "Client filter requires authentic data from debra_brandjobpost table"
+        });
+      } else {
+        res.json({ success: true, clients: clientResult.rows });
+      }
     } catch (error) {
       console.error("Client query error:", error);
-      res.status(500).json({ success: false, error: String(error) });
+      res.status(200).json({ 
+        success: true, 
+        clients: [],
+        error: "Client data source unavailable",
+        message: "Cannot access debra_brandjobpost table for authentic client data",
+        details: String(error)
+      });
     }
   });
 

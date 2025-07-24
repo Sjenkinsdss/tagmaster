@@ -10,6 +10,15 @@ This is a full-stack TypeScript application built for tagging social media conte
 
 Preferred communication style: Simple, everyday language.
 
+## Data Integrity Policy
+
+### Guidelines
+1. Always Use Authentic Data: Request API keys or credentials from the user for testing with real data sources.
+2. Implement Clear Error States: Display explicit error messages when data cannot be retrieved from authentic sources.
+3. Address Root Causes: When facing API or connectivity issues, focus on fixing the underlying problem by requesting proper credentials from the user.
+4. Create Informative Error Handling: Implement detailed, actionable error messages that guide users toward resolution.
+5. Design for Data Integrity: Clearly label empty states and ensure all visual elements only display information from authentic sources.
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -758,6 +767,16 @@ The application is designed to be deployed on platforms that support Node.js app
 - **No More Fake Names**: System no longer generates synthetic campaign names like "Beauty Campaign", "Fashion Campaign", etc.
 - **User Issue Resolution**: Successfully resolved user complaint about incorrect campaign names being displayed
 - **Production Data Focus**: System now prioritizes authentic campaign data from production database over synthetic generation
+
+### January 24, 2025 - Filter System Data Integrity Implementation Complete ✅
+- **Post ID Filter Fixed**: Resolved parsing issue to properly extract numeric IDs from "Post 1355430265" format
+- **Campaign Filter Backend Logic**: Added server-side campaign filtering logic to search post content for campaign-related terms
+- **Client Filter Enhancement**: Enhanced existing client filtering with improved keyword matching for brands like H&M, Sam's Club
+- **API Endpoint Error Handling**: Implemented proper error handling for `/api/campaigns` and `/api/clients` endpoints following Data Integrity Policy
+- **Authentic Data Only**: Endpoints now return authentic data from debra_brandjobpost table or clear error messages when data unavailable
+- **Clear Error States**: Added descriptive messages explaining when filter options aren't available due to database limitations
+- **No Synthetic Fallbacks**: Completely eliminated use of synthetic/mock data in filter options, maintaining data authenticity
+- **Production Database Focus**: All filter data sourced from authentic production database tables or clearly labeled as unavailable
 
 ## MVP Status: ✅ PRODUCTION COMPLETE + Connected Ads Database Integration Complete
 The tagging interface MVP has been successfully delivered with comprehensive AI-powered tag recommendation engine, fully synchronized tag management system, complete three-tier tag hierarchy implementation, enhanced UI structure with type-based organization, interactive embedded media players, intelligent personalized category recommendation system, complete interactive content guide system with platform-specific user guidance, comprehensive platform analytics dashboard with multi-tab interface, authentic connected ads database relationships, and fully validated production database integration. 
