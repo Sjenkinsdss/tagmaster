@@ -1204,7 +1204,7 @@ export default function TaggingInterface() {
                       campaign: "🎯",
                       client: "🏢",
                       post: "📝",
-                      ai: "🤖",
+                      "ai-based": "🖥️",
                       influencer: "👤",
                       product: "🛍️",
                       general: "🏷️"
@@ -1228,7 +1228,33 @@ export default function TaggingInterface() {
                     return acc;
                   }, {});
 
-                  const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'];
+                  // Add AI-based tags to the ai-based type section if they exist
+                  if (aiTags.length > 0) {
+                    if (!tagsByType['ai-based']) {
+                      tagsByType['ai-based'] = {};
+                    }
+                    
+                    aiTags.forEach((aiCategory: any) => {
+                      const categoryName = aiCategory.category;
+                      if (!tagsByType['ai-based'][categoryName]) {
+                        tagsByType['ai-based'][categoryName] = [];
+                      }
+                      
+                      // Convert AI tags to tag objects for consistent display
+                      aiCategory.tags.forEach((tagName: string) => {
+                        tagsByType['ai-based'][categoryName].push({
+                          id: `ai-${categoryName}-${tagName}`,
+                          name: tagName,
+                          type: 'ai-based',
+                          category: categoryName,
+                          isAiGenerated: true,
+                          manuallyModified: aiCategory.manuallyModified || false
+                        });
+                      });
+                    });
+                  }
+
+                  const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'];
                   const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
                     const aIndex = typeOrder.indexOf(a);
                     const bIndex = typeOrder.indexOf(b);
@@ -1238,13 +1264,16 @@ export default function TaggingInterface() {
                     return aIndex - bIndex;
                   });
 
-                  // Display Connected Tags with proper Type → Category → Individual Tags hierarchy
-                  const connectedTagsSection = postTags.length > 0 && (
+                  // Calculate total tags including AI tags
+                  const totalConnectedTags = postTags.length + aiTags.reduce((total: number, category: any) => total + category.tags.length, 0);
+
+                  // Display Connected Tags with proper Type → Category → Individual Tags hierarchy  
+                  const connectedTagsSection = (postTags.length > 0 || aiTags.length > 0) && (
                     <div className="space-y-4 mb-6">
                       <div className="flex items-center space-x-2 mb-4">
                         <div className="text-xl">🔗</div>
                         <h3 className="font-semibold text-green-700">
-                          Connected Tags ({postTags.length})
+                          Connected Tags ({totalConnectedTags})
                         </h3>
                       </div>
                       
@@ -1312,7 +1341,6 @@ export default function TaggingInterface() {
                                   queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
                                 }}
                                 showOnlyAddSection={true}
-                                aiTags={aiTags}
                               />
                             </div>
                           </Card>
@@ -1321,15 +1349,13 @@ export default function TaggingInterface() {
                     </div>
                   );
 
-
-
                   return connectedTagsSection;
                 })()}
 
                 {/* Show info if no connected tags are loaded yet, but show empty green sections for each tag type */}
                 {postTags.length === 0 && selectedPost && (
                   <div className="space-y-4">
-                    {['ad', 'campaign', 'client', 'post', 'influencer', 'product', 'general'].map(type => (
+                    {['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'].map(type => (
                       <Card key={type} className="p-4 bg-green-50 border-green-200">
                         <div className="flex items-center space-x-2 mb-4">
                           <div className="text-xl">{(() => {
@@ -1338,7 +1364,7 @@ export default function TaggingInterface() {
                               campaign: "🎯", 
                               client: "🏢",
                               post: "📝",
-                              ai: "🤖",
+                              "ai-based": "🖥️",
                               influencer: "👤",
                               product: "🛍️",
                               general: "🏷️"
@@ -1363,7 +1389,7 @@ export default function TaggingInterface() {
                                 campaign: "🎯", 
                                 client: "🏢",
                                 post: "📝",
-                                ai: "🤖",
+                                "ai-based": "🖥️",
                                 influencer: "👤",
                                 product: "🛍️",
                                 general: "🏷️"
@@ -1434,16 +1460,15 @@ export default function TaggingInterface() {
                         campaign: "🎯", 
                         client: "🏢",
                         post: "📝",
-                        ai: "🤖",
-                        influencer: "👤",
                         "ai-based": "🖥️",
+                        influencer: "👤",
                         product: "🛍️",
                         general: "🏷️"
                       };
                       return emojiMap[type.toLowerCase()] || "🏷️";
                     };
 
-                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'ai-based', 'product', 'general'];
+                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'];
                     const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
                       const aIndex = typeOrder.indexOf(a);
                       const bIndex = typeOrder.indexOf(b);

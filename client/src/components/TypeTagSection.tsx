@@ -32,7 +32,6 @@ interface TypeTagSectionProps {
   selectedPost?: any;
   onTagAdded?: () => void;
   showOnlyAddSection?: boolean;
-  aiTags?: any[];
 }
 
 const getTypeEmoji = (type: string): string => {
@@ -41,16 +40,15 @@ const getTypeEmoji = (type: string): string => {
     campaign: "🎯",
     client: "🏢",
     post: "📝",
-    ai: "🤖",
-    influencer: "👤",
     "ai-based": "🖥️",
+    influencer: "👤",
     product: "🛍️",
     general: "🏷️"
   };
   return emojiMap[type.toLowerCase()] || "🏷️";
 };
 
-export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagAdded, showOnlyAddSection = false, aiTags = [] }: TypeTagSectionProps) {
+export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagAdded, showOnlyAddSection = false }: TypeTagSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedTagId, setSelectedTagId] = useState<string>("");
