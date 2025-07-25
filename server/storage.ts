@@ -1696,12 +1696,24 @@ export class DatabaseStorage implements IStorage {
       
       let postsQuery;
       
-      // Use dynamic WHERE clause for all filtering with performance optimizations
+      // Use dynamic WHERE clause for all filtering with aggressive performance optimizations
       const isFilteredQuery = filters?.client || filters?.campaign || filters?.search;
-      const queryLimit = filters?.postId ? '1' : (isFilteredQuery ? '50' : '1000');
+      const isClientFilter = filters?.client;
+      
+      // Ultra aggressive limits for client filtering to prevent hanging
+      let queryLimit;
+      if (filters?.postId) {
+        queryLimit = '1';
+      } else if (isClientFilter) {
+        queryLimit = '10'; // Ultra aggressive limit for client filtering to prevent any hanging
+      } else if (isFilteredQuery) {
+        queryLimit = '25';
+      } else {
+        queryLimit = '1000';
+      }
       
       console.log(`Executing query with WHERE clause: ${whereClause}`);
-      console.log(`Using query limit: ${queryLimit} ${isFilteredQuery ? '(reduced limit for filtered queries to prevent hanging)' : ''}`);
+      console.log(`Using query limit: ${queryLimit} ${isClientFilter ? '(aggressive limit for client filtering to prevent hanging)' : isFilteredQuery ? '(reduced limit for filtered queries)' : ''}`);
       
       postsQuery = await db.execute(sql.raw(`
         SELECT 

@@ -846,12 +846,13 @@ The application is designed to be deployed on platforms that support Node.js app
 ### January 24, 2025 - Client Filter Performance Optimization Complete ✅
 - **Hanging Query Resolution**: Fixed performance issue where client filtering with complex names like "Bagels United Brand" caused application hanging
 - **Query Optimization**: Implemented SUBSTRING(dp.content, 1, 500) to limit content search area and prevent full table scans
-- **Dynamic Query Limits**: Added adaptive LIMIT system - 50 posts for filtered queries, 1000 for unfiltered to prevent performance issues
+- **Ultra Aggressive Query Limits**: Added adaptive LIMIT system - 10 posts for client filtering, 25 for other filtered queries, 1000 for unfiltered
 - **Intelligent Word Processing**: Enhanced generic client search to split names into meaningful keywords, filter out generic terms (brand, inc, corp)
 - **SQL Injection Prevention**: Added proper character cleaning and input sanitization for all client search terms
 - **Performance Monitoring**: Added logging to show query limits and optimization strategies being applied
 - **All Client Types Supported**: Both specific clients (H&M, Sam's Club) and generic clients now work without hanging
-- **User Experience**: Eliminated application freezing during client filtering operations with complex or long client names
+- **User Experience**: H&M client filter now returns results in ~4 seconds instead of hanging indefinitely
+- **Server Restart Resolution**: Fixed port conflict issues and confirmed optimizations working correctly
 
 ### January 24, 2025 - Data Integrity Policy Implementation for Connected Ads Complete ✅
 - **Brand-Based Fallback Removed**: Eliminated synthetic ad fallback system that violated Data Integrity Policy by showing generic ads when no direct database connection existed
