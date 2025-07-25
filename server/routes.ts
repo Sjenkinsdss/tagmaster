@@ -11,7 +11,7 @@ async function getPersonalizedCategories(tagType: string) {
   try {
     // Query only categories that have tags with the specific pillar in the database
     const searchTerm = `%${tagType.toLowerCase()}%`;
-    const categoriesResult = await db.execute(sql`
+    const categoriesResult = await db!.execute(sql`
       SELECT 
         ditt.id,
         ditt.name as category_name,
@@ -40,7 +40,7 @@ async function getPersonalizedCategories(tagType: string) {
   } catch (error) {
     console.error("Error in getPersonalizedCategories:", error);
     // Fallback to basic query
-    const fallbackResult = await db.execute(sql`
+    const fallbackResult = await db!.execute(sql`
       SELECT 
         ditt.id,
         ditt.name as category_name,
@@ -66,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test route for direct database connection
   app.get("/api/test-db", async (req, res) => {
     try {
-      const tablesResult = await db.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
+      const tablesResult = await db!.execute(sql`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`);
       const tables = tablesResult.rows;
       
       res.json({ success: true, tables });
@@ -298,13 +298,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const code = await storage.generateTagCode(
         tagData.pillar, 
         tagData.name, 
-        tagData.type, 
-        tagData.category
+        tagData.type || undefined, 
+        tagData.category || undefined
       );
       
       // Use createNewTag to save to Replit database
       const tag = await storage.createNewTag({
-        ...tagData,
+        name: tagData.name,
+        pillar: tagData.pillar,
+        category: tagData.category || undefined,
+        type: tagData.type || undefined,
         code,
         isAiGenerated: tagData.isAiGenerated || false
       });

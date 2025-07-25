@@ -238,7 +238,7 @@ export default function TaggingInterface() {
   // Generate campaign options from all available campaigns in database
   const campaignOptions = [
     "All Posts",
-    ...(allCampaigns?.campaigns && Array.isArray(allCampaigns.campaigns) ? 
+    ...(allCampaigns && typeof allCampaigns === 'object' && 'campaigns' in allCampaigns && Array.isArray(allCampaigns.campaigns) ? 
       allCampaigns.campaigns.map((c: any) => c.campaign_name).filter(Boolean).sort() : [])
   ];
 
@@ -251,7 +251,7 @@ export default function TaggingInterface() {
   // Generate client options from all available clients in database
   const clientOptions = [
     "All Clients",
-    ...(allClients?.clients && Array.isArray(allClients.clients) ? 
+    ...(allClients && typeof allClients === 'object' && 'clients' in allClients && Array.isArray(allClients.clients) ? 
       allClients.clients.map((c: any) => c.client_name).filter(Boolean).sort() : [])
   ];
 

@@ -669,11 +669,11 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
               <Label>Selected Tags ({selectedTags.size})</Label>
               <div className="mt-1 p-2 border rounded bg-gray-50 text-sm space-y-1">
                 {selectedTagsList.map(tag => (
-                  <div key={tag.id} className="flex items-center justify-between py-1 border-b border-gray-200 last:border-b-0">
+                  <div key={`selected-tag-${tag.id}`} className="flex items-center justify-between py-1 border-b border-gray-200 last:border-b-0">
                     <div className="flex-1">
                       <div className="font-medium">{tag.name}</div>
                       <div className="text-xs text-gray-500">
-                        Type: {tag.type || tag.pillar} • Category: {tag.category || "None"} • Code: {tag.code}
+                        Type: {(tag as any).type || tag.pillar} • Category: {(tag as any).category || "None"} • Code: {tag.code}
                       </div>
                     </div>
                   </div>
@@ -801,7 +801,7 @@ export default function TagManagement({ tags, onClose }: TagManagementProps) {
               <Label>New Tag Names</Label>
               <div className="space-y-2 mt-1">
                 {splitData.newTagNames.map((name, index) => (
-                  <div key={index} className="flex space-x-2">
+                  <div key={`split-tag-input-${index}`} className="flex space-x-2">
                     <Input
                       value={name}
                       onChange={(e) => updateSplitTagName(index, e.target.value)}

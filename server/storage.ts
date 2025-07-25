@@ -191,6 +191,7 @@ export class DatabaseStorage implements IStorage {
             url: post.post_url || '',
             thumbnailUrl: post.post_url ? '' : 'https://picsum.photos/400/400?random=' + post.id,
             campaignName: campaignName,
+            clientName: clientName,
             createdAt: new Date(post.create_date || Date.now()),
             likes,
             comments,
@@ -276,6 +277,7 @@ export class DatabaseStorage implements IStorage {
           url: post.post_url || '',
           thumbnailUrl: post.post_url ? '' : `https://picsum.photos/400/400?random=${post.id}`, // Use empty thumbnail when we have embed URL
           campaignName: campaignName, // Use the filtered campaign name or authentic campaign title
+          clientName: clientName,
           createdAt: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000),
           likes,
           comments,
@@ -323,7 +325,7 @@ export class DatabaseStorage implements IStorage {
       const postIdList = postIds.join(',');
       
       // Query production database using the same working pattern as getPostTags
-      const tagRelationshipsQuery = await db.execute(sql.raw(`
+      const tagRelationshipsQuery = await db!.execute(sql.raw(`
         SELECT 
           dpit.posts_id as post_id,
           dit.id as tag_id,
@@ -625,7 +627,7 @@ export class DatabaseStorage implements IStorage {
       console.log("Getting tags from debra_influencertag and client tag sources");
       
       // Query influencer tags
-      const influencerTagsResult = await db.execute(sql`
+      const influencerTagsResult = await db!.execute(sql`
         SELECT 
           dit.id,
           dit.name,
@@ -645,7 +647,7 @@ export class DatabaseStorage implements IStorage {
       // Get client tags from debra_brandjobpost using client_id
       try {
         console.log("Attempting to query client tags from debra_brandjobpost");
-        const clientTagsResult = await db.execute(sql`
+        const clientTagsResult = await db!.execute(sql`
           SELECT DISTINCT
             client_id as id,
             COALESCE(client_name, 'Client ' || client_id) as name,
@@ -680,7 +682,7 @@ export class DatabaseStorage implements IStorage {
         // Try alternative client tag approach using brand_client_id
         try {
           console.log("Attempting to query client tags using brand_client_id");
-          const brandClientTagsResult = await db.execute(sql`
+          const brandClientTagsResult = await db!.execute(sql`
             SELECT DISTINCT
               brand_client_id as id,
               COALESCE(client_name, 'Brand Client ' || brand_client_id) as name,
@@ -1144,7 +1146,7 @@ export class DatabaseStorage implements IStorage {
   async getPaidAds(): Promise<PaidAd[]> {
     try {
       // Get actual ad names from ads_ad table (for ad names)
-      const adsResult = await db.execute(sql`
+      const adsResult = await db!.execute(sql`
         SELECT 
           id,
           name,
