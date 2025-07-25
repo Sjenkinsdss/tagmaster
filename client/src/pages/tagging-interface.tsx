@@ -1204,7 +1204,7 @@ export default function TaggingInterface() {
                       campaign: "🎯",
                       client: "🏢",
                       post: "📝",
-                      ai: "🤖",
+                      "ai-based": "🖥️",
                       influencer: "👤",
                       product: "🛍️",
                       general: "🏷️"
@@ -1228,6 +1228,32 @@ export default function TaggingInterface() {
                     return acc;
                   }, {});
 
+                  // Add AI-based tags to the ai-based type section if they exist
+                  if (aiTags.length > 0) {
+                    if (!tagsByType['ai-based']) {
+                      tagsByType['ai-based'] = {};
+                    }
+                    
+                    aiTags.forEach((aiCategory: any) => {
+                      const categoryName = aiCategory.category;
+                      if (!tagsByType['ai-based'][categoryName]) {
+                        tagsByType['ai-based'][categoryName] = [];
+                      }
+                      
+                      // Convert AI tags to tag objects for consistent display
+                      aiCategory.tags.forEach((tagName: string) => {
+                        tagsByType['ai-based'][categoryName].push({
+                          id: `ai-${categoryName}-${tagName}`,
+                          name: tagName,
+                          type: 'ai-based',
+                          category: categoryName,
+                          isAiGenerated: true,
+                          manuallyModified: aiCategory.manuallyModified || false
+                        });
+                      });
+                    });
+                  }
+
                   const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'];
                   const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
                     const aIndex = typeOrder.indexOf(a);
@@ -1238,13 +1264,16 @@ export default function TaggingInterface() {
                     return aIndex - bIndex;
                   });
 
-                  // Display Connected Tags with proper Type → Category → Individual Tags hierarchy
-                  const connectedTagsSection = postTags.length > 0 && (
+                  // Calculate total tags including AI tags
+                  const totalConnectedTags = postTags.length + aiTags.reduce((total: number, category: any) => total + category.tags.length, 0);
+
+                  // Display Connected Tags with proper Type → Category → Individual Tags hierarchy  
+                  const connectedTagsSection = (postTags.length > 0 || aiTags.length > 0) && (
                     <div className="space-y-4 mb-6">
                       <div className="flex items-center space-x-2 mb-4">
                         <div className="text-xl">🔗</div>
                         <h3 className="font-semibold text-green-700">
-                          Connected Tags ({postTags.length})
+                          Connected Tags ({totalConnectedTags})
                         </h3>
                       </div>
                       
