@@ -1285,12 +1285,12 @@ export default function TaggingInterface() {
                                     key={`${category.category}-${tag}-${tagIndex}`}
                                     tag={tag}
                                     category={category.category}
-                                    postId={selectedPostId!}
+                                    postId={selectedPost.id}
                                     onTagModified={(originalTag, modifiedTag) => {
                                       // Handle tag modification
                                       console.log(`Tag modified: ${originalTag} -> ${modifiedTag}`);
                                       // Refresh AI tags data
-                                      queryClient.invalidateQueries({ queryKey: [`/api/posts/${selectedPostId}/ai-tags`] });
+                                      queryClient.invalidateQueries({ queryKey: [`/api/posts/${selectedPost.id}/ai-tags`] });
                                     }}
                                   />
                                 ))}
