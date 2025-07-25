@@ -1248,8 +1248,8 @@ export default function TaggingInterface() {
                     />
                   ));
 
-                  // Add AI-Based Tags section as 7th tag type
-                  const aiTagsSection = selectedPost && (
+                  // Add AI-Based Tags section as 7th tag type (only if there are AI tags)
+                  const aiTagsSection = selectedPost && aiTags.length > 0 && (
                     <Card key="ai-based-tags" className="p-4 bg-gray-50 border-l-4 border-blue-500">
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-2">
@@ -1265,44 +1265,38 @@ export default function TaggingInterface() {
                         )}
                       </div>
                       
-                      {aiTags.length > 0 ? (
-                        <div className="space-y-3 ml-6">
-                          {aiTags.map((category: any, index: number) => (
-                            <div key={`${category.category}-${index}`}>
-                              <div className="flex items-center justify-between mb-2">
-                                <h4 className="font-medium text-sm text-carbon-gray-80">
-                                  {category.category} ({category.tags.length})
-                                </h4>
-                                {category.manuallyModified && (
-                                  <Badge variant="outline" className="text-xs text-orange-600 bg-orange-50">
-                                    Manually Modified
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="flex flex-wrap gap-2 ml-4">
-                                {category.tags.map((tag: string, tagIndex: number) => (
-                                  <EditableTagBadge
-                                    key={`${category.category}-${tag}-${tagIndex}`}
-                                    tag={tag}
-                                    category={category.category}
-                                    postId={selectedPost.id}
-                                    onTagModified={(originalTag, modifiedTag) => {
-                                      // Handle tag modification
-                                      console.log(`Tag modified: ${originalTag} -> ${modifiedTag}`);
-                                      // Refresh AI tags data
-                                      queryClient.invalidateQueries({ queryKey: [`/api/posts/${selectedPost.id}/ai-tags`] });
-                                    }}
-                                  />
-                                ))}
-                              </div>
+                      <div className="space-y-3 ml-6">
+                        {aiTags.map((category: any, index: number) => (
+                          <div key={`${category.category}-${index}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-sm text-carbon-gray-80">
+                                {category.category} ({category.tags.length})
+                              </h4>
+                              {category.manuallyModified && (
+                                <Badge variant="outline" className="text-xs text-orange-600 bg-orange-50">
+                                  Manually Modified
+                                </Badge>
+                              )}
                             </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-center text-carbon-gray-60 py-4">
-                          <p className="text-sm">No AI-based tags available for this post</p>
-                        </div>
-                      )}
+                            <div className="flex flex-wrap gap-2 ml-4">
+                              {category.tags.map((tag: string, tagIndex: number) => (
+                                <EditableTagBadge
+                                  key={`${category.category}-${tag}-${tagIndex}`}
+                                  tag={tag}
+                                  category={category.category}
+                                  postId={selectedPost.id}
+                                  onTagModified={(originalTag, modifiedTag) => {
+                                    // Handle tag modification
+                                    console.log(`Tag modified: ${originalTag} -> ${modifiedTag}`);
+                                    // Refresh AI tags data
+                                    queryClient.invalidateQueries({ queryKey: [`/api/posts/${selectedPost.id}/ai-tags`] });
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </Card>
                   );
 
