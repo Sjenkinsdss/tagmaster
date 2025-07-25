@@ -941,7 +941,7 @@ export class DatabaseStorage implements IStorage {
               WHERE aa.auto_connected_post_id = ${postId}
             `
           },
-          // 4. Campaign Type - Through ad campaigns
+          // 4. Campaign Type - Through ad campaigns using ads_adcampaign.id
           {
             name: 'Campaign Type',
             query: sql`
@@ -954,13 +954,14 @@ export class DatabaseStorage implements IStorage {
                 dit.id as tag_id,
                 'campaign' as tag_source
               FROM ads_ad aa
-              JOIN ads_adcampaign_influencer_tags aacit ON aa.adcampaign_id = aacit.adcampaign_id
+              JOIN ads_adcampaign ac ON aa.campaign_id = ac.id
+              JOIN ads_adcampaign_influencer_tags aacit ON ac.id = aacit.adcampaign_id
               JOIN debra_influencertag dit ON aacit.influencertag_id = dit.id
               LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
               WHERE aa.auto_connected_post_id = ${postId}
             `
           },
-          // 5. Ad Group Type - Through ad groups
+          // 5. Ad Group Type - Through ad groups using ads_adgroup.id
           {
             name: 'Ad Group Type',
             query: sql`
@@ -973,13 +974,14 @@ export class DatabaseStorage implements IStorage {
                 dit.id as tag_id,
                 'adgroup' as tag_source
               FROM ads_ad aa
-              JOIN ads_adgroup_influencer_tags aagit ON aa.adgroup_id = aagit.adgroup_id
+              JOIN ads_adgroup ag ON aa.ad_group_id = ag.id
+              JOIN ads_adgroup_influencer_tags aagit ON ag.id = aagit.adgroup_id
               JOIN debra_influencertag dit ON aagit.influencertag_id = dit.id
               LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
               WHERE aa.auto_connected_post_id = ${postId}
             `
           },
-          // 6. Client Type - Through campaign client
+          // 6. Client Type - Through campaign client using client_id
           {
             name: 'Client Type',
             query: sql`
@@ -992,14 +994,14 @@ export class DatabaseStorage implements IStorage {
                 dit.id as tag_id,
                 'client' as tag_source
               FROM debra_posts dp
-              JOIN debra_brandjobpost dbj ON dp.brand_job_post_id = dbj.id
-              JOIN debra_campaignclient_influencer_tags dccit ON dbj.campaignclient_id = dccit.campaignclient_id
+              JOIN debra_brandjobpost dbj ON dp.influencer_id = dbj.influencer_id
+              JOIN debra_campaignclient_influencer_tags dccit ON dbj.client_id = dccit.campaignclient_id
               JOIN debra_influencertag dit ON dccit.influencertag_id = dit.id
               LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
               WHERE dp.id = ${postId}
             `
           },
-          // 7. Client Company Type - Through campaign client company
+          // 7. Client Company Type - Through campaign client company using client_id
           {
             name: 'Client Company Type',
             query: sql`
@@ -1012,8 +1014,8 @@ export class DatabaseStorage implements IStorage {
                 dit.id as tag_id,
                 'client_company' as tag_source
               FROM debra_posts dp
-              JOIN debra_brandjobpost dbj ON dp.brand_job_post_id = dbj.id
-              JOIN debra_campaignclientcompany_influencer_tags dcccit ON dbj.campaignclientcompany_id = dcccit.campaignclientcompany_id
+              JOIN debra_brandjobpost dbj ON dp.influencer_id = dbj.influencer_id
+              JOIN debra_campaignclientcompany_influencer_tags dcccit ON dbj.client_id = dcccit.campaignclientcompany_id
               JOIN debra_influencertag dit ON dcccit.influencertag_id = dit.id
               LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
               WHERE dp.id = ${postId}
