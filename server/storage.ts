@@ -1063,6 +1063,23 @@ export class DatabaseStorage implements IStorage {
         }
         
         console.log(`Total production tags found for post ${postId}: ${allTags.length} from all 7 tag relationship tables`);
+        
+        // Deduplicate tags by tag ID to prevent duplicates from multiple relationship tables
+        const seenTagIds = new Set();
+        const deduplicatedTags = allTags.filter(tagItem => {
+          const tagId = tagItem.tag.id;
+          if (seenTagIds.has(tagId)) {
+            return false; // Skip duplicate
+          }
+          seenTagIds.add(tagId);
+          return true;
+        });
+        
+        console.log(`After deduplication: ${deduplicatedTags.length} unique tags (removed ${allTags.length - deduplicatedTags.length} duplicates)`);
+        
+        // Replace allTags with deduplicated version
+        allTags.length = 0;
+        allTags.push(...deduplicatedTags);
       }
       
       // Second, get tags from Replit database (AI recommendations and user-added tags)

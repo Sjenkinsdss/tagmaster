@@ -1272,8 +1272,8 @@ export default function TaggingInterface() {
                                     <div className="flex flex-wrap gap-2 ml-4">
                                       {categoryTags
                                         .sort((a: any, b: any) => a.name.localeCompare(b.name))
-                                        .map((tag: any) => (
-                                          <div key={tag.id} className="flex items-center space-x-1">
+                                        .map((tag: any, tagIndex: number) => (
+                                          <div key={`${type}-${categoryName}-${tag.id}-${tagIndex}`} className="flex items-center space-x-1">
                                             {bulkEditMode && (
                                               <Checkbox
                                                 checked={selectedTags.has(tag.id)}
