@@ -40,9 +40,8 @@ const getTypeEmoji = (type: string): string => {
     campaign: "🎯",
     client: "🏢",
     post: "📝",
-    ai: "🤖",
-    influencer: "👤",
     "ai-based": "🖥️",
+    influencer: "👤",
     product: "🛍️",
     general: "🏷️"
   };

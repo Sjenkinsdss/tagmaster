@@ -1228,7 +1228,7 @@ export default function TaggingInterface() {
                     return acc;
                   }, {});
 
-                  const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'];
+                  const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'];
                   const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
                     const aIndex = typeOrder.indexOf(a);
                     const bIndex = typeOrder.indexOf(b);
@@ -1326,7 +1326,7 @@ export default function TaggingInterface() {
                 {/* Show info if no connected tags are loaded yet, but show empty green sections for each tag type */}
                 {postTags.length === 0 && selectedPost && (
                   <div className="space-y-4">
-                    {['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'].map(type => (
+                    {['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'].map(type => (
                       <Card key={type} className="p-4 bg-green-50 border-green-200">
                         <div className="flex items-center space-x-2 mb-4">
                           <div className="text-xl">{(() => {
@@ -1335,7 +1335,7 @@ export default function TaggingInterface() {
                               campaign: "🎯", 
                               client: "🏢",
                               post: "📝",
-                              ai: "🤖",
+                              "ai-based": "🖥️",
                               influencer: "👤",
                               product: "🛍️",
                               general: "🏷️"
@@ -1360,7 +1360,7 @@ export default function TaggingInterface() {
                                 campaign: "🎯", 
                                 client: "🏢",
                                 post: "📝",
-                                ai: "🤖",
+                                "ai-based": "🖥️",
                                 influencer: "👤",
                                 product: "🛍️",
                                 general: "🏷️"
@@ -1431,16 +1431,15 @@ export default function TaggingInterface() {
                         campaign: "🎯", 
                         client: "🏢",
                         post: "📝",
-                        ai: "🤖",
-                        influencer: "👤",
                         "ai-based": "🖥️",
+                        influencer: "👤",
                         product: "🛍️",
                         general: "🏷️"
                       };
                       return emojiMap[type.toLowerCase()] || "🏷️";
                     };
 
-                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'ai-based', 'product', 'general'];
+                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'];
                     const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
                       const aIndex = typeOrder.indexOf(a);
                       const bIndex = typeOrder.indexOf(b);
