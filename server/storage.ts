@@ -1179,7 +1179,7 @@ export class DatabaseStorage implements IStorage {
       
       try {
         // First, try direct auto-connected post ID
-        adsResult = await db.execute(sql`
+        adsResult = await db!.execute(sql`
           SELECT
             aa.id,
             aa.name,
@@ -1199,7 +1199,7 @@ export class DatabaseStorage implements IStorage {
         
         // If no direct auto-connection, try post_report_id connection
         if (adsResult.rows.length === 0) {
-          adsResult = await db.execute(sql`
+          adsResult = await db!.execute(sql`
             SELECT
               aa.id,
               aa.name,
@@ -1220,7 +1220,7 @@ export class DatabaseStorage implements IStorage {
         
         // If still no results, try automatch bridge table
         if (adsResult.rows.length === 0) {
-          adsResult = await db.execute(sql`
+          adsResult = await db!.execute(sql`
             SELECT
               aa.id,
               aa.name,

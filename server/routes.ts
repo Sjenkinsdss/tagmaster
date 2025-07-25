@@ -79,7 +79,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test posts query directly
   app.get("/api/test-posts", async (req, res) => {
     try {
-      const postsResult = await db.execute(sql`
+      const postsResult = await db!.execute(sql`
         SELECT 
           id,
           COALESCE(title, content, 'Untitled Post') as display_title,
@@ -98,7 +98,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/campaigns", async (req, res) => {
     try {
       // Check if debra_brandjobpost table exists and has data
-      const campaignResult = await db.execute(sql`
+      const campaignResult = await db!.execute(sql`
         SELECT 
           title as campaign_name,
           COUNT(*) as post_count
@@ -136,10 +136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/table-structure/:tableName", async (req, res) => {
     try {
       const tableName = req.params.tableName;
-      const structureResult = await db.execute(sql`SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = ${tableName} ORDER BY ordinal_position`);
+      const structureResult = await db!.execute(sql`SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = ${tableName} ORDER BY ordinal_position`);
       
       // Sample data (with safe identifier)
-      const sampleResult = await db.execute(sql.raw(`SELECT * FROM ${tableName} LIMIT 5`));
+      const sampleResult = await db!.execute(sql.raw(`SELECT * FROM ${tableName} LIMIT 5`));
       
       res.json({ success: true, structure: structureResult.rows, sampleData: sampleResult.rows });
     } catch (error) {
@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create tables in production database
   app.post("/api/create-tables", async (req, res) => {
     try {
-      await db.execute(sql`CREATE TABLE IF NOT EXISTS users (
+      await db!.execute(sql`CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
         username TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
