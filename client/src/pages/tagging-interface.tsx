@@ -1228,7 +1228,87 @@ export default function TaggingInterface() {
                     return acc;
                   }, {});
 
-                  // Add AI-based tags to the ai-based type section if they exist
+                  // Helper function to determine appropriate tag type for AI categories
+                  const getTagTypeForAICategory = (categoryName: string): string => {
+                    const categoryLower = categoryName.toLowerCase();
+                    
+                    // Content-related categories → post type
+                    if (categoryLower.includes('content') || categoryLower.includes('theme') || 
+                        categoryLower.includes('activity') || categoryLower.includes('location') ||
+                        categoryLower.includes('visual') || categoryLower.includes('audio') ||
+                        categoryLower.includes('language') && !categoryLower.includes('primary language') ||
+                        categoryLower.includes('composition') || categoryLower.includes('pacing') ||
+                        categoryLower.includes('energy') || categoryLower.includes('production') ||
+                        categoryLower.includes('hook') || categoryLower.includes('transition') ||
+                        categoryLower.includes('sticker') || categoryLower.includes('subtitle') ||
+                        categoryLower.includes('temporality') || categoryLower.includes('length') ||
+                        categoryLower.includes('messaging') || categoryLower.includes('persuasion')) {
+                      return 'post';
+                    }
+                    
+                    // Product-related categories → product type
+                    if (categoryLower.includes('product') || categoryLower.includes('quantity') ||
+                        categoryLower.includes('focus') || categoryLower.includes('deal') ||
+                        categoryLower.includes('promotion') || categoryLower.includes('value') ||
+                        categoryLower.includes('proposition') || categoryLower.includes('rtb')) {
+                      return 'product';
+                    }
+                    
+                    // Influencer/Audience-related categories → influencer type
+                    if (categoryLower.includes('influencer') || categoryLower.includes('people') ||
+                        categoryLower.includes('audience') || categoryLower.includes('relationship') ||
+                        categoryLower.includes('configuration') || categoryLower.includes('presentation') ||
+                        categoryLower.includes('featured') || categoryLower.includes('children') ||
+                        categoryLower.includes('pet') || categoryLower.includes('age')) {
+                      return 'influencer';
+                    }
+                    
+                    // Brand/Partnership-related categories → client type
+                    if (categoryLower.includes('brand') || categoryLower.includes('partnership') ||
+                        categoryLower.includes('mention') || categoryLower.includes('prominent') ||
+                        categoryLower.includes('timing')) {
+                      return 'client';
+                    }
+                    
+                    // Campaign/CTA-related categories → campaign type
+                    if (categoryLower.includes('cta') || categoryLower.includes('call') ||
+                        categoryLower.includes('trending') || categoryLower.includes('intent') ||
+                        categoryLower.includes('subject')) {
+                      return 'campaign';
+                    }
+                    
+                    // Default to post type for uncategorized AI tags
+                    return 'post';
+                  };
+
+                  // Add AI-based tags to their appropriate type sections based on category mapping
+                  if (aiTags.length > 0) {
+                    aiTags.forEach((aiCategory: any) => {
+                      const categoryName = aiCategory.category;
+                      const appropriateType = getTagTypeForAICategory(categoryName);
+                      
+                      if (!tagsByType[appropriateType]) {
+                        tagsByType[appropriateType] = {};
+                      }
+                      if (!tagsByType[appropriateType][categoryName]) {
+                        tagsByType[appropriateType][categoryName] = [];
+                      }
+                      
+                      // Convert AI tags to tag objects for consistent display
+                      aiCategory.tags.forEach((tagName: string) => {
+                        tagsByType[appropriateType][categoryName].push({
+                          id: `ai-${categoryName}-${tagName}`,
+                          name: tagName,
+                          type: appropriateType,
+                          category: categoryName,
+                          isAiGenerated: true,
+                          manuallyModified: aiCategory.manuallyModified || false
+                        });
+                      });
+                    });
+                  }
+
+                  // Keep AI-based tags section for display purposes only (unchanged)
                   if (aiTags.length > 0) {
                     if (!tagsByType['ai-based']) {
                       tagsByType['ai-based'] = {};
@@ -1243,7 +1323,7 @@ export default function TaggingInterface() {
                       // Convert AI tags to tag objects for consistent display
                       aiCategory.tags.forEach((tagName: string) => {
                         tagsByType['ai-based'][categoryName].push({
-                          id: `ai-${categoryName}-${tagName}`,
+                          id: `ai-display-${categoryName}-${tagName}`,
                           name: tagName,
                           type: 'ai-based',
                           category: categoryName,
