@@ -30,6 +30,108 @@ import ThemeCustomizer from "@/components/ThemeCustomizer";
 import { PerformanceBenchmark } from "@/components/PerformanceBenchmark";
 import type { PostWithTags } from "@shared/schema";
 
+// Editable Tag Badge Component for AI tags
+function EditableTagBadge({ 
+  tag, 
+  category, 
+  postId, 
+  onTagModified 
+}: { 
+  tag: string; 
+  category: string; 
+  postId: number; 
+  onTagModified: (originalTag: string, modifiedTag: string) => void; 
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(tag);
+  const { toast } = useToast();
+
+  const saveModification = useMutation({
+    mutationFn: async ({ originalTag, modifiedTag }: { originalTag: string; modifiedTag: string }) => {
+      const response = await fetch(`/api/posts/${postId}/ai-tags/modify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          category,
+          originalTag,
+          modifiedTag
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save modification');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Tag Updated",
+        description: "AI tag has been successfully modified",
+      });
+      onTagModified(tag, editValue);
+      setIsEditing(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to save tag modification",
+        variant: "destructive",
+      });
+      setEditValue(tag); // Reset to original value
+      setIsEditing(false);
+    }
+  });
+
+  const handleSave = () => {
+    if (editValue.trim() !== tag && editValue.trim() !== '') {
+      saveModification.mutate({ originalTag: tag, modifiedTag: editValue.trim() });
+    } else {
+      setIsEditing(false);
+      setEditValue(tag);
+    }
+  };
+
+  const handleCancel = () => {
+    setEditValue(tag);
+    setIsEditing(false);
+  };
+
+  if (isEditing) {
+    return (
+      <div className="flex items-center gap-1 bg-blue-50 p-1 rounded">
+        <Input
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          className="text-xs h-6 w-32"
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleSave();
+            if (e.key === 'Escape') handleCancel();
+          }}
+          autoFocus
+        />
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleSave}>
+          <Check className="h-3 w-3 text-green-600" />
+        </Button>
+        <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={handleCancel}>
+          <X className="h-3 w-3 text-red-600" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <Badge
+      variant="secondary"
+      className="text-xs bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer group relative"
+      onClick={() => setIsEditing(true)}
+    >
+      {tag}
+      <Edit className="h-3 w-3 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </Badge>
+  );
+}
+
 export default function TaggingInterface() {
   const [selectedPost, setSelectedPost] = useState<PostWithTags | null>(null);
   const [bulkEditMode, setBulkEditMode] = useState(false);
@@ -1179,13 +1281,18 @@ export default function TaggingInterface() {
                               </div>
                               <div className="flex flex-wrap gap-2 ml-4">
                                 {category.tags.map((tag: string, tagIndex: number) => (
-                                  <Badge
+                                  <EditableTagBadge
                                     key={`${category.category}-${tag}-${tagIndex}`}
-                                    variant="secondary"
-                                    className="text-xs bg-blue-100 text-blue-800 hover:bg-blue-200"
-                                  >
-                                    {tag}
-                                  </Badge>
+                                    tag={tag}
+                                    category={category.category}
+                                    postId={selectedPostId!}
+                                    onTagModified={(originalTag, modifiedTag) => {
+                                      // Handle tag modification
+                                      console.log(`Tag modified: ${originalTag} -> ${modifiedTag}`);
+                                      // Refresh AI tags data
+                                      queryClient.invalidateQueries({ queryKey: [`/api/posts/${selectedPostId}/ai-tags`] });
+                                    }}
+                                  />
                                 ))}
                               </div>
                             </div>

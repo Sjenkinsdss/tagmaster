@@ -864,6 +864,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save AI tag modification
+  app.post("/api/posts/:postId/ai-tags/modify", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      
+      if (isNaN(postId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid post ID"
+        });
+      }
+
+      const { category, originalTag, modifiedTag } = req.body;
+      
+      if (!category || !originalTag || !modifiedTag) {
+        return res.status(400).json({
+          success: false,
+          message: "Category, originalTag, and modifiedTag are required"
+        });
+      }
+
+      console.log(`Saving AI tag modification for post ${postId}: ${originalTag} -> ${modifiedTag}`);
+      const modification = await storage.saveAiTagModification({
+        postId,
+        category,
+        originalTag,
+        modifiedTag
+      });
+
+      res.json({
+        success: true,
+        modification
+      });
+    } catch (error) {
+      console.error("Error saving AI tag modification:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to save AI tag modification",
+        error: String(error)
+      });
+    }
+  });
+
   app.post("/api/posts/:postId/ai-tags", async (req, res) => {
     try {
       const postId = parseInt(req.params.postId);

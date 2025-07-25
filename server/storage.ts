@@ -11,7 +11,10 @@ import {
   type InsertPostTag, 
   type InsertPaidAd, 
   type InsertAdTag, 
-  type PostWithTags 
+  type PostWithTags,
+  type AiTagModification,
+  type InsertAiTagModification,
+  aiTagsManualModifications
 } from "@shared/schema";
 import { db, prodDb, replitDb } from "./db";
 import { sql } from "drizzle-orm";
@@ -95,6 +98,7 @@ export interface IStorage {
     tags: string[];
     manuallyModified: boolean;
   }[]): Promise<void>;
+  saveAiTagModification(modification: InsertAiTagModification): Promise<AiTagModification>;
 }
 
 // Helper function to determine platform from URL
@@ -2327,6 +2331,36 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error(`Error fetching AI-based tags for post ${postId}:`, error);
       return []; // Return empty array on error, following Data Integrity Policy
+    }
+  }
+
+  // Save AI tag modification to Replit database
+  async saveAiTagModification(modification: InsertAiTagModification): Promise<AiTagModification> {
+    if (!replitDb) {
+      throw new Error("Replit database connection not available");
+    }
+
+    try {
+      // First, ensure the table exists
+      await replitDb.execute(sql`
+        CREATE TABLE IF NOT EXISTS ai_tags_manual_modifications (
+          id SERIAL PRIMARY KEY,
+          post_id INTEGER NOT NULL,
+          category TEXT NOT NULL,
+          original_tag TEXT NOT NULL,
+          modified_tag TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT NOW()
+        )
+      `);
+
+      // Insert the modification
+      const result = await replitDb.insert(aiTagsManualModifications).values(modification).returning();
+      
+      console.log(`Saved AI tag modification for post ${modification.postId}: ${modification.originalTag} -> ${modification.modifiedTag}`);
+      return result[0];
+    } catch (error) {
+      console.error('Error saving AI tag modification:', error);
+      throw error;
     }
   }
 

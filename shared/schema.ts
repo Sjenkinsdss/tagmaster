@@ -69,6 +69,15 @@ export const adminConfig = pgTable("admin_config", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const aiTagsManualModifications = pgTable("ai_tags_manual_modifications", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull(),
+  category: text("category").notNull(),
+  originalTag: text("original_tag").notNull(),
+  modifiedTag: text("modified_tag").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Relations
 export const postsRelations = relations(posts, ({ many }) => ({
   postTags: many(postTags),
@@ -148,6 +157,11 @@ export const insertAdminConfigSchema = createInsertSchema(adminConfig).omit({
   updatedAt: true,
 });
 
+export const insertAiTagModificationSchema = createInsertSchema(aiTagsManualModifications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -169,6 +183,9 @@ export type InsertAdTag = z.infer<typeof insertAdTagSchema>;
 
 export type AdminConfig = typeof adminConfig.$inferSelect;
 export type InsertAdminConfig = z.infer<typeof insertAdminConfigSchema>;
+
+export type AiTagModification = typeof aiTagsManualModifications.$inferSelect;
+export type InsertAiTagModification = z.infer<typeof insertAiTagModificationSchema>;
 
 // Extended types for API responses
 export type PostWithTags = Post & {
