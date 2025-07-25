@@ -1212,14 +1212,19 @@ export default function TaggingInterface() {
                     return emojiMap[type.toLowerCase()] || "🏷️";
                   };
 
-                  // Group connected post tags by type first
+                  // Group connected post tags by Type → Category → Individual Tags structure
                   const tagsByType = postTags.reduce((acc: any, postTag: any) => {
                     const tag = postTag.tag; // Extract the tag object from the postTag
                     const tagType = tag.type || tag.pillar || 'general';
+                    const tagCategory = tag.category || tag.tag_type_name || tag.categoryName || 'Uncategorized';
+                    
                     if (!acc[tagType]) {
-                      acc[tagType] = [];
+                      acc[tagType] = {};
                     }
-                    acc[tagType].push(tag);
+                    if (!acc[tagType][tagCategory]) {
+                      acc[tagType][tagCategory] = [];
+                    }
+                    acc[tagType][tagCategory].push(tag);
                     return acc;
                   }, {});
 
@@ -1233,12 +1238,78 @@ export default function TaggingInterface() {
                     return aIndex - bIndex;
                   });
 
-                  const typeSections = sortedTypes.map(type => (
+                  // Display Connected Tags with proper Type → Category → Individual Tags hierarchy
+                  const connectedTagsSection = postTags.length > 0 && (
+                    <div className="space-y-4 mb-6">
+                      <div className="flex items-center space-x-2 mb-4">
+                        <div className="text-xl">🔗</div>
+                        <h3 className="font-semibold text-green-700">
+                          Connected Tags ({postTags.length})
+                        </h3>
+                      </div>
+                      
+                      {sortedTypes.map(type => {
+                        const typeCategories = tagsByType[type];
+                        const typeTotalTags = Object.values(typeCategories).flat().length;
+                        
+                        return (
+                          <Card key={type} className="p-4 bg-green-50 border-green-200">
+                            <div className="flex items-center space-x-2 mb-4">
+                              <div className="text-xl">{getTypeEmoji(type)}</div>
+                              <h3 className="font-semibold text-green-800 capitalize">
+                                {type} Tags ({typeTotalTags})
+                              </h3>
+                            </div>
+                            
+                            <div className="space-y-3 ml-6">
+                              {Object.entries(typeCategories)
+                                .sort(([a], [b]) => a.localeCompare(b))
+                                .map(([categoryName, categoryTags]: [string, any]) => (
+                                  <div key={categoryName}>
+                                    <h4 className="font-medium text-sm text-green-700 mb-2">
+                                      {categoryName} ({categoryTags.length})
+                                    </h4>
+                                    <div className="flex flex-wrap gap-2 ml-4">
+                                      {categoryTags
+                                        .sort((a: any, b: any) => a.name.localeCompare(b.name))
+                                        .map((tag: any) => (
+                                          <div key={tag.id} className="flex items-center space-x-1">
+                                            {bulkEditMode && (
+                                              <Checkbox
+                                                checked={selectedTags.has(tag.id)}
+                                                onCheckedChange={(checked) => {
+                                                  const newSelected = new Set(selectedTags);
+                                                  if (checked) {
+                                                    newSelected.add(tag.id);
+                                                  } else {
+                                                    newSelected.delete(tag.id);
+                                                  }
+                                                  setSelectedTags(newSelected);
+                                                }}
+                                              />
+                                            )}
+                                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300 text-xs">
+                                              {tag.name}
+                                            </Badge>
+                                          </div>
+                                        ))}
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  );
+
+                  // Display browsable tag sections for adding new tags
+                  const typeSections = typeOrder.map(type => (
                     <TypeTagSection
                       key={type}
                       type={type}
                       emoji={getTypeEmoji(type)}
-                      tags={tagsByType[type]}
+                      tags={tags?.filter((tag: any) => (tag.type || tag.pillar) === type) || []}
                       selectedPost={enrichedSelectedPost}
                       onTagAdded={() => {
                         // Refresh posts and tags after adding a tag
@@ -1300,7 +1371,7 @@ export default function TaggingInterface() {
                     </Card>
                   );
 
-                  return [...typeSections, aiTagsSection].filter(Boolean);
+                  return [connectedTagsSection, ...typeSections, aiTagsSection].filter(Boolean);
                 })()}
 
                 {/* Show info if no connected tags are loaded yet */}
