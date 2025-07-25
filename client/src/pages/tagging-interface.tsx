@@ -1204,7 +1204,7 @@ export default function TaggingInterface() {
                       campaign: "🎯",
                       client: "🏢",
                       post: "📝",
-                      "ai-based": "🖥️",
+                      ai: "🤖",
                       influencer: "👤",
                       product: "🛍️",
                       general: "🏷️"
@@ -1228,33 +1228,7 @@ export default function TaggingInterface() {
                     return acc;
                   }, {});
 
-                  // Add AI-based tags to the ai-based type section if they exist
-                  if (aiTags.length > 0) {
-                    if (!tagsByType['ai-based']) {
-                      tagsByType['ai-based'] = {};
-                    }
-                    
-                    aiTags.forEach((aiCategory: any) => {
-                      const categoryName = aiCategory.category;
-                      if (!tagsByType['ai-based'][categoryName]) {
-                        tagsByType['ai-based'][categoryName] = [];
-                      }
-                      
-                      // Convert AI tags to tag objects for consistent display
-                      aiCategory.tags.forEach((tagName: string) => {
-                        tagsByType['ai-based'][categoryName].push({
-                          id: `ai-${categoryName}-${tagName}`,
-                          name: tagName,
-                          type: 'ai-based',
-                          category: categoryName,
-                          isAiGenerated: true,
-                          manuallyModified: aiCategory.manuallyModified || false
-                        });
-                      });
-                    });
-                  }
-
-                  const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'];
+                  const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'];
                   const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
                     const aIndex = typeOrder.indexOf(a);
                     const bIndex = typeOrder.indexOf(b);
@@ -1264,16 +1238,13 @@ export default function TaggingInterface() {
                     return aIndex - bIndex;
                   });
 
-                  // Calculate total tags including AI tags
-                  const totalConnectedTags = postTags.length + aiTags.reduce((total: number, category: any) => total + category.tags.length, 0);
-
-                  // Display Connected Tags with proper Type → Category → Individual Tags hierarchy  
-                  const connectedTagsSection = (postTags.length > 0 || aiTags.length > 0) && (
+                  // Display Connected Tags with proper Type → Category → Individual Tags hierarchy
+                  const connectedTagsSection = postTags.length > 0 && (
                     <div className="space-y-4 mb-6">
                       <div className="flex items-center space-x-2 mb-4">
                         <div className="text-xl">🔗</div>
                         <h3 className="font-semibold text-green-700">
-                          Connected Tags ({totalConnectedTags})
+                          Connected Tags ({postTags.length})
                         </h3>
                       </div>
                       
@@ -1349,13 +1320,65 @@ export default function TaggingInterface() {
                     </div>
                   );
 
-                  return connectedTagsSection;
+                  // Add AI-Based Tags section as 7th tag type (only if there are AI tags)
+                  const aiTagsSection = selectedPost && aiTags.length > 0 && (
+                    <Card key="ai-based-tags" className="p-4 bg-gray-50 border-l-4 border-blue-500">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="text-xl">🖥️</div>
+                          <h3 className="font-semibold text-carbon-gray-100">
+                            AI Based Tags ({aiTags.reduce((total: number, category: any) => total + category.tags.length, 0)})
+                          </h3>
+                        </div>
+                        {aiTags.some((category: any) => category.manuallyModified) && (
+                          <Badge variant="outline" className="text-orange-600 bg-orange-100">
+                            Modified
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-3 ml-6">
+                        {aiTags.map((category: any, index: number) => (
+                          <div key={`${category.category}-${index}`}>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-sm text-carbon-gray-80">
+                                {category.category} ({category.tags.length})
+                              </h4>
+                              {category.manuallyModified && (
+                                <Badge variant="outline" className="text-xs text-orange-600 bg-orange-50">
+                                  Manually Modified
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex flex-wrap gap-2 ml-4">
+                              {category.tags.map((tag: string, tagIndex: number) => (
+                                <EditableTagBadge
+                                  key={`${category.category}-${tag}-${tagIndex}`}
+                                  tag={tag}
+                                  category={category.category}
+                                  postId={selectedPost.id}
+                                  onTagModified={(originalTag, modifiedTag) => {
+                                    // Handle tag modification
+                                    console.log(`Tag modified: ${originalTag} -> ${modifiedTag}`);
+                                    // Refresh AI tags data
+                                    queryClient.invalidateQueries({ queryKey: [`/api/posts/${selectedPost.id}/ai-tags`] });
+                                  }}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </Card>
+                  );
+
+                  return [connectedTagsSection, aiTagsSection].filter(Boolean);
                 })()}
 
                 {/* Show info if no connected tags are loaded yet, but show empty green sections for each tag type */}
                 {postTags.length === 0 && selectedPost && (
                   <div className="space-y-4">
-                    {['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'].map(type => (
+                    {['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'].map(type => (
                       <Card key={type} className="p-4 bg-green-50 border-green-200">
                         <div className="flex items-center space-x-2 mb-4">
                           <div className="text-xl">{(() => {
@@ -1364,7 +1387,7 @@ export default function TaggingInterface() {
                               campaign: "🎯", 
                               client: "🏢",
                               post: "📝",
-                              "ai-based": "🖥️",
+                              ai: "🤖",
                               influencer: "👤",
                               product: "🛍️",
                               general: "🏷️"
@@ -1389,7 +1412,7 @@ export default function TaggingInterface() {
                                 campaign: "🎯", 
                                 client: "🏢",
                                 post: "📝",
-                                "ai-based": "🖥️",
+                                ai: "🤖",
                                 influencer: "👤",
                                 product: "🛍️",
                                 general: "🏷️"
@@ -1460,15 +1483,16 @@ export default function TaggingInterface() {
                         campaign: "🎯", 
                         client: "🏢",
                         post: "📝",
-                        "ai-based": "🖥️",
+                        ai: "🤖",
                         influencer: "👤",
+                        "ai-based": "🖥️",
                         product: "🛍️",
                         general: "🏷️"
                       };
                       return emojiMap[type.toLowerCase()] || "🏷️";
                     };
 
-                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai-based', 'influencer', 'product', 'general'];
+                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'ai-based', 'product', 'general'];
                     const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
                       const aIndex = typeOrder.indexOf(a);
                       const bIndex = typeOrder.indexOf(b);
