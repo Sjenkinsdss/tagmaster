@@ -880,40 +880,40 @@ export class DatabaseStorage implements IStorage {
       
       const allTags: (PostTag & { tag: Tag })[] = [];
       
-      // First, get tags from production database
+      // First, get tags from production database (using correct table structure)
       if (db) {
-        console.log("Fetching production database tags...");
+        console.log("Fetching production database tags from post_tags table...");
         const postTagsResult = await db.execute(sql`
           SELECT 
-            dpit.id,
-            dpit.posts_id,
-            dpit.influencertag_id,
-            dit.name as tag_name,
-            ditt.name as tag_type_name,
-            dit.id as tag_id
-          FROM debra_posts_influencer_tags dpit
-          JOIN debra_influencertag dit ON dpit.influencertag_id = dit.id
-          LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
-          WHERE dpit.posts_id = ${postId}
-          ORDER BY dit.name
+            pt.id,
+            pt.post_id,
+            pt.tag_id,
+            t.name as tag_name,
+            t.type as tag_type_name,
+            t.category as tag_category,
+            t.pillar as tag_pillar
+          FROM post_tags pt
+          JOIN tags t ON pt.tag_id = t.id
+          WHERE pt.post_id = ${postId}
+          ORDER BY t.name
         `);
 
-        console.log(`Found ${postTagsResult.rows.length} production tags for post ${postId}`);
+        console.log(`Found ${postTagsResult.rows.length} production tags for post ${postId} in post_tags table`);
         
         const productionTags = postTagsResult.rows.map((row: any) => ({
           id: row.id,
-          postId: row.posts_id,
+          postId: row.post_id,
           tagId: row.tag_id,
           createdAt: new Date(),
           tag: {
             id: row.tag_id,
             name: row.tag_name,
-            code: `${this.mapTagTypeToPillar(row.tag_type_name)}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
-            pillar: this.mapTagTypeToPillar(row.tag_type_name),
+            code: `${row.tag_pillar || 'general'}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
+            pillar: row.tag_pillar || 'general',
             isAiGenerated: false,
             createdAt: new Date(),
             tag_type_name: row.tag_type_name || 'general',
-            categoryName: row.tag_type_name || 'general'
+            categoryName: row.tag_category || 'general'
           }
         }));
         
