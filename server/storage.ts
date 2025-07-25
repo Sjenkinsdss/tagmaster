@@ -1737,10 +1737,17 @@ export class DatabaseStorage implements IStorage {
           dp.content,
           dp.title,
           dp.url as post_url,
-          COALESCE(bjp.title, 'Unknown Campaign') as campaign_name,
+          COALESCE(
+            bjp.title,
+            ac.name,
+            cr.campaign_name,
+            'Unknown Campaign'
+          ) as campaign_name,
           COALESCE(bjp.client_name, 'Unknown Client') as client_name
         FROM debra_posts dp
-        LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.id
+        LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.job_id
+        LEFT JOIN ads_adcampaign ac ON ac.id = dp.adcampaign_id
+        LEFT JOIN campaign_report_campaignpostreport cr ON cr.post_id = dp.id
         WHERE ${whereClause}
         ORDER BY dp.id DESC
         LIMIT ${queryLimit}
@@ -1754,10 +1761,17 @@ export class DatabaseStorage implements IStorage {
             dp.content,
             dp.title,
             dp.url as post_url,
-            COALESCE(bjp.title, 'Unknown Campaign') as campaign_name,
+            COALESCE(
+              bjp.title,
+              ac.name,
+              cr.campaign_name,
+              'Unknown Campaign'
+            ) as campaign_name,
             COALESCE(bjp.client_name, 'Unknown Client') as client_name
           FROM debra_posts dp
-          LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.id
+          LEFT JOIN debra_brandjobpost bjp ON bjp.id = dp.job_id
+          LEFT JOIN ads_adcampaign ac ON ac.id = dp.adcampaign_id
+          LEFT JOIN campaign_report_campaignpostreport cr ON cr.post_id = dp.id
           WHERE dp.content IS NOT NULL 
           AND dp.content != ''
           AND dp.create_date >= NOW() - INTERVAL '2 years'
