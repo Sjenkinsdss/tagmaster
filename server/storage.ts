@@ -883,42 +883,83 @@ export class DatabaseStorage implements IStorage {
       // First, get tags from production database using correct table relationships
       if (prodDb) {
         console.log("Fetching production database tags from debra_posts_influencer_tags table...");
-        const postTagsResult = await prodDb.execute(sql`
-          SELECT 
-            dpit.id,
-            dpit.posts_id,
-            dpit.influencertag_id,
-            dit.name as tag_name,
-            ditt.name as tag_type_name,
-            dit.id as tag_id,
-            dit.pillar as tag_pillar
-          FROM debra_posts_influencer_tags dpit
-          JOIN debra_influencertag dit ON dpit.influencertag_id = dit.id
-          LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
-          WHERE dpit.posts_id = ${postId}
-          ORDER BY dit.name
-        `);
+        try {
+          const postTagsResult = await prodDb.execute(sql`
+            SELECT 
+              dpit.id,
+              dpit.posts_id,
+              dpit.influencertag_id,
+              dit.name as tag_name,
+              ditt.name as tag_type_name,
+              dit.id as tag_id
+            FROM debra_posts_influencer_tags dpit
+            JOIN debra_influencertag dit ON dpit.influencertag_id = dit.id
+            LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+            WHERE dpit.posts_id = ${postId}
+            ORDER BY dit.name
+          `);
 
-        console.log(`Found ${postTagsResult.rows.length} production tags for post ${postId} from debra_posts_influencer_tags table`);
-        
-        const productionTags = postTagsResult.rows.map((row: any) => ({
-          id: row.id,
-          postId: row.posts_id,
-          tagId: row.tag_id,
-          createdAt: new Date(),
-          tag: {
-            id: row.tag_id,
-            name: row.tag_name,
-            code: `${this.mapTagTypeToPillar(row.tag_type_name)}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
-            pillar: this.mapTagTypeToPillar(row.tag_type_name),
-            isAiGenerated: false,
-            createdAt: new Date(),
-            tag_type_name: row.tag_type_name || 'general',
-            categoryName: row.tag_type_name || 'general'
+          console.log(`Found ${postTagsResult.rows.length} production tags for post ${postId} from debra_posts_influencer_tags table`);
+          
+          if (postTagsResult.rows.length === 0) {
+            console.log(`DEBUG: No tags found for post ${postId}. Checking all possible tag relationship tables...`);
+            
+            // Check all the table relationships you mentioned
+            const tables = [
+              'debra_posts_influencer_tags',
+              'debra_influencer_influencer_tags', 
+              'ads_ad_influencer_tags',
+              'ads_adcampaign_influencer_tags',
+              'ads_adgroup_influencer_tags',
+              'debra_campaignclient_influencer_tags',
+              'debra_campaignclientcompany_influencer_tags'
+            ];
+            
+            for (const tableName of tables) {
+              try {
+                let columnName = 'posts_id';
+                if (tableName.includes('ads_ad_influencer')) columnName = 'ad_id';
+                else if (tableName.includes('ads_adcampaign')) columnName = 'adcampaign_id';
+                else if (tableName.includes('ads_adgroup')) columnName = 'adgroup_id';
+                else if (tableName.includes('debra_influencer_influencer')) columnName = 'influencer_id';
+                else if (tableName.includes('debra_campaignclient')) columnName = 'campaignclient_id';
+                else if (tableName.includes('debra_campaignclientcompany')) columnName = 'campaignclientcompany_id';
+                
+                const query = `SELECT COUNT(*) as tag_count FROM ${tableName} WHERE ${columnName} = $1`;
+                const checkResult = await prodDb.execute(sql.raw(query, [postId]));
+                const count = checkResult.rows[0]?.tag_count || 0;
+                if (count > 0) {
+                  console.log(`DEBUG: Found ${count} relationships in ${tableName} for ${columnName} = ${postId}`);
+                }
+              } catch (e) {
+                console.log(`DEBUG: Table ${tableName} might not exist or has different structure`);
+              }
+            }
           }
-        }));
         
-        allTags.push(...productionTags);
+          const productionTags = postTagsResult.rows.map((row: any) => ({
+            id: row.id,
+            postId: row.posts_id,
+            tagId: row.tag_id,
+            createdAt: new Date(),
+            tag: {
+              id: row.tag_id,
+              name: row.tag_name,
+              code: `${this.mapTagTypeToPillar(row.tag_type_name)}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
+              pillar: this.mapTagTypeToPillar(row.tag_type_name),
+              isAiGenerated: false,
+              createdAt: new Date(),
+              type: this.mapTagTypeToPillar(row.tag_type_name),
+              category: row.tag_type_name || 'general',
+              tag_type_name: row.tag_type_name || 'general',
+              categoryName: row.tag_type_name || 'general'
+            }
+          }));
+          
+          allTags.push(...productionTags);
+        } catch (error) {
+          console.error("Error fetching post tags:", error);
+        }
       }
       
       // Second, get tags from Replit database (AI recommendations and user-added tags)
