@@ -193,9 +193,9 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
                 <div className="flex flex-wrap gap-2 ml-4">
                   {(categoryTags as any[])
                     .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((tag: any) => (
+                    .map((tag: any, tagIndex: number) => (
                       <Badge
-                        key={tag.id}
+                        key={`${type}-${categoryName}-${tag.id}-${tagIndex}`}
                         variant="secondary"
                         className="text-xs bg-blue-100 text-blue-800 border-blue-200"
                       >
