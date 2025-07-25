@@ -880,86 +880,181 @@ export class DatabaseStorage implements IStorage {
       
       const allTags: (PostTag & { tag: Tag })[] = [];
       
-      // First, get tags from production database using correct table relationships
+      // Query all 7 tag relationship tables to get complete tag picture
       if (prodDb) {
-        console.log("Fetching production database tags from debra_posts_influencer_tags table...");
-        try {
-          const postTagsResult = await prodDb.execute(sql`
-            SELECT 
-              dpit.id,
-              dpit.posts_id,
-              dpit.influencertag_id,
-              dit.name as tag_name,
-              ditt.name as tag_type_name,
-              dit.id as tag_id
-            FROM debra_posts_influencer_tags dpit
-            JOIN debra_influencertag dit ON dpit.influencertag_id = dit.id
-            LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
-            WHERE dpit.posts_id = ${postId}
-            ORDER BY dit.name
-          `);
-
-          console.log(`Found ${postTagsResult.rows.length} production tags for post ${postId} from debra_posts_influencer_tags table`);
-          
-          if (postTagsResult.rows.length === 0) {
-            console.log(`DEBUG: No tags found for post ${postId}. Checking all possible tag relationship tables...`);
-            
-            // Check all the table relationships you mentioned
-            const tables = [
-              'debra_posts_influencer_tags',
-              'debra_influencer_influencer_tags', 
-              'ads_ad_influencer_tags',
-              'ads_adcampaign_influencer_tags',
-              'ads_adgroup_influencer_tags',
-              'debra_campaignclient_influencer_tags',
-              'debra_campaignclientcompany_influencer_tags'
-            ];
-            
-            for (const tableName of tables) {
-              try {
-                let columnName = 'posts_id';
-                if (tableName.includes('ads_ad_influencer')) columnName = 'ad_id';
-                else if (tableName.includes('ads_adcampaign')) columnName = 'adcampaign_id';
-                else if (tableName.includes('ads_adgroup')) columnName = 'adgroup_id';
-                else if (tableName.includes('debra_influencer_influencer')) columnName = 'influencer_id';
-                else if (tableName.includes('debra_campaignclient')) columnName = 'campaignclient_id';
-                else if (tableName.includes('debra_campaignclientcompany')) columnName = 'campaignclientcompany_id';
-                
-                const query = `SELECT COUNT(*) as tag_count FROM ${tableName} WHERE ${columnName} = $1`;
-                const checkResult = await prodDb.execute(sql.raw(query, [postId]));
-                const count = checkResult.rows[0]?.tag_count || 0;
-                if (count > 0) {
-                  console.log(`DEBUG: Found ${count} relationships in ${tableName} for ${columnName} = ${postId}`);
-                }
-              } catch (e) {
-                console.log(`DEBUG: Table ${tableName} might not exist or has different structure`);
-              }
-            }
-          }
+        console.log("Fetching production database tags from all 7 tag relationship tables...");
         
-          const productionTags = postTagsResult.rows.map((row: any) => ({
-            id: row.id,
-            postId: row.posts_id,
-            tagId: row.tag_id,
-            createdAt: new Date(),
-            tag: {
-              id: row.tag_id,
-              name: row.tag_name,
-              code: `${this.mapTagTypeToPillar(row.tag_type_name)}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
-              pillar: this.mapTagTypeToPillar(row.tag_type_name),
-              isAiGenerated: false,
-              createdAt: new Date(),
-              type: this.mapTagTypeToPillar(row.tag_type_name),
-              category: row.tag_type_name || 'general',
-              tag_type_name: row.tag_type_name || 'general',
-              categoryName: row.tag_type_name || 'general'
+        const tagQueries = [
+          // 1. Post Type - Direct post relationship
+          {
+            name: 'Post Type',
+            query: sql`
+              SELECT 
+                dpit.id,
+                ${postId} as posts_id,
+                dpit.influencertag_id,
+                dit.name as tag_name,
+                ditt.name as tag_type_name,
+                dit.id as tag_id,
+                'post' as tag_source
+              FROM debra_posts_influencer_tags dpit
+              JOIN debra_influencertag dit ON dpit.influencertag_id = dit.id
+              LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+              WHERE dpit.posts_id = ${postId}
+            `
+          },
+          // 2. Influencer Type - Through influencer relationship
+          {
+            name: 'Influencer Type',
+            query: sql`
+              SELECT 
+                diit.id,
+                ${postId} as posts_id,
+                diit.influencertag_id,
+                dit.name as tag_name,
+                ditt.name as tag_type_name,
+                dit.id as tag_id,
+                'influencer' as tag_source
+              FROM debra_posts dp
+              JOIN debra_influencer_influencer_tags diit ON dp.influencer_id = diit.influencer_id
+              JOIN debra_influencertag dit ON diit.influencertag_id = dit.id
+              LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+              WHERE dp.id = ${postId}
+            `
+          },
+          // 3. Ad Type - Through connected ads
+          {
+            name: 'Ad Type',
+            query: sql`
+              SELECT 
+                aait.id,
+                ${postId} as posts_id,
+                aait.influencertag_id,
+                dit.name as tag_name,
+                ditt.name as tag_type_name,
+                dit.id as tag_id,
+                'ad' as tag_source
+              FROM ads_ad aa
+              JOIN ads_ad_influencer_tags aait ON aa.id = aait.ad_id
+              JOIN debra_influencertag dit ON aait.influencertag_id = dit.id
+              LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+              WHERE aa.auto_connected_post_id = ${postId}
+            `
+          },
+          // 4. Campaign Type - Through ad campaigns
+          {
+            name: 'Campaign Type',
+            query: sql`
+              SELECT 
+                aacit.id,
+                ${postId} as posts_id,
+                aacit.influencertag_id,
+                dit.name as tag_name,
+                ditt.name as tag_type_name,
+                dit.id as tag_id,
+                'campaign' as tag_source
+              FROM ads_ad aa
+              JOIN ads_adcampaign_influencer_tags aacit ON aa.adcampaign_id = aacit.adcampaign_id
+              JOIN debra_influencertag dit ON aacit.influencertag_id = dit.id
+              LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+              WHERE aa.auto_connected_post_id = ${postId}
+            `
+          },
+          // 5. Ad Group Type - Through ad groups
+          {
+            name: 'Ad Group Type',
+            query: sql`
+              SELECT 
+                aagit.id,
+                ${postId} as posts_id,
+                aagit.influencertag_id,
+                dit.name as tag_name,
+                ditt.name as tag_type_name,
+                dit.id as tag_id,
+                'adgroup' as tag_source
+              FROM ads_ad aa
+              JOIN ads_adgroup_influencer_tags aagit ON aa.adgroup_id = aagit.adgroup_id
+              JOIN debra_influencertag dit ON aagit.influencertag_id = dit.id
+              LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+              WHERE aa.auto_connected_post_id = ${postId}
+            `
+          },
+          // 6. Client Type - Through campaign client
+          {
+            name: 'Client Type',
+            query: sql`
+              SELECT 
+                dccit.id,
+                ${postId} as posts_id,
+                dccit.influencertag_id,
+                dit.name as tag_name,
+                ditt.name as tag_type_name,
+                dit.id as tag_id,
+                'client' as tag_source
+              FROM debra_posts dp
+              JOIN debra_brandjobpost dbj ON dp.brand_job_post_id = dbj.id
+              JOIN debra_campaignclient_influencer_tags dccit ON dbj.campaignclient_id = dccit.campaignclient_id
+              JOIN debra_influencertag dit ON dccit.influencertag_id = dit.id
+              LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+              WHERE dp.id = ${postId}
+            `
+          },
+          // 7. Client Company Type - Through campaign client company
+          {
+            name: 'Client Company Type',
+            query: sql`
+              SELECT 
+                dcccit.id,
+                ${postId} as posts_id,
+                dcccit.influencertag_id,
+                dit.name as tag_name,
+                ditt.name as tag_type_name,
+                dit.id as tag_id,
+                'client_company' as tag_source
+              FROM debra_posts dp
+              JOIN debra_brandjobpost dbj ON dp.brand_job_post_id = dbj.id
+              JOIN debra_campaignclientcompany_influencer_tags dcccit ON dbj.campaignclientcompany_id = dcccit.campaignclientcompany_id
+              JOIN debra_influencertag dit ON dcccit.influencertag_id = dit.id
+              LEFT JOIN debra_influencertagtype ditt ON dit.tag_type_id = ditt.id
+              WHERE dp.id = ${postId}
+            `
+          }
+        ];
+
+        for (const tagQuery of tagQueries) {
+          try {
+            const result = await prodDb.execute(tagQuery.query);
+            if (result.rows.length > 0) {
+              console.log(`Found ${result.rows.length} ${tagQuery.name} tags for post ${postId}`);
+              
+              const tags = result.rows.map((row: any) => ({
+                id: row.id,
+                postId: row.posts_id,
+                tagId: row.tag_id,
+                createdAt: new Date(),
+                tag: {
+                  id: row.tag_id,
+                  name: row.tag_name,
+                  code: `${this.mapTagTypeToPillar(row.tag_type_name)}_${row.tag_name.toLowerCase().replace(/\s+/g, '_')}_0001`,
+                  pillar: this.mapTagTypeToPillar(row.tag_type_name),
+                  isAiGenerated: false,
+                  createdAt: new Date(),
+                  type: this.mapTagTypeToPillar(row.tag_type_name),
+                  category: row.tag_type_name || 'general',
+                  tag_type_name: row.tag_type_name || 'general',
+                  categoryName: row.tag_type_name || 'general',
+                  source: row.tag_source
+                }
+              }));
+              
+              allTags.push(...tags);
             }
-          }));
-          
-          allTags.push(...productionTags);
-        } catch (error) {
-          console.error("Error fetching post tags:", error);
+          } catch (error) {
+            console.log(`Error querying ${tagQuery.name} tags:`, error.message);
+          }
         }
+        
+        console.log(`Total production tags found for post ${postId}: ${allTags.length} from all 7 tag relationship tables`);
       }
       
       // Second, get tags from Replit database (AI recommendations and user-added tags)
