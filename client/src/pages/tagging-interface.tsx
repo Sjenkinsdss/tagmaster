@@ -189,6 +189,26 @@ export default function TaggingInterface() {
     enabled: !!selectedPost,
   });
 
+  // Fetch AI-based tags for the selected post
+  const { data: aiTagsData } = useQuery({
+    queryKey: ["/api/posts", selectedPost?.id, "ai-tags"],
+    queryFn: async () => {
+      if (!selectedPost) return { aiTags: [] };
+      const response = await fetch(`/api/posts/${selectedPost.id}/ai-tags`);
+      const data = await response.json();
+      return data;
+    },
+    enabled: !!selectedPost,
+  });
+
+  const aiTags = aiTagsData?.aiTags || [];
+
+  console.log("AI Tags data:", { 
+    selectedPostId: selectedPost?.id,
+    aiTagsCount: aiTags.length,
+    aiTagsData: aiTags.slice(0, 2) // Show first 2 for debugging
+  });
+
   // Enrich the selected post with tag data
   const enrichedSelectedPost = selectedPost ? {
     ...selectedPost,
@@ -1111,7 +1131,7 @@ export default function TaggingInterface() {
                     return aIndex - bIndex;
                   });
 
-                  return sortedTypes.map(type => (
+                  const typeSections = sortedTypes.map(type => (
                     <TypeTagSection
                       key={type}
                       type={type}
@@ -1125,6 +1145,61 @@ export default function TaggingInterface() {
                       }}
                     />
                   ));
+
+                  // Add AI-Based Tags section as 7th tag type
+                  const aiTagsSection = selectedPost && (
+                    <Card key="ai-based-tags" className="p-4 bg-gray-50 border-l-4 border-blue-500">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-2">
+                          <div className="text-xl">🖥️</div>
+                          <h3 className="font-semibold text-carbon-gray-100">
+                            AI Based Tags ({aiTags.reduce((total: number, category: any) => total + category.tags.length, 0)})
+                          </h3>
+                        </div>
+                        {aiTags.some((category: any) => category.manuallyModified) && (
+                          <Badge variant="outline" className="text-orange-600 bg-orange-100">
+                            Modified
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {aiTags.length > 0 ? (
+                        <div className="space-y-3 ml-6">
+                          {aiTags.map((category: any, index: number) => (
+                            <div key={`${category.category}-${index}`}>
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium text-sm text-carbon-gray-80">
+                                  {category.category} ({category.tags.length})
+                                </h4>
+                                {category.manuallyModified && (
+                                  <Badge variant="outline" className="text-xs text-orange-600 bg-orange-50">
+                                    Manually Modified
+                                  </Badge>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2 ml-4">
+                                {category.tags.map((tag: string, tagIndex: number) => (
+                                  <Badge
+                                    key={`${category.category}-${tag}-${tagIndex}`}
+                                    variant="secondary"
+                                    className="text-xs bg-blue-100 text-blue-800 hover:bg-blue-200"
+                                  >
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center text-carbon-gray-60 py-4">
+                          <p className="text-sm">No AI-based tags available for this post</p>
+                        </div>
+                      )}
+                    </Card>
+                  );
+
+                  return [...typeSections, aiTagsSection].filter(Boolean);
                 })()}
 
                 {/* Show info if no connected tags are loaded yet */}
@@ -1178,13 +1253,14 @@ export default function TaggingInterface() {
                         post: "📝",
                         ai: "🤖",
                         influencer: "👤",
+                        "ai-based": "🖥️",
                         product: "🛍️",
                         general: "🏷️"
                       };
                       return emojiMap[type.toLowerCase()] || "🏷️";
                     };
 
-                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'];
+                    const typeOrder = ['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'ai-based', 'product', 'general'];
                     const sortedTypes = Object.keys(tagsByType).sort((a, b) => {
                       const aIndex = typeOrder.indexOf(a);
                       const bIndex = typeOrder.indexOf(b);

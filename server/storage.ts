@@ -83,6 +83,18 @@ export interface IStorage {
   // Admin Configuration Methods
   getToolsConfig(): Promise<any[]>;
   saveToolsConfig(tools: any[]): Promise<void>;
+
+  // AI-Based Tags Methods
+  getPostAITags(postId: number): Promise<{
+    category: string;
+    tags: string[];
+    manuallyModified?: boolean;
+  }[]>;
+  updatePostAITags(postId: number, aiTags: {
+    category: string;
+    tags: string[];
+    manuallyModified: boolean;
+  }[]): Promise<void>;
 }
 
 // Helper function to determine platform from URL
@@ -2204,6 +2216,161 @@ export class DatabaseStorage implements IStorage {
 
   async updatePostClient(postId: number, clientName: string): Promise<Post> {
     return this.updatePost(postId, { clientName });
+  }
+
+  // AI-Based Tags Methods Implementation
+  async getPostAITags(postId: number): Promise<{
+    category: string;
+    tags: string[];
+    manuallyModified?: boolean;
+  }[]> {
+    try {
+      console.log(`Fetching AI-based tags for post ${postId}...`);
+      
+      // Execute the production database query for AI-based tags
+      const aiTagsResult = await db.execute(sql`
+        select distinct  
+          cast("shelf_utils_tagging".model_id as varchar) as Join_ID,
+          "shelf_utils_taggingitem"."tag_value_json"
+        from
+          "shelf_utils_taggingitem"
+        inner join "shelf_utils_tagging" on "shelf_utils_taggingitem"."tagging_id" = "shelf_utils_tagging"."id"
+        where 1=1
+          and "shelf_utils_tagging"."model_content_type_id" = 88
+          and "shelf_utils_tagging"."tagging_kind_id" in (1,17,19)
+          and cast("shelf_utils_tagging".inserted as date) > '2025-05-03'
+          and tag_name = 'post_tags'  
+          and tag_type isnull
+          and cast("shelf_utils_tagging".model_id as varchar) = ${postId.toString()}
+      `);
+
+      console.log(`Found ${aiTagsResult.rows.length} AI tag entries for post ${postId}`);
+
+      const aiTagsData: {
+        category: string;
+        tags: string[];
+        manuallyModified?: boolean;
+      }[] = [];
+
+      // Process each row (there should typically be only one per post)
+      for (const row of aiTagsResult.rows) {
+        try {
+          const tagJson = row.tag_value_json;
+          if (tagJson) {
+            // Handle both string JSON and object data from database
+            let parsedTags;
+            if (typeof tagJson === 'string') {
+              parsedTags = JSON.parse(tagJson);
+            } else {
+              parsedTags = tagJson; // Already an object
+            }
+            console.log(`Processing AI tags data for post ${postId}:`, parsedTags);
+            
+            // Convert JSON object to our format
+            Object.keys(parsedTags).forEach(category => {
+              const tagValue = parsedTags[category];
+              let tags: string[] = [];
+              
+              if (Array.isArray(tagValue)) {
+                // Handle array values by flattening them
+                tags = tagValue.map(tag => String(tag)).filter(tag => tag.trim() !== '');
+              } else if (typeof tagValue === 'string' && tagValue.trim() !== '') {
+                // Handle string values
+                tags = [tagValue];
+              } else if (tagValue != null) {
+                // Handle other types by converting to string
+                tags = [String(tagValue)];
+              }
+              
+              if (tags.length > 0) {
+                aiTagsData.push({
+                  category: category,
+                  tags: tags,
+                  manuallyModified: false // Default to false for AI-generated tags
+                });
+              }
+            });
+          }
+        } catch (parseError) {
+          console.error(`Error parsing AI tags JSON for post ${postId}:`, parseError);
+        }
+      }
+
+      // Check for manual modifications from Replit database
+      if (replitDb) {
+        try {
+          const manualModsResult = await replitDb.execute(sql`
+            SELECT ai_tags_data 
+            FROM ai_tags_manual_modifications 
+            WHERE post_id = ${postId}
+          `);
+
+          if (manualModsResult.rows.length > 0) {
+            const manualData = JSON.parse(manualModsResult.rows[0].ai_tags_data);
+            // Mark manually modified categories
+            aiTagsData.forEach(category => {
+              const manualCategory = manualData.find((m: any) => m.category === category.category);
+              if (manualCategory) {
+                category.manuallyModified = true;
+                category.tags = manualCategory.tags; // Use manually modified tags
+              }
+            });
+          }
+        } catch (replitError) {
+          console.log("No manual modifications found (table may not exist yet):", replitError.message);
+        }
+      }
+
+      console.log(`Returning ${aiTagsData.length} AI tag categories for post ${postId}`);
+      return aiTagsData;
+
+    } catch (error) {
+      console.error(`Error fetching AI-based tags for post ${postId}:`, error);
+      return []; // Return empty array on error, following Data Integrity Policy
+    }
+  }
+
+  async updatePostAITags(postId: number, aiTags: {
+    category: string;
+    tags: string[];
+    manuallyModified: boolean;
+  }[]): Promise<void> {
+    try {
+      if (!replitDb) {
+        throw new Error("Replit database not available for AI tags updates");
+      }
+
+      console.log(`Updating AI tags for post ${postId} with manual modifications`);
+
+      // Create table if it doesn't exist
+      await replitDb.execute(sql`
+        CREATE TABLE IF NOT EXISTS ai_tags_manual_modifications (
+          id SERIAL PRIMARY KEY,
+          post_id INTEGER NOT NULL,
+          ai_tags_data JSONB NOT NULL,
+          updated_at TIMESTAMP DEFAULT NOW(),
+          UNIQUE(post_id)
+        )
+      `);
+
+      // Store manual modifications in Replit database
+      const aiTagsJson = JSON.stringify(aiTags);
+      
+      await replitDb.execute(sql`
+        INSERT INTO ai_tags_manual_modifications (post_id, ai_tags_data, updated_at)
+        VALUES (${postId}, ${aiTagsJson}, NOW())
+        ON CONFLICT (post_id) 
+        DO UPDATE SET 
+          ai_tags_data = EXCLUDED.ai_tags_data,
+          updated_at = EXCLUDED.updated_at
+      `);
+
+      console.log(`Successfully updated AI tags manual modifications for post ${postId}`);
+
+    } catch (error) {
+      console.error(`Error updating AI tags for post ${postId}:`, error);
+      throw error;
+    }
   }
 }
 

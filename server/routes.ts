@@ -833,6 +833,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // AI-Based Tags API Routes
+  app.get("/api/posts/:postId/ai-tags", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      
+      if (isNaN(postId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid post ID"
+        });
+      }
+      
+      console.log(`Fetching AI-based tags for post ${postId}`);
+      const aiTags = await storage.getPostAITags(postId);
+      
+      res.json({
+        success: true,
+        postId,
+        aiTags,
+        total: aiTags.length
+      });
+    } catch (error) {
+      console.error("Error fetching AI-based tags:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch AI-based tags",
+        error: String(error)
+      });
+    }
+  });
+
+  app.post("/api/posts/:postId/ai-tags", async (req, res) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const { aiTags } = req.body;
+      
+      if (isNaN(postId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid post ID"
+        });
+      }
+      
+      if (!aiTags || !Array.isArray(aiTags)) {
+        return res.status(400).json({
+          success: false,
+          message: "AI tags array is required"
+        });
+      }
+      
+      console.log(`Updating AI-based tags for post ${postId}`);
+      await storage.updatePostAITags(postId, aiTags);
+      
+      res.json({
+        success: true,
+        postId,
+        message: "AI-based tags updated successfully"
+      });
+    } catch (error) {
+      console.error("Error updating AI-based tags:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to update AI-based tags",
+        error: String(error)
+      });
+    }
+  });
+
   // Admin Panel Routes
   app.get("/api/admin/tools-config", async (req, res) => {
     try {
