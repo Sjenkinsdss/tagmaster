@@ -166,7 +166,7 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
   const availableTags = tagsData?.tags || [];
 
   return (
-    <Card className="border-2 border-gray-200 bg-gray-50">
+    <Card className="border-2 border-gray-200 bg-white">
       <CardHeader 
         className="cursor-pointer hover:bg-gray-100 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
