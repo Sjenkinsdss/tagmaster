@@ -1784,13 +1784,26 @@ export class DatabaseStorage implements IStorage {
           }
         }
         
+        // Use filtered campaign name if available, otherwise use database campaign name or content-based detection
+        let campaignName;
+        if (filters?.campaign) {
+          // If filtering by campaign, use the filter value as the campaign name
+          campaignName = filters.campaign;
+        } else if (post.campaign_name && post.campaign_name !== 'Unknown Campaign') {
+          // Use database campaign name if available
+          campaignName = post.campaign_name;
+        } else {
+          // Fall back to content-based campaign detection
+          campaignName = getProperCampaignName(post);
+        }
+        
         return {
           id: post.id,
           content: post.content || post.title || '',
           title: displayTitle,
           create_date: new Date(),
           post_url: post.post_url,
-          authentic_campaign_title: filters?.campaign || getProperCampaignName(post),
+          authentic_campaign_title: campaignName,
           client_name: post.client_name || getClientFromContent(post.content || post.title || '')
         };
       });
