@@ -1297,27 +1297,28 @@ export default function TaggingInterface() {
                                   </div>
                                 ))}
                             </div>
+                            
+                            {/* Add tag dropdown section for this specific tag type */}
+                            <div className="border-t border-green-200 pt-4 mt-4">
+                              <TypeTagSection
+                                key={`add-${type}`}
+                                type={type}
+                                emoji={getTypeEmoji(type)}
+                                tags={[]} // No existing tags shown here, just the add functionality
+                                selectedPost={enrichedSelectedPost}
+                                onTagAdded={() => {
+                                  // Refresh posts and tags after adding a tag
+                                  queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+                                  queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+                                }}
+                                showOnlyAddSection={true}
+                              />
+                            </div>
                           </Card>
                         );
                       })}
                     </div>
                   );
-
-                  // Display browsable tag sections for adding new tags
-                  const typeSections = typeOrder.map(type => (
-                    <TypeTagSection
-                      key={type}
-                      type={type}
-                      emoji={getTypeEmoji(type)}
-                      tags={tags?.filter((tag: any) => (tag.type || tag.pillar) === type) || []}
-                      selectedPost={enrichedSelectedPost}
-                      onTagAdded={() => {
-                        // Refresh posts and tags after adding a tag
-                        queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-                        queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
-                      }}
-                    />
-                  ));
 
                   // Add AI-Based Tags section as 7th tag type (only if there are AI tags)
                   const aiTagsSection = selectedPost && aiTags.length > 0 && (
@@ -1371,14 +1372,73 @@ export default function TaggingInterface() {
                     </Card>
                   );
 
-                  return [connectedTagsSection, ...typeSections, aiTagsSection].filter(Boolean);
+                  return [connectedTagsSection, aiTagsSection].filter(Boolean);
                 })()}
 
-                {/* Show info if no connected tags are loaded yet */}
-                {postTags.length === 0 && (
+                {/* Show info if no connected tags are loaded yet, but show empty green sections for each tag type */}
+                {postTags.length === 0 && selectedPost && (
+                  <div className="space-y-4">
+                    {['ad', 'campaign', 'client', 'post', 'ai', 'influencer', 'product', 'general'].map(type => (
+                      <Card key={type} className="p-4 bg-green-50 border-green-200">
+                        <div className="flex items-center space-x-2 mb-4">
+                          <div className="text-xl">{(() => {
+                            const emojiMap: { [key: string]: string } = {
+                              ad: "📢",
+                              campaign: "🎯", 
+                              client: "🏢",
+                              post: "📝",
+                              ai: "🤖",
+                              influencer: "👤",
+                              product: "🛍️",
+                              general: "🏷️"
+                            };
+                            return emojiMap[type.toLowerCase()] || "🏷️";
+                          })()}</div>
+                          <h3 className="font-semibold text-green-800 capitalize">
+                            {type} Tags (0)
+                          </h3>
+                        </div>
+                        
+                        <p className="text-sm text-green-600 mb-4">No {type} tags connected to this post</p>
+                        
+                        {/* Add tag dropdown section for this specific tag type */}
+                        <div className="border-t border-green-200 pt-4 mt-4">
+                          <TypeTagSection
+                            key={`add-${type}`}
+                            type={type}
+                            emoji={(() => {
+                              const emojiMap: { [key: string]: string } = {
+                                ad: "📢",
+                                campaign: "🎯", 
+                                client: "🏢",
+                                post: "📝",
+                                ai: "🤖",
+                                influencer: "👤",
+                                product: "🛍️",
+                                general: "🏷️"
+                              };
+                              return emojiMap[type.toLowerCase()] || "🏷️";
+                            })()}
+                            tags={[]} // No existing tags shown here, just the add functionality
+                            selectedPost={selectedPost}
+                            onTagAdded={() => {
+                              // Refresh posts and tags after adding a tag
+                              queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+                              queryClient.invalidateQueries({ queryKey: ["/api/tags"] });
+                            }}
+                            showOnlyAddSection={true}
+                          />
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Show info if no post is selected */}
+                {!selectedPost && (
                   <div className="text-center text-carbon-gray-70 py-8">
                     <Tags className="w-12 h-12 mx-auto mb-4 text-carbon-gray-30" />
-                    <p>No tags connected to this post</p>
+                    <p>Select a post to view and manage tags</p>
                   </div>
                 )}
 

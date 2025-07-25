@@ -31,6 +31,7 @@ interface TypeTagSectionProps {
   tags: any[];
   selectedPost?: any;
   onTagAdded?: () => void;
+  showOnlyAddSection?: boolean;
 }
 
 const getTypeEmoji = (type: string): string => {
@@ -48,7 +49,7 @@ const getTypeEmoji = (type: string): string => {
   return emojiMap[type.toLowerCase()] || "🏷️";
 };
 
-export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagAdded }: TypeTagSectionProps) {
+export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagAdded, showOnlyAddSection = false }: TypeTagSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
   const [selectedTagId, setSelectedTagId] = useState<string>("");
@@ -164,6 +165,89 @@ export default function TypeTagSection({ type, emoji, tags, selectedPost, onTagA
 
   const categories = categoriesData?.categories || [];
   const availableTags = tagsData?.tags || [];
+
+  // If showOnlyAddSection is true, only show the add section without the card wrapper
+  if (showOnlyAddSection) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center space-x-2">
+          <Plus className="w-4 h-4 text-green-600" />
+          <span className="text-sm font-medium text-green-700">Add {type.charAt(0).toUpperCase() + type.slice(1)} Tag</span>
+        </div>
+        
+        <div className="space-y-2">
+          <div className="relative">
+            <Select 
+              value={selectedCategoryId} 
+              onValueChange={handleCategoryChange}
+              disabled={categoriesLoading}
+            >
+              <SelectTrigger>
+                <div className="flex items-center space-x-2 w-full">
+                  {categoriesLoading && (
+                    <LoadingSpinner variant="pulse" size="sm" />
+                  )}
+                  <SelectValue placeholder={categoriesLoading ? "Loading categories..." : "Select category"} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {categories
+                  .sort((a: Category, b: Category) => a.name.localeCompare(b.name))
+                  .map((category: Category) => (
+                  <SelectItem key={category.id} value={category.id.toString()}>
+                    <div className="flex items-center justify-between w-full">
+                      <span>{category.name}</span>
+                      <span className="text-xs text-gray-500">({category.tagCount} tags)</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="relative">
+            <Select 
+              value={selectedTagId} 
+              onValueChange={handleTagChange}
+              disabled={!selectedCategoryId || tagsLoading}
+            >
+              <SelectTrigger>
+                <div className="flex items-center space-x-2 w-full">
+                  {tagsLoading && selectedCategoryId && (
+                    <LoadingSpinner variant="content" size="sm" />
+                  )}
+                  <SelectValue placeholder={tagsLoading && selectedCategoryId ? "Loading tags..." : "Select tag"} />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                {availableTags.map((tag: TagByCategory) => (
+                  <SelectItem key={tag.id} value={tag.id.toString()}>
+                    {tag.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button 
+            onClick={handleAddTag}
+            disabled={!selectedTagId || !selectedPost || addTagMutation.isPending}
+            className="w-full bg-green-600 hover:bg-green-700"
+            size="sm"
+          >
+            {addTagMutation.isPending ? (
+              <div className="flex items-center space-x-2">
+                <LoadingSpinner variant="ai" size="sm" />
+                <span>Adding Tag...</span>
+              </div>
+            ) : (
+              "Add Tag"
+            )}
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <Card className="border-2 border-gray-200 bg-white">
